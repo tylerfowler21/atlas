@@ -12,3 +12,14 @@ next-env.d.ts
 /src/generated
 prisma/*.db
 prisma/*.db-journal
+
+# local data dumps
+atlas-export.json
+
+# local dev Postgres (PGlite)
+.pgdata/
+
+# iCloud Drive conflict copies
+*[0-9].toml
+*[0-9].ts
+*[0-9].tsx

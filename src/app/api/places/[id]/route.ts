@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, placeUpdateSchema } from "@/lib/validation";
 
@@ -13,6 +14,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { id } = await params;
 
   const existing = await loadOwned(id, user.id);
@@ -39,6 +41,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { id } = await params;
 
   const existing = await loadOwned(id, user.id);

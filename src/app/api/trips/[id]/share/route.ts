@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { newShareToken } from "@/lib/share";
 
@@ -33,6 +34,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { id } = await params;
 
   const trip = await loadOwnedTrip(id, user.id);
@@ -51,6 +53,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { id } = await params;
 
   const trip = await loadOwnedTrip(id, user.id);
@@ -79,6 +82,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { id } = await params;
 
   const trip = await loadOwnedTrip(id, user.id);

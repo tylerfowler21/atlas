@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, itemCreateSchema } from "@/lib/validation";
 
@@ -8,6 +9,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { id: tripId } = await params;
 
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });

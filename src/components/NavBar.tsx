@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const LINKS = [
   { href: "/", label: "Map", icon: "🗺️" },
@@ -10,11 +11,27 @@ const LINKS = [
   { href: "/been", label: "Been", icon: "🌍" },
 ];
 
-export default function NavBar() {
+export type NavUser = {
+  name: string | null;
+  email: string | null;
+  image: string | null;
+};
+
+export default function NavBar({
+  user,
+  signOutAction,
+}: {
+  user: NavUser;
+  signOutAction: () => Promise<void>;
+}) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const label = user.name ?? user.email ?? "Account";
+  const initial = label.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <header className="flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
+    <header className="relative flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
       <Link href="/" className="mr-3 flex items-center gap-2 px-1 text-sm font-semibold">
         <span aria-hidden>🧭</span>
         <span>Atlas</span>
@@ -43,6 +60,54 @@ export default function NavBar() {
           );
         })}
       </nav>
+
+      <div className="relative ml-auto">
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-full p-0.5 pr-2 hover:bg-foreground/5"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          {user.image ? (
+            // Avatars come from the identity provider on arbitrary hosts, and
+            // next/image would need every one of them allow-listed.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.image}
+              alt=""
+              width={28}
+              height={28}
+              className="size-7 rounded-full object-cover"
+            />
+          ) : (
+            <span className="grid size-7 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent">
+              {initial}
+            </span>
+          )}
+          <span className="hidden max-w-32 truncate text-xs text-muted sm:block">
+            {label}
+          </span>
+        </button>
+
+        {menuOpen && (
+          <div
+            className="card absolute top-full right-0 z-20 mt-1 w-56 p-2 shadow-lg"
+            role="menu"
+          >
+            <p className="truncate px-2 py-1 text-xs text-muted">{user.email}</p>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                role="menuitem"
+                className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

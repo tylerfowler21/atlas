@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/user";
+import { requireUser } from "@/lib/user";
 import { serializeTrip } from "@/lib/types";
 import { formatRange, relativeLabel } from "@/lib/trips";
 import NewTripForm from "@/components/NewTripForm";
@@ -8,7 +8,7 @@ import NewTripForm from "@/components/NewTripForm";
 export const dynamic = "force-dynamic";
 
 export default async function TripsPage() {
-  const user = await getCurrentUser();
+  const user = await requireUser();
   const trips = await prisma.trip.findMany({
     where: { userId: user.id },
     orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],

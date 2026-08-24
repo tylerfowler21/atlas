@@ -1,13 +1,11 @@
-/// Optional demo data so a fresh install has something on the map.
-/// Run with `npm run db:seed`, clear it again with `npm run db:reset`.
+/// Optional demo data, attached to one account.
+///
+///   npm run db:seed -- you@example.com
+///
+/// With no email it uses the only account in the database. Clear everything
+/// again with `npm run db:reset`.
 
-// tsx does not read .env on its own; the app gets it from Next.
-import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaClient } from "../src/generated/prisma/client";
-
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" });
-const prisma = new PrismaClient({ adapter });
+import { prisma, resolveTargetUser } from "../src/lib/db-script";
 
 const PLACES = [
   { name: "Time Out Market", category: "restaurant", status: "visited", rating: 4, lat: 38.7067, lng: -9.1459, city: "Lisbon", country: "Portugal", countryCode: "pt", notes: "Go early, it fills up by 1pm." },
@@ -23,11 +21,7 @@ const PLACES = [
 ];
 
 async function main() {
-  const user = await prisma.user.upsert({
-    where: { email: "you@atlas.local" },
-    update: {},
-    create: { email: "you@atlas.local", name: "You" },
-  });
+  const user = await resolveTargetUser(true);
 
   const existing = await prisma.place.count({ where: { userId: user.id } });
   if (existing > 0) {

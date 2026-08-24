@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, tripCreateSchema } from "@/lib/validation";
 
 export async function GET() {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const trips = await prisma.trip.findMany({
     where: { userId: user.id },
     orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
@@ -15,6 +17,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const parsed = tripCreateSchema.safeParse(await request.json());
 
   if (!parsed.success) {

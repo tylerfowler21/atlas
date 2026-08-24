@@ -1,26 +1,30 @@
-import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 
-/// Atlas currently runs as a single local user — there is no sign-in yet.
-/// Every query still goes through this function and scopes by `id`, so
-/// dropping in real sessions (and then trip sharing) means changing this
-/// file rather than every route.
-const LOCAL_USER = {
-  email: "you@atlas.local",
-  name: "You",
+export type CurrentUser = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
 };
 
-let cached: { id: string; name: string; email: string } | null = null;
+/// The signed-in user, or null. Every query in the app scopes by `id`, so this
+/// returning null is what keeps one person's places out of another's.
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
 
-export async function getCurrentUser() {
-  if (cached) return cached;
+  return {
+    id: session.user.id,
+    name: session.user.name ?? null,
+    email: session.user.email ?? null,
+    image: session.user.image ?? null,
+  };
+}
 
-  const user = await prisma.user.upsert({
-    where: { email: LOCAL_USER.email },
-    update: {},
-    create: LOCAL_USER,
-    select: { id: true, name: true, email: true },
-  });
-
-  cached = user;
+/// For pages: send anyone who isn't signed in to the sign-in screen.
+export async function requireUser(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/signin");
   return user;
 }

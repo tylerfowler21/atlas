@@ -1,6 +1,6 @@
 import Explorer from "@/components/Explorer";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/user";
+import { requireUser } from "@/lib/user";
 import { serializePlace, serializeTrip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function MapPage({
   // ?place=<id> opens the map with that place selected — this is how the
   // Places and Trips pages hand a row over to the map.
   const { place } = await searchParams;
-  const user = await getCurrentUser();
+  const user = await requireUser();
 
   const [places, trips] = await Promise.all([
     prisma.place.findMany({

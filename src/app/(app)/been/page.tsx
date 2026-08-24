@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/user";
+import { requireUser } from "@/lib/user";
 import { flagEmoji } from "@/lib/geo";
 import { formatDay } from "@/lib/trips";
 import { serializePlace } from "@/lib/types";
@@ -10,7 +10,7 @@ import StarRating from "@/components/StarRating";
 export const dynamic = "force-dynamic";
 
 export default async function BeenPage() {
-  const user = await getCurrentUser();
+  const user = await requireUser();
   const visited = await prisma.place.findMany({
     where: { userId: user.id, status: "visited" },
     orderBy: [{ visitedAt: "desc" }, { createdAt: "desc" }],

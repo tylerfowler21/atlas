@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, placeCreateSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const category = searchParams.get("category");
@@ -23,6 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
+  if (!user) return unauthorized();
   const parsed = placeCreateSchema.safeParse(await request.json());
 
   if (!parsed.success) {

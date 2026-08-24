@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/user";
+import { requireUser } from "@/lib/user";
 import { category as categoryOf } from "@/lib/taxonomy";
 import { flagEmoji } from "@/lib/geo";
 import StarRating from "@/components/StarRating";
@@ -8,7 +8,7 @@ import StarRating from "@/components/StarRating";
 export const dynamic = "force-dynamic";
 
 export default async function PlacesPage() {
-  const user = await getCurrentUser();
+  const user = await requireUser();
   const places = await prisma.place.findMany({
     where: { userId: user.id },
     orderBy: [{ country: "asc" }, { city: "asc" }, { name: "asc" }],

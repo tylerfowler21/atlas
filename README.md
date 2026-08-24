@@ -1,7 +1,8 @@
 # Atlas
 
-A personal travel map. Save the places you want to go, plan trips day by day,
-and keep a running map of everywhere you've been.
+A travel map you can share. Save the places you want to go, plan trips day by
+day, keep a map of everywhere you've been, and send friends a read-only link to
+an itinerary.
 
 - **Map** — search anywhere in the world (or drop a pin), save it with a
   category, notes and a rating, and see everything you've saved on one map.
@@ -13,80 +14,176 @@ and keep a running map of everywhere you've been.
 
 ## Stack
 
-Next.js 16 (App Router), React 19, Prisma 7 + SQLite, Tailwind 4, and
-MapLibre GL for the map.
+Next.js 16 (App Router), React 19, Prisma 7 + **Postgres**, Auth.js v5 with
+Google sign-in, Tailwind 4, and MapLibre GL for the map.
 
-**No API keys are needed.** Basemap tiles come from CARTO's free OpenStreetMap
-basemaps and place search comes from Nominatim, both used without an account.
-Nominatim asks for at most one request per second and an identifying
+**The map needs no API keys.** Basemap tiles come from CARTO's free
+OpenStreetMap basemaps and place search from Nominatim, both used without an
+account. Nominatim asks for at most one request per second and an identifying
 User-Agent, so search is proxied through `/api/geocode`, which queues, spaces
 and caches the calls (`src/lib/nominatim.ts`). Don't call Nominatim straight
 from the browser — that's what the proxy is for.
 
-## Running it
+## Running it locally
+
+Nothing to install beyond npm — the local database is PGlite, which is Postgres
+compiled to WebAssembly, served over the real Postgres wire protocol.
 
 ```bash
 npm install
-npx prisma migrate deploy   # creates prisma/dev.db
-npm run dev                 # http://localhost:3000
+npm run db:dev      # local Postgres on 127.0.0.1:55432, leave running
 ```
 
-Optional demo data (Lisbon, Tokyo, Paris and a sample trip):
+Then in another terminal:
 
 ```bash
-npm run db:seed
+cp .env.example .env    # then fill in AUTH_SECRET
+npm run db:migrate
+npm run dev             # http://localhost:3100
 ```
 
-`npm run db:reset` drops the database and re-applies migrations, which is the
-way to clear the demo data.
+Generate a secret with `openssl rand -base64 33`.
 
-`DATABASE_URL` in `.env` is resolved relative to the project root by both the
-Prisma CLI and the app — keep it as `file:./prisma/dev.db` so they agree.
+Data lives in `./.pgdata`; delete that directory to start completely clean.
 
-## Sharing a trip
+### Signing in locally without Google
 
-"Share trip" on a trip page mints a secret link at `/s/<token>`. Anyone holding
-it can read the itinerary — day tabs, stops and the map — without an account.
-They cannot change anything.
+Set `ALLOW_DEV_LOGIN="true"` in `.env` and the sign-in page grows a
+passwordless box: type any email and you're signed in as that account. It's how
+you check multi-user behaviour — sign in as two different addresses and confirm
+they can't see each other's places.
+
+**This is development only.** It is gated on `NODE_ENV !== "production"`, so a
+production build never even constructs the provider, but don't set the variable
+on a deployed environment.
+
+Optional demo data for an account:
+
+```bash
+npm run db:seed -- you@example.com
+```
+
+## Setting up Google sign-in
+
+You need a Google Cloud project. This part can't be done from the code — it
+needs your account.
+
+1. Go to the [Google Cloud console](https://console.cloud.google.com/) and
+   create a project (or pick an existing one).
+2. **APIs & Services → OAuth consent screen.** Choose **External**, fill in an
+   app name and your support email. While it's in "Testing" only accounts you
+   add as test users can sign in, so **Publish** it when you want everyone to
+   be able to use it.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**,
+   application type **Web application**.
+4. Under **Authorised redirect URIs** add both:
+   ```
+   http://localhost:3100/api/auth/callback/google
+   https://YOUR-DOMAIN/api/auth/callback/google
+   ```
+   The path is exact — Google rejects anything that doesn't match character for
+   character.
+5. Copy the client ID and client secret into `AUTH_GOOGLE_ID` and
+   `AUTH_GOOGLE_SECRET`.
+
+Atlas only asks for `openid email profile` — identity, nothing else.
+
+If those two variables are missing the app still boots and shared links still
+work; the sign-in page just tells you no method is configured.
+
+## Deploying
+
+You need a hosted Postgres and a host. [Neon](https://neon.tech) and
+[Vercel](https://vercel.com) both have free tiers and work well together.
+
+1. Create a Postgres database and copy its connection string.
+2. Push this repo to GitHub and import it in Vercel.
+3. Set the environment variables on the host:
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | your Postgres connection string |
+   | `AUTH_SECRET` | `openssl rand -base64 33` |
+   | `AUTH_GOOGLE_ID` | from the OAuth client above |
+   | `AUTH_GOOGLE_SECRET` | from the OAuth client above |
+
+   Do **not** set `ALLOW_DEV_LOGIN`.
+
+4. Apply the schema to the production database once, from your machine:
+
+   ```bash
+   DATABASE_URL="<production connection string>" npm run db:migrate
+   ```
+
+   Migrations are deliberately **not** run during the build. Preview
+   deployments share the production database, so a migration in the build step
+   would let an unreviewed branch alter live data.
+
+5. Add your real domain to the Google OAuth redirect URIs (step 4 above).
+
+On hosts other than Vercel, also set `AUTH_TRUST_HOST="true"` so Auth.js
+accepts the forwarded host header.
+
+## Accounts and sharing
+
+Sign-in is Google, via Auth.js v5 with JWT sessions — no database round trip per
+request, which matters on serverless.
+
+Everything is scoped by `userId`. The check lives in two places:
+
+- `src/app/(app)/layout.tsx` calls `requireUser()`, so every page in the `(app)`
+  group is private *by default* — a new page added there is protected without
+  anyone remembering to protect it.
+- every route handler in `src/app/api/` refuses anonymous callers with
+  `unauthorized()`, and every lookup filters on the signed-in user, so asking
+  for someone else's trip by id returns 404 rather than their data.
+
+### Shared itineraries
+
+"Share trip" mints a secret link at `/s/<token>`. Anyone holding it can read the
+itinerary — day tabs, stops and the map — without an account, and cannot change
+anything.
 
 The token is the whole credential, so:
 
 - it comes from the CSPRNG (24 random bytes, base64url), never from an id;
-- there is one link per trip, and "Replace link" rotates the token, which
-  instantly breaks every copy of the old URL — that is how you un-share
-  something you have already sent;
+- there's one link per trip, and "Replace link" rotates the token, which
+  instantly breaks every copy of the old URL — that's how you un-share
+  something you've already sent;
 - "Stop sharing" deletes the row, so old and bogus tokens both 404;
 - the page is marked `noindex`.
 
 The shared payload is an explicit allow-list (`PublicItemDTO` and friends in
 `src/lib/types.ts`), not a copy of the private DTOs. A place's personal notes
-and rating stay in your library; the trip-specific notes on an itinerary item
-are shared, since those are the point of sending someone a plan.
+and rating stay in your library, and the owner's name and email are never on
+the page. The trip-specific notes on an itinerary item *are* shared, since
+those are the point of sending someone a plan.
 
-The signed-in chrome lives in the `(app)` route group, so a shared itinerary
-renders standalone rather than inside somebody else's navigation.
+Collaborative editing — friends changing an itinerary rather than reading it —
+is the next step up, and needs a `TripCollaborator` table so edits can be
+attributed.
 
-## Accounts
+## Moving data between databases
 
-There is no sign-in yet. The app runs as a single local user, created on first
-use by `getCurrentUser()` in `src/lib/user.ts`. Every table carries a `userId`
-and every query is scoped by it, so adding real sessions is a change to that
-one file rather than to every route.
+```bash
+npm run db:export                    # → atlas-export.json
+npm run db:import -- you@example.com # onto one account
+```
 
-Collaborative trips — friends *editing* an itinerary rather than reading it —
-are the thing that genuinely needs accounts, since edits have to be attributed
-to somebody. That is a `TripCollaborator` table on top of the same shape, plus
-an auth provider.
+The export is gitignored; it's your personal data.
 
 ## Layout
 
 ```
 src/app/(app)/      the owner's pages: /, /places, /trips, /trips/[id], /been
 src/app/s/[token]/  the public read-only shared itinerary
-src/app/api/        route handlers
+src/app/signin/     sign-in
+src/app/api/        route handlers, including Auth.js at /api/auth/*
+src/auth.ts         Auth.js configuration (providers, session, callbacks)
 src/components/     client components — MapCanvas is the MapLibre wrapper
-src/lib/            prisma client, current user, zod schemas, taxonomy, geo/trip helpers
-prisma/schema.prisma  User, Place, Trip, ItineraryItem, TripShare
+src/lib/            prisma client, session helpers, zod schemas, taxonomy, geo
+scripts/            dev Postgres, data export/import
+prisma/schema.prisma  Auth.js tables + User, Place, Trip, ItineraryItem, TripShare
 ```
 
 Categories (restaurant, café, bar, activity, sight, nature, stay, shop,

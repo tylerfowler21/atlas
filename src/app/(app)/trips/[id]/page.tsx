@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/user";
+import { requireUser } from "@/lib/user";
 import { serializePlace, serializeTrip, type ItineraryItemDTO } from "@/lib/types";
 import TripPlanner from "@/components/TripPlanner";
 
@@ -12,7 +12,7 @@ export default async function TripPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await getCurrentUser();
+  const user = await requireUser();
 
   const trip = await prisma.trip.findUnique({
     where: { id },
