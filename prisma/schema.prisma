@@ -1,0 +1,107 @@
+// Atlas — a personal travel map, place log, and trip planner.
+//
+// SQLite for local dev. Models avoid Postgres/MySQL-only native types and use
+// String instead of enum (SQLite has no enums) so switching the datasource
+// provider later stays a one-line change.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// A person using Atlas. Today there is exactly one local user (see
+/// src/lib/user.ts); every record already hangs off a userId so adding real
+/// sign-in and trip sharing later is additive rather than a migration.
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  image     String?
+  homeCity  String?
+  createdAt DateTime @default(now())
+
+  places Place[]
+  trips  Trip[]
+}
+
+/// A saved location: a restaurant, a museum, a hotel, a viewpoint.
+/// `status` is what powers both the wishlist and the "places I've been" map.
+model Place {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  /// PlaceCategory value — see src/lib/taxonomy.ts
+  category    String     @default("other")
+  /// "wishlist" (want to go) or "visited" (been there)
+  status      String     @default("wishlist")
+  lat         Float
+  lng         Float
+  address     String?
+  city        String?
+  country     String?
+  /// ISO 3166-1 alpha-2, lowercased. Drives the country count on /been.
+  countryCode String?
+  notes       String?
+  /// 1–5, only meaningful once visited
+  rating      Int?
+  website     String?
+  visitedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itineraryItems ItineraryItem[]
+
+  @@index([userId, status])
+  @@index([userId, category])
+  @@index([userId, countryCode])
+}
+
+/// A trip: a titled container of day-by-day itinerary items.
+model Trip {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  destination String?
+  startDate   DateTime?
+  endDate     DateTime?
+  notes       String?
+  /// Hex colour used for this trip's pins and accents
+  color       String    @default("#2563eb")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ItineraryItem[]
+
+  @@index([userId])
+}
+
+/// One entry on one day of a trip. Usually points at a saved Place, but
+/// placeId is optional so non-place entries ("Flight to Lisbon") still fit.
+model ItineraryItem {
+  id        String   @id @default(cuid())
+  tripId    String
+  placeId   String?
+  title     String
+  notes     String?
+  /// 0-based day offset from the trip's first day
+  dayIndex  Int      @default(0)
+  /// "HH:mm", local to the destination. Null means "sometime this day".
+  startTime String?
+  category  String   @default("other")
+  /// Sort position within the day
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip  Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+
+  @@index([tripId, dayIndex, position])
+  @@index([placeId])
+}
