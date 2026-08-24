@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
+import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
@@ -193,6 +194,37 @@ export default function TripPlanner({
     } finally {
       setNotice(null);
     }
+  }
+
+  /// The emoji belongs to the place, not to this stop, so editing it here
+  /// changes that place everywhere it appears — the map, your places list, and
+  /// any other trip that uses it. Every item pointing at the same place is
+  /// updated locally so the row you didn't click doesn't go stale.
+  async function setPlaceEmoji(placeId: string, emoji: string | null) {
+    setBusy(true);
+    setError(null);
+
+    const res = await fetch(`/api/places/${placeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "Could not change that emoji");
+      return;
+    }
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.placeId === placeId && i.place ? { ...i, place: { ...i.place, emoji } } : i,
+      ),
+    );
+    setLibrary((prev) =>
+      prev.map((p) => (p.id === placeId ? { ...p, emoji } : p)),
+    );
   }
 
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
@@ -401,12 +433,19 @@ export default function TripPlanner({
                           }}
                         />
                         {item.place && (
-                          <Link
-                            href={`/?place=${item.place.id}`}
-                            className="inline-block text-xs text-accent hover:underline"
-                          >
-                            Open on the map →
-                          </Link>
+                          <>
+                            <EmojiField
+                              emoji={item.place.emoji}
+                              category={item.place.category}
+                              onChange={(emoji) => setPlaceEmoji(item.place!.id, emoji)}
+                            />
+                            <Link
+                              href={`/?place=${item.place.id}`}
+                              className="inline-block text-xs text-accent hover:underline"
+                            >
+                              Open on the map →
+                            </Link>
+                          </>
                         )}
                       </div>
                     )}
