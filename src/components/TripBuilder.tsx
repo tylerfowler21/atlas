@@ -16,7 +16,10 @@ type Stop = {
   title: string;
   category: string;
   startTime: string | null;
-  place: SearchResult;
+  notes: string | null;
+  /// Null for things that happened but aren't a place you can look up —
+  /// "dinner at the place by the lake", "drove the Furka Pass".
+  place: SearchResult | null;
 };
 
 /// Builds a trip by picking real dates first, then filling each day by
@@ -40,6 +43,8 @@ export default function TripBuilder() {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dropMode, setDropMode] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // The days come from the dates, so there is never a "Day 3" to type.
   const days = useMemo(() => {
@@ -91,13 +96,13 @@ export default function TripBuilder() {
 
   const pins = useMemo<MapPin[]>(() => {
     const numbers = new Map(dayStops.map((s, i) => [s.key, i + 1]));
-    return stops.map((s) => {
+    return stops.filter((s) => s.place !== null).map((s) => {
       const meta = categoryOf(s.category);
       const badge = numbers.get(s.key);
       return {
         id: s.key,
-        lat: s.place.lat,
-        lng: s.place.lng,
+        lat: s.place!.lat,
+        lng: s.place!.lng,
         color: badge ? "#2563eb" : meta.color,
         icon: meta.icon,
         badge: badge ? String(badge) : null,
@@ -106,21 +111,69 @@ export default function TripBuilder() {
     });
   }, [stops, dayStops]);
 
-  function addStop(result: SearchResult) {
+  function addStop(
+    title: string,
+    place: SearchResult | null,
+    category = place?.category ?? "other",
+  ) {
     setStops((prev) => [
       ...prev,
       {
-        key: `${result.id}-${Date.now()}`,
+        key: `stop-${Date.now()}-${prev.length}`,
         dayIndex: day,
-        title: result.name,
-        category: result.category,
+        title,
+        category,
         startTime: null,
-        place: result,
+        notes: null,
+        place,
       },
     ]);
     setQuery("");
     setSearch({ q: "", items: [] });
   }
+
+  /// Clicking the map adds whatever is at that point. The reverse lookup
+  /// usually names it; when it can't, the stop still lands and you type the
+  /// name yourself.
+  async function dropPin(lat: number, lng: number) {
+    setDropMode(false);
+    setNotice("Looking up that spot…");
+
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const body = await res.json();
+      const r = body.result;
+      addStop(r.name || "", {
+        id: `pin-${Date.now()}`,
+        name: r.name || "Dropped pin",
+        lat,
+        lng,
+        address: r.address ?? null,
+        city: r.city ?? null,
+        country: r.country ?? null,
+        countryCode: r.countryCode ?? null,
+        category: r.category ?? "other",
+        context: r.address ?? "",
+      });
+    } catch {
+      addStop("", {
+        id: `pin-${Date.now()}`,
+        name: "Dropped pin",
+        lat,
+        lng,
+        address: null,
+        city: null,
+        country: null,
+        countryCode: null,
+        category: "other",
+        context: "",
+      });
+    } finally {
+      setNotice(null);
+    }
+  }
+
+  const unnamed = stops.filter((s) => s.title.trim().length === 0).length;
 
   function updateStop(key: string, changes: Partial<Stop>) {
     setStops((prev) => prev.map((s) => (s.key === key ? { ...s, ...changes } : s)));
@@ -145,17 +198,19 @@ export default function TripBuilder() {
           dayIndex: s.dayIndex,
           title: s.title,
           startTime: s.startTime,
-          notes: null,
+          notes: s.notes,
           category: s.category,
-          place: {
-            name: s.title,
-            lat: s.place.lat,
-            lng: s.place.lng,
-            address: s.place.address,
-            city: s.place.city,
-            country: s.place.country,
-            countryCode: s.place.countryCode,
-          },
+          place: s.place
+            ? {
+                name: s.title,
+                lat: s.place.lat,
+                lng: s.place.lng,
+                address: s.place.address,
+                city: s.place.city,
+                country: s.place.country,
+                countryCode: s.place.countryCode,
+              }
+            : null,
         })),
       }),
     });
@@ -281,15 +336,44 @@ export default function TripBuilder() {
                 onChange={(e) => setQuery(e.target.value)}
               />
 
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={`chip ${dropMode ? "is-on" : ""}`}
+                  onClick={() => setDropMode((v) => !v)}
+                >
+                  📌 {dropMode ? "Click the map…" : "Drop a pin instead"}
+                </button>
+                {trimmed.length > 0 && (
+                  <button
+                    type="button"
+                    className="chip"
+                    onClick={() => addStop(trimmed, null)}
+                  >
+                    ✏️ Add “{trimmed}” with no pin
+                  </button>
+                )}
+                {notice && <span className="text-xs text-muted">{notice}</span>}
+              </div>
+
               {trimmed.length >= 3 && (
                 <ul className="mt-2 divide-y divide-line overflow-hidden rounded-lg border border-line">
                   {searching && (
                     <li className="px-2.5 py-2 text-xs text-muted">Searching…</li>
                   )}
                   {!searching && results.length === 0 && (
-                    <li className="px-2.5 py-2 text-xs text-muted">
-                      Nothing found. Try the local spelling — Aareschlucht rather
-                      than Aare Gorge.
+                    <li className="px-2.5 py-2">
+                      <p className="text-xs text-muted">
+                        Nothing found. Try the local spelling — Aareschlucht rather
+                        than Aare Gorge — or add it anyway.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn-ghost mt-2 w-full justify-center"
+                        onClick={() => addStop(trimmed, null)}
+                      >
+                        Add “{trimmed}” without a map pin
+                      </button>
                     </li>
                   )}
                   {results.map((r) => (
@@ -297,7 +381,7 @@ export default function TripBuilder() {
                       <button
                         type="button"
                         className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
-                        onClick={() => addStop(r)}
+                        onClick={() => addStop(r.name, r)}
                       >
                         <span aria-hidden>{categoryOf(r.category).icon}</span>
                         <span className="min-w-0 flex-1">
@@ -339,9 +423,18 @@ export default function TripBuilder() {
                           {index + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{stop.title}</p>
-                          <p className="truncate text-xs text-muted">
-                            {[stop.place.city, stop.place.country].filter(Boolean).join(", ")}
+                          <input
+                            className="input text-sm font-medium"
+                            aria-label="Name of this stop"
+                            placeholder="What was it called?"
+                            value={stop.title}
+                            onChange={(e) => updateStop(stop.key, { title: e.target.value })}
+                          />
+                          <p className="mt-1 truncate text-xs text-muted">
+                            {stop.place
+                              ? [stop.place.city, stop.place.country].filter(Boolean).join(", ") ||
+                                `${stop.place.lat.toFixed(4)}, ${stop.place.lng.toFixed(4)}`
+                              : "No map pin — it will sit on the day without a location"}
                           </p>
                         </div>
                         <button
@@ -390,6 +483,16 @@ export default function TripBuilder() {
                           ))}
                         </select>
                       </div>
+
+                      <input
+                        className="input mt-2 text-xs"
+                        aria-label={`Notes for ${stop.title || "this stop"}`}
+                        placeholder="Notes — what you ate, who you were with, what to remember…"
+                        value={stop.notes ?? ""}
+                        onChange={(e) =>
+                          updateStop(stop.key, { notes: e.target.value || null })
+                        }
+                      />
                     </li>
                   ))}
                 </ol>
@@ -411,7 +514,9 @@ export default function TripBuilder() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy || title.trim().length === 0 || stops.length === 0}
+              disabled={
+                busy || title.trim().length === 0 || stops.length === 0 || unnamed > 0
+              }
               onClick={create}
             >
               {busy
@@ -423,13 +528,30 @@ export default function TripBuilder() {
                 Give the trip a name first.
               </p>
             )}
+            {unnamed > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {unnamed === 1 ? "One stop still needs" : `${unnamed} stops still need`} a
+                name.
+              </p>
+            )}
           </>
         )}
       </aside>
 
       <div className="relative min-h-[45vh] flex-1 lg:min-h-0">
-        <MapCanvas pins={pins} fitToken={`builder-${stops.length}-${day}`} />
-        {stops.length === 0 && (
+        <MapCanvas
+          pins={pins}
+          fitToken={`builder-${stops.length}-${day}`}
+          onMapClick={ready && dropMode ? dropPin : undefined}
+        />
+        {dropMode && (
+          <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+            <p className="card px-3 py-1.5 text-xs shadow-lg">
+              Click anywhere on the map to add it to {formatDay(days[day] ?? days[0]!)}
+            </p>
+          </div>
+        )}
+        {!dropMode && stops.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
             <p className="card px-3 py-1.5 text-xs shadow-lg">
               Places appear here as you add them
