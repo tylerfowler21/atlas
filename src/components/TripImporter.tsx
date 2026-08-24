@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
@@ -164,6 +165,12 @@ export default function TripImporter() {
         Paste where you went, roughly by day. Every place is looked up on the map
         and saved to your places, so you only type names.
       </p>
+      <Link
+        href="/trips/import"
+        className="mt-1 inline-block text-xs text-muted hover:underline"
+      >
+        Rather pick dates and click through the days? Use the guided version
+      </Link>
 
       <div className="mt-6 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
