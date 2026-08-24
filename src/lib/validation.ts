@@ -76,6 +76,7 @@ export const tripUpdateSchema = z.object(tripFields).partial().extend({
 
 const itemFields = {
   title: trimmed(160).min(1, "Give the item a title"),
+  emoji,
   placeId: optionalText(40),
   notes: optionalText(1000),
   dayIndex: z.number().int().min(0).max(365),

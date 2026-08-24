@@ -37,6 +37,7 @@ export type ItineraryItemDTO = {
   tripId: string;
   placeId: string | null;
   title: string;
+  emoji: string | null;
   notes: string | null;
   dayIndex: number;
   startTime: string | null;
@@ -121,6 +122,7 @@ export type PublicPlaceDTO = {
 export type PublicItemDTO = {
   id: string;
   title: string;
+  emoji: string | null;
   notes: string | null;
   dayIndex: number;
   startTime: string | null;

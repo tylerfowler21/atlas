@@ -212,6 +212,10 @@ model ItineraryItem {
   /// "HH:mm", local to the destination. Null means "sometime this day".
   startTime String?
   category  String   @default("other")
+  /// Overrides the icon for this stop only, so a place can look one way on the
+  /// map and another on a particular day. Also the only emoji a stop with no
+  /// place can have.
+  emoji     String?
   /// Sort position within the day
   position  Int      @default(0)
   createdAt DateTime @default(now())

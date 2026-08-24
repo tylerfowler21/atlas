@@ -67,6 +67,7 @@ export async function loadPublishedTrip(tripId: string) {
   const items: PublicItemDTO[] = trip.items.map((item) => ({
     id: item.id,
     title: item.title,
+    emoji: item.emoji,
     notes: item.notes,
     dayIndex: item.dayIndex,
     startTime: item.startTime,

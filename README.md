@@ -252,6 +252,11 @@ Categories (restaurant, café, bar, activity, sight, nature, stay, shop,
 transport, other) and their colours and icons are defined once in
 `src/lib/taxonomy.ts`; the map, the lists and the itinerary all read from it.
 
+A stop's emoji resolves most-specific-first via `stopIcon()`: the stop's own
+`ItineraryItem.emoji`, then its place's `Place.emoji`, then the category icon.
+That is what lets a stop with no place — the plain entries for things the map
+has never heard of — carry an emoji at all.
+
 Any place can override its category's icon with its own emoji (`Place.emoji`).
 Everything that draws a saved place goes through `placeIcon()` in the same file,
 so a place looks the same on the map, in lists and in an itinerary. The

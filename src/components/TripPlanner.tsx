@@ -7,7 +7,7 @@ import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
-import { CATEGORIES, category as categoryOf, placeIcon } from "@/lib/taxonomy";
+import { CATEGORIES, category as categoryOf, placeIcon, stopIcon } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
 import type { TripRole } from "@/lib/trip-access";
@@ -35,6 +35,9 @@ export default function TripPlanner({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dropMode, setDropMode] = useState(false);
+  // Which stop's emoji picker is open. Separate from selectedId so changing an
+  // emoji doesn't also expand the notes panel.
+  const [emojiFor, setEmojiFor] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // Places saved from inside the trip go into the library too, so they are
   // available on the map and on every future trip.
@@ -62,7 +65,7 @@ export default function TripPlanner({
           lat: item.place!.lat,
           lng: item.place!.lng,
           color: badge ? trip.color : meta.color,
-          icon: item.place ? placeIcon(item.place) : meta.icon,
+          icon: stopIcon(item),
           badge: badge ? String(badge) : null,
           muted: !badge,
         };
@@ -196,37 +199,6 @@ export default function TripPlanner({
     }
   }
 
-  /// The emoji belongs to the place, not to this stop, so editing it here
-  /// changes that place everywhere it appears — the map, your places list, and
-  /// any other trip that uses it. Every item pointing at the same place is
-  /// updated locally so the row you didn't click doesn't go stale.
-  async function setPlaceEmoji(placeId: string, emoji: string | null) {
-    setBusy(true);
-    setError(null);
-
-    const res = await fetch(`/api/places/${placeId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ emoji }),
-    });
-    const body = await res.json().catch(() => ({}));
-    setBusy(false);
-
-    if (!res.ok) {
-      setError(body.error ?? "Could not change that emoji");
-      return;
-    }
-
-    setItems((prev) =>
-      prev.map((i) =>
-        i.placeId === placeId && i.place ? { ...i, place: { ...i.place, emoji } } : i,
-      ),
-    );
-    setLibrary((prev) =>
-      prev.map((p) => (p.id === placeId ? { ...p, emoji } : p)),
-    );
-  }
-
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
     return mutate<{ item: ItineraryItemDTO }>(
       () =>
@@ -354,12 +326,27 @@ export default function TripPlanner({
                       </span>
                       <button
                         type="button"
+                        aria-label={`Change the emoji for ${item.title}`}
+                        title="Change emoji"
+                        className={`grid size-7 shrink-0 place-items-center rounded-full border text-sm transition-colors ${
+                          emojiFor === item.id
+                            ? "border-accent bg-accent/10"
+                            : "border-line hover:bg-foreground/5"
+                        }`}
+                        onClick={() =>
+                          setEmojiFor((cur) => (cur === item.id ? null : item.id))
+                        }
+                      >
+                        {stopIcon(item)}
+                      </button>
+                      <button
+                        type="button"
                         className="min-w-0 flex-1 text-left"
                         onClick={() => setSelectedId(item.id)}
                       >
                         <p className="truncate text-sm font-medium">{item.title}</p>
                         <p className="truncate text-xs text-muted">
-                          {item.place ? placeIcon(item.place) : meta.icon} {meta.label}
+                          {meta.label}
                           {item.place?.city ? ` · ${item.place.city}` : ""}
                         </p>
                       </button>
@@ -417,6 +404,26 @@ export default function TripPlanner({
                       </button>
                     </div>
 
+                    {emojiFor === item.id && (
+                      <div className="mt-2 border-t border-line pt-2">
+                        <EmojiField
+                          emoji={item.emoji}
+                          category={item.category}
+                          fallback={
+                            item.place ? placeIcon(item.place) : categoryOf(item.category).icon
+                          }
+                          onChange={(emoji) => patchItem(item.id, { emoji })}
+                        />
+                        {item.place && (
+                          <p className="mt-1.5 text-xs text-muted">
+                            Changes this stop only. To change{" "}
+                            <span className="font-medium">{item.place.name}</span>{" "}
+                            everywhere, edit it on the map.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {selectedId === item.id && (
                       <div className="mt-2 space-y-1.5 border-t border-line pt-2">
                         <textarea
@@ -433,19 +440,12 @@ export default function TripPlanner({
                           }}
                         />
                         {item.place && (
-                          <>
-                            <EmojiField
-                              emoji={item.place.emoji}
-                              category={item.place.category}
-                              onChange={(emoji) => setPlaceEmoji(item.place!.id, emoji)}
-                            />
-                            <Link
-                              href={`/?place=${item.place.id}`}
-                              className="inline-block text-xs text-accent hover:underline"
-                            >
-                              Open on the map →
-                            </Link>
-                          </>
+                          <Link
+                            href={`/?place=${item.place.id}`}
+                            className="inline-block text-xs text-accent hover:underline"
+                          >
+                            Open on the map →
+                          </Link>
                         )}
                       </div>
                     )}

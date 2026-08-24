@@ -69,6 +69,7 @@ export default async function SharedTripPage({
   const items: PublicItemDTO[] = share.trip.items.map((item) => ({
     id: item.id,
     title: item.title,
+    emoji: item.emoji,
     notes: item.notes,
     dayIndex: item.dayIndex,
     startTime: item.startTime,

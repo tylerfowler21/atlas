@@ -35,6 +35,19 @@ export function placeIcon(place: { emoji?: string | null; category: string }) {
   return place.emoji || category(place.category).icon;
 }
 
+/// The emoji for one stop on an itinerary, most specific first: the stop's own
+/// override, then the place's, then the category. A stop with no place still
+/// gets an emoji this way.
+export function stopIcon(item: {
+  emoji?: string | null;
+  category: string;
+  place?: { emoji?: string | null; category: string } | null;
+}) {
+  if (item.emoji) return item.emoji;
+  if (item.place) return placeIcon(item.place);
+  return category(item.category).icon;
+}
+
 export const STATUSES = [
   { id: "wishlist", label: "Want to go", icon: "🔖" },
   { id: "visited", label: "Been there", icon: "✅" },

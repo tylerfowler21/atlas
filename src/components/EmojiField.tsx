@@ -12,13 +12,17 @@ const SUGGESTIONS = [
 export default function EmojiField({
   emoji,
   category,
+  fallback: explicitFallback,
   onChange,
 }: {
   emoji: string | null;
   category: string;
+  /// What shows when there is no emoji here. For a trip stop that may be the
+  /// place's own emoji rather than the category's.
+  fallback?: string;
   onChange: (emoji: string | null) => void;
 }) {
-  const fallback = categoryOf(category).icon;
+  const fallback = explicitFallback ?? categoryOf(category).icon;
 
   return (
     <div>
