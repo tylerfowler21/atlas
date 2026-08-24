@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/user";
 import { flagEmoji } from "@/lib/geo";
+import { formatDay } from "@/lib/trips";
 import { serializePlace } from "@/lib/types";
 import BeenMap from "@/components/BeenMap";
 import StarRating from "@/components/StarRating";
@@ -85,15 +86,30 @@ export default async function BeenPage() {
           <h2 className="mt-8 mb-2 text-sm font-medium">Recently visited</h2>
           <ul className="card divide-y divide-line overflow-hidden">
             {visited.slice(0, 25).map((place) => (
-              <li key={place.id} className="flex items-center gap-3 px-3 py-2.5">
-                <span aria-hidden>{flagEmoji(place.countryCode)}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{place.name}</p>
-                  <p className="truncate text-xs text-muted">
-                    {[place.city, place.country].filter(Boolean).join(", ")}
-                  </p>
-                </div>
-                <StarRating value={place.rating} size="sm" />
+              <li key={place.id}>
+                <Link
+                  href={`/?place=${place.id}`}
+                  className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-foreground/5"
+                >
+                  <span aria-hidden>{flagEmoji(place.countryCode)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{place.name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {[place.city, place.country].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <StarRating value={place.rating} size="sm" />
+                    {place.visitedAt && (
+                      <span className="text-xs text-muted tabular-nums">
+                        {formatDay(place.visitedAt, {
+                          weekday: undefined,
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

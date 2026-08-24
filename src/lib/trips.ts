@@ -8,13 +8,20 @@ export function dayCount(
   trip: { startDate: string | null; endDate: string | null },
   items: { dayIndex: number }[],
 ): number {
+  // A trip is always at least long enough to show every item it already has,
+  // so shortening the dates can never strand a stop on an invisible day.
+  const fromItems = Math.max(1, ...items.map((i) => i.dayIndex + 1));
+
   if (trip.startDate && trip.endDate) {
-    const span =
-      (Date.parse(trip.endDate) - Date.parse(trip.startDate)) / DAY_MS;
-    return Math.max(1, Math.round(span) + 1);
+    const span = (Date.parse(trip.endDate) - Date.parse(trip.startDate)) / DAY_MS;
+    return Math.max(Math.round(span) + 1, fromItems);
   }
-  // Undated trips are as long as their furthest-out item.
-  return Math.max(1, ...items.map((i) => i.dayIndex + 1));
+  return fromItems;
+}
+
+/// "2026-09-18" from an ISO timestamp, for binding to a <input type="date">.
+export function toDateInput(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : "";
 }
 
 export function dateForDay(

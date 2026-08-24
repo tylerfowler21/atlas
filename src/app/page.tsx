@@ -5,7 +5,14 @@ import { serializePlace, serializeTrip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function MapPage() {
+export default async function MapPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ place?: string }>;
+}) {
+  // ?place=<id> opens the map with that place selected — this is how the
+  // Places and Trips pages hand a row over to the map.
+  const { place } = await searchParams;
   const user = await getCurrentUser();
 
   const [places, trips] = await Promise.all([
@@ -23,6 +30,7 @@ export default async function MapPage() {
     <Explorer
       initialPlaces={places.map(serializePlace)}
       trips={trips.map(serializeTrip)}
+      initialSelectedId={place ?? null}
     />
   );
 }

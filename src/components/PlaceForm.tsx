@@ -18,6 +18,8 @@ export default function PlaceForm({
   const [category, setCategory] = useState(draft.category);
   const [status, setStatus] = useState<"wishlist" | "visited">("wishlist");
   const [rating, setRating] = useState<number | null>(null);
+  // Empty means "no particular date" — the server stamps today for a visit.
+  const [visitedAt, setVisitedAt] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,10 @@ export default function PlaceForm({
         countryCode: draft.countryCode,
         notes: notes.trim() || null,
         rating: status === "visited" ? rating : null,
+        visitedAt:
+          status === "visited" && visitedAt
+            ? new Date(visitedAt).toISOString()
+            : undefined,
       }),
     });
 
@@ -90,9 +96,20 @@ export default function PlaceForm({
       </div>
 
       {status === "visited" && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted">Rating</span>
-          <StarRating value={rating} onChange={setRating} />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted">Rating</span>
+            <StarRating value={rating} onChange={setRating} />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-muted">
+            Went
+            <input
+              type="date"
+              className="input w-36 px-2 py-1 text-xs"
+              value={visitedAt}
+              onChange={(e) => setVisitedAt(e.target.value)}
+            />
+          </label>
         </div>
       )}
 

@@ -36,22 +36,106 @@ export const STATUSES = [
 export type StatusId = (typeof STATUSES)[number]["id"];
 export const STATUS_IDS = STATUSES.map((s) => s.id) as [StatusId, ...StatusId[]];
 
-/// Best-effort mapping from an OpenStreetMap category/type onto ours, so a
-/// place added straight from search lands in a sensible bucket.
-export function guessCategory(osmClass?: string, osmType?: string): CategoryId {
-  const t = (osmType ?? "").toLowerCase();
-  const c = (osmClass ?? "").toLowerCase();
+/// Best-effort mapping from an OpenStreetMap class/type onto our categories,
+/// so a place added straight from search lands in a sensible bucket.
+///
+/// Nominatim reports two fields: a broad `class` (amenity, tourism, historic,
+/// leisure, shop, natural…) and a specific `type` (restaurant, cathedral,
+/// viewpoint…). Type wins when we recognise it, class is the fallback — that
+/// way "Sagrada Família" (building/cathedral) lands on Sight rather than Other.
+const BY_TYPE: Record<string, CategoryId> = {
+  restaurant: "restaurant",
+  fast_food: "restaurant",
+  food_court: "restaurant",
+  deli: "restaurant",
+  bakery: "cafe",
+  cafe: "cafe",
+  coffee: "cafe",
+  ice_cream: "cafe",
+  tea: "cafe",
+  bar: "bar",
+  pub: "bar",
+  nightclub: "bar",
+  biergarten: "bar",
+  wine_bar: "bar",
+  brewery: "bar",
+  hotel: "hotel",
+  hostel: "hotel",
+  motel: "hotel",
+  guest_house: "hotel",
+  apartment: "hotel",
+  chalet: "hotel",
+  camp_site: "hotel",
+  museum: "sight",
+  gallery: "sight",
+  artwork: "sight",
+  attraction: "sight",
+  monument: "sight",
+  memorial: "sight",
+  castle: "sight",
+  fort: "sight",
+  ruins: "sight",
+  cathedral: "sight",
+  church: "sight",
+  chapel: "sight",
+  basilica: "sight",
+  mosque: "sight",
+  synagogue: "sight",
+  temple: "sight",
+  shrine: "sight",
+  place_of_worship: "sight",
+  viewpoint: "sight",
+  tower: "sight",
+  lighthouse: "sight",
+  bridge: "sight",
+  theatre: "activity",
+  cinema: "activity",
+  zoo: "activity",
+  aquarium: "activity",
+  theme_park: "activity",
+  water_park: "activity",
+  casino: "activity",
+  spa: "activity",
+  park: "nature",
+  garden: "nature",
+  nature_reserve: "nature",
+  national_park: "nature",
+  beach: "nature",
+  peak: "nature",
+  volcano: "nature",
+  waterfall: "nature",
+  cliff: "nature",
+  bay: "nature",
+  island: "nature",
+  mall: "shop",
+  supermarket: "shop",
+  marketplace: "shop",
+  department_store: "shop",
+  airport: "transport",
+  aerodrome: "transport",
+  station: "transport",
+  bus_station: "transport",
+  ferry_terminal: "transport",
+  taxi: "transport",
+  car_rental: "transport",
+};
 
-  if (t === "restaurant" || t === "fast_food" || t === "food_court") return "restaurant";
-  if (t === "cafe" || t === "coffee" || t === "ice_cream") return "cafe";
-  if (t === "bar" || t === "pub" || t === "nightclub" || t === "biergarten") return "bar";
-  if (t === "hotel" || t === "hostel" || t === "guest_house" || t === "motel" || c === "tourism" && t === "apartment") return "hotel";
-  if (t === "museum" || t === "attraction" || t === "artwork" || t === "monument" || t === "memorial" || t === "castle") return "sight";
-  if (c === "historic") return "sight";
-  if (t === "theatre" || t === "cinema" || t === "zoo" || t === "theme_park" || t === "aquarium") return "activity";
-  if (c === "leisure") return "activity";
-  if (c === "natural" || t === "park" || t === "beach" || t === "peak" || t === "national_park") return "nature";
-  if (c === "shop" || t === "mall" || t === "supermarket") return "shop";
-  if (c === "aeroway" || t === "airport" || t === "station" || t === "bus_station" || t === "ferry_terminal") return "transport";
-  return "other";
+const BY_CLASS: Record<string, CategoryId> = {
+  historic: "sight",
+  tourism: "sight",
+  natural: "nature",
+  leisure: "activity",
+  shop: "shop",
+  aeroway: "transport",
+  railway: "transport",
+  public_transport: "transport",
+  amenity: "other",
+  building: "other",
+};
+
+export function guessCategory(osmClass?: string, osmType?: string): CategoryId {
+  const type = (osmType ?? "").toLowerCase();
+  const klass = (osmClass ?? "").toLowerCase();
+
+  return BY_TYPE[type] ?? BY_CLASS[klass] ?? "other";
 }

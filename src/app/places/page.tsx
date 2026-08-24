@@ -17,7 +17,8 @@ export default async function PlacesPage() {
   // Group by city so the list reads like a travel notebook rather than a table.
   const groups = new Map<string, typeof places>();
   for (const place of places) {
-    const key = [place.city, place.country].filter(Boolean).join(", ") || "Unplaced";
+    const key =
+      [place.city, place.country].filter(Boolean).join(", ") || "Unplaced";
     const bucket = groups.get(key);
     if (bucket) bucket.push(place);
     else groups.set(key, [place]);
@@ -60,27 +61,34 @@ export default async function PlacesPage() {
                 {group.map((place) => {
                   const meta = categoryOf(place.category);
                   return (
-                    <li key={place.id} className="flex items-center gap-3 px-3 py-2.5">
-                      <span
-                        aria-hidden
-                        className="grid size-8 shrink-0 place-items-center rounded-full text-sm"
-                        style={{ background: `${meta.color}22` }}
+                    <li key={place.id}>
+                      <Link
+                        href={`/?place=${place.id}`}
+                        className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-foreground/5"
                       >
-                        {meta.icon}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{place.name}</p>
-                        <p className="truncate text-xs text-muted">
-                          {meta.label}
-                          {place.notes ? ` · ${place.notes}` : ""}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <StarRating value={place.rating} size="sm" />
-                        <span className="text-xs text-muted">
-                          {place.status === "visited" ? "✅" : "🔖"}
+                        <span
+                          aria-hidden
+                          className="grid size-8 shrink-0 place-items-center rounded-full text-sm"
+                          style={{ background: `${meta.color}22` }}
+                        >
+                          {meta.icon}
                         </span>
-                      </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {place.name}
+                          </p>
+                          <p className="truncate text-xs text-muted">
+                            {meta.label}
+                            {place.notes ? ` · ${place.notes}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <StarRating value={place.rating} size="sm" />
+                          <span className="text-xs text-muted">
+                            {place.status === "visited" ? "✅" : "🔖"}
+                          </span>
+                        </div>
+                      </Link>
                     </li>
                   );
                 })}

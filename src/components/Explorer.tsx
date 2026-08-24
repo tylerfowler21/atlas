@@ -12,9 +12,12 @@ const DRAFT_PIN_ID = "__draft__";
 export default function Explorer({
   initialPlaces,
   trips,
+  initialSelectedId = null,
 }: {
   initialPlaces: PlaceDTO[];
   trips: TripDTO[];
+  /// Arriving from ?place=<id>: open this place and centre on it.
+  initialSelectedId?: string | null;
 }) {
   const [places, setPlaces] = useState(initialPlaces);
   const [query, setQuery] = useState("");
@@ -25,13 +28,18 @@ export default function Explorer({
     items: [],
   });
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [dropMode, setDropMode] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "wishlist" | "visited">("all");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [fitSeq, setFitSeq] = useState(0);
   const [focus, setFocus] = useState<{ lat: number; lng: number; token: number } | null>(
-    null,
+    // Computed once, from the initial props: a deep link should land centred on
+    // its place rather than fitting the whole world and then jumping.
+    () => {
+      const target = initialPlaces.find((p) => p.id === initialSelectedId);
+      return target ? { lat: target.lat, lng: target.lng, token: 1 } : null;
+    },
   );
   const [notice, setNotice] = useState<string | null>(null);
 

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
+import TripSettings from "@/components/TripSettings";
 import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import type { ItineraryItemDTO, PlaceDTO, TripDTO } from "@/lib/types";
 
 export default function TripPlanner({
-  trip,
+  trip: initialTrip,
   initialItems,
   places,
 }: {
@@ -16,6 +17,9 @@ export default function TripPlanner({
   initialItems: ItineraryItemDTO[];
   places: PlaceDTO[];
 }) {
+  // The trip is editable in place (title, dates, colour), so it lives in state
+  // rather than being read straight from props.
+  const [trip, setTrip] = useState(initialTrip);
   const [items, setItems] = useState(initialItems);
   const [activeDay, setActiveDay] = useState(0);
   const [extraDays, setExtraDays] = useState(0);
@@ -150,6 +154,8 @@ export default function TripPlanner({
           </p>
         </div>
 
+        <TripSettings trip={trip} onUpdated={setTrip} />
+
         <div className="flex flex-wrap gap-1.5">
           {Array.from({ length: days }, (_, i) => {
             const date = dateForDay(trip, i);
@@ -274,6 +280,32 @@ export default function TripPlanner({
                         Remove
                       </button>
                     </div>
+
+                    {selectedId === item.id && (
+                      <div className="mt-2 space-y-1.5 border-t border-line pt-2">
+                        <textarea
+                          // Uncontrolled and saved on blur: no keystroke-by-keystroke
+                          // requests, and `key` resets it when the stop changes.
+                          key={item.id}
+                          aria-label="Notes for this stop"
+                          className="input min-h-14 resize-y text-xs"
+                          placeholder="Notes — booking reference, what to order…"
+                          defaultValue={item.notes ?? ""}
+                          onBlur={(e) => {
+                            const next = e.target.value.trim() || null;
+                            if (next !== item.notes) patchItem(item.id, { notes: next });
+                          }}
+                        />
+                        {item.place && (
+                          <Link
+                            href={`/?place=${item.place.id}`}
+                            className="inline-block text-xs text-accent hover:underline"
+                          >
+                            Open on the map →
+                          </Link>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}

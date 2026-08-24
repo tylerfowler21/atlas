@@ -4,6 +4,7 @@ import { useState } from "react";
 import CategoryPicker from "@/components/CategoryPicker";
 import StarRating from "@/components/StarRating";
 import { category as categoryOf } from "@/lib/taxonomy";
+import { dayCount, toDateInput } from "@/lib/trips";
 import { flagEmoji } from "@/lib/geo";
 import type { PlaceDTO, TripDTO } from "@/lib/types";
 
@@ -24,6 +25,8 @@ export default function PlaceDetail({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addedTo, setAddedTo] = useState<string | null>(null);
+  const [tripId, setTripId] = useState("");
+  const [dayIndex, setDayIndex] = useState(0);
 
   // Selecting a different pin resets this editor: the parent gives it a
   // `key` of the place id, so React remounts it rather than carrying edits over.
@@ -33,7 +36,8 @@ export default function PlaceDetail({
     draft.category !== place.category ||
     draft.status !== place.status ||
     draft.rating !== place.rating ||
-    draft.notes !== place.notes;
+    draft.notes !== place.notes ||
+    draft.visitedAt !== place.visitedAt;
 
   async function patch(changes: Partial<PlaceDTO>) {
     setBusy(true);
@@ -62,7 +66,7 @@ export default function PlaceDetail({
     else setError("Could not delete that place");
   }
 
-  async function addToTrip(tripId: string) {
+  async function addToTrip() {
     setBusy(true);
     setError(null);
 
@@ -73,7 +77,7 @@ export default function PlaceDetail({
         title: place.name,
         placeId: place.id,
         category: place.category,
-        dayIndex: 0,
+        dayIndex,
       }),
     });
     setBusy(false);
@@ -82,10 +86,14 @@ export default function PlaceDetail({
       setError("Could not add that to the trip");
       return;
     }
-    setAddedTo(trips.find((t) => t.id === tripId)?.title ?? "trip");
+    const trip = trips.find((t) => t.id === tripId);
+    setAddedTo(`${trip?.title ?? "trip"} — day ${dayIndex + 1}`);
   }
 
   const meta = categoryOf(draft.category);
+  const selectedTrip = trips.find((t) => t.id === tripId) ?? null;
+  // Days come from the trip's own dates; an undated trip starts at one day.
+  const tripDays = selectedTrip ? dayCount(selectedTrip, []) : 1;
 
   return (
     <div className="space-y-3">
@@ -127,12 +135,31 @@ export default function PlaceDetail({
       </div>
 
       {draft.status === "visited" && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted">Rating</span>
-          <StarRating
-            value={draft.rating}
-            onChange={(rating) => setDraft({ ...draft, rating })}
-          />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted">Rating</span>
+            <StarRating
+              value={draft.rating}
+              onChange={(rating) => setDraft({ ...draft, rating })}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-muted">
+            Went
+            <input
+              type="date"
+              className="input w-36 px-2 py-1 text-xs"
+              value={toDateInput(draft.visitedAt)}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  // A date input is a plain date; store it as UTC midnight.
+                  visitedAt: e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : null,
+                })
+              }
+            />
+          </label>
         </div>
       )}
 
@@ -167,6 +194,7 @@ export default function PlaceDetail({
               status: draft.status,
               rating: draft.status === "visited" ? draft.rating : null,
               notes: draft.notes?.trim() || null,
+              visitedAt: draft.status === "visited" ? draft.visitedAt : null,
             })
           }
         >
@@ -178,16 +206,20 @@ export default function PlaceDetail({
       </div>
 
       {trips.length > 0 && (
-        <div className="border-t border-line pt-3">
-          <label className="text-xs text-muted" htmlFor="add-to-trip">
+        <div className="space-y-2 border-t border-line pt-3">
+          <label className="block text-xs text-muted" htmlFor="add-to-trip">
             Add to a trip
           </label>
           <select
             id="add-to-trip"
-            className="input mt-1"
-            value=""
+            className="input"
+            value={tripId}
             disabled={busy}
-            onChange={(e) => e.target.value && addToTrip(e.target.value)}
+            onChange={(e) => {
+              setTripId(e.target.value);
+              setDayIndex(0);
+              setAddedTo(null);
+            }}
           >
             <option value="">Choose a trip…</option>
             {trips.map((t) => (
@@ -196,9 +228,36 @@ export default function PlaceDetail({
               </option>
             ))}
           </select>
+
+          {selectedTrip && (
+            <div className="flex gap-2">
+              <select
+                aria-label="Day"
+                className="input w-32 shrink-0"
+                value={dayIndex}
+                disabled={busy}
+                onChange={(e) => setDayIndex(Number(e.target.value))}
+              >
+                {Array.from({ length: tripDays }, (_, i) => (
+                  <option key={i} value={i}>
+                    Day {i + 1}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={busy}
+                onClick={addToTrip}
+              >
+                Add to trip
+              </button>
+            </div>
+          )}
+
           {addedTo && (
-            <p className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-              Added to {addedTo} — day 1.
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              Added to {addedTo}.
             </p>
           )}
         </div>
