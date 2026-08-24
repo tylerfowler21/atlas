@@ -46,6 +46,17 @@ Generate a secret with `openssl rand -base64 33`.
 
 Data lives in `./.pgdata`; delete that directory to start completely clean.
 
+### Changing the schema
+
+`prisma migrate dev` is not usable here — it wants a shadow database, and the
+local PGlite server can only serve one. Generate migrations by diffing the
+running database against the schema instead:
+
+```bash
+DIR="prisma/migrations/$(date +%Y%m%d%H%M%S)_change" && mkdir -p "$DIR" && npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script > "$DIR/migration.sql"
+npm run db:migrate
+```
+
 ### Signing in locally without Google
 
 Set `ALLOW_DEV_LOGIN="true"` in `.env` and the sign-in page grows a
@@ -93,7 +104,9 @@ work; the sign-in page just tells you no method is configured.
 
 ## Deploying
 
-You need a hosted Postgres and a host. [Neon](https://neon.tech) and
+**Step-by-step instructions with the clicking: [DEPLOY.md](DEPLOY.md).**
+
+The short version. You need a hosted Postgres and a host. [Neon](https://neon.tech) and
 [Vercel](https://vercel.com) both have free tiers and work well together.
 
 1. Create a Postgres database and copy its connection string.
@@ -123,6 +136,11 @@ You need a hosted Postgres and a host. [Neon](https://neon.tech) and
 
 On hosts other than Vercel, also set `AUTH_TRUST_HOST="true"` so Auth.js
 accepts the forwarded host header.
+
+`npm run preflight` checks an environment before you trust it — database
+reachable, schema applied, every variable present — and prints the exact Google
+redirect URI to register. Pass an origin to see its production form:
+`npm run preflight -- https://your-domain.example`.
 
 ## Accounts and sharing
 
