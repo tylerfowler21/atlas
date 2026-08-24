@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
 import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
-import type { ItineraryItemDTO, PlaceDTO, TripDTO } from "@/lib/types";
+import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
 import type { TripRole } from "@/lib/trip-access";
 
 export default function TripPlanner({
@@ -33,6 +33,11 @@ export default function TripPlanner({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dropMode, setDropMode] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Places saved from inside the trip go into the library too, so they are
+  // available on the map and on every future trip.
+  const [library, setLibrary] = useState(places);
 
   const days = dayCount(trip, items) + extraDays;
   const dayItems = useMemo(
@@ -105,6 +110,89 @@ export default function TripPlanner({
       (body) => setItems((prev) => [...prev, body.item]),
       "Could not add that stop",
     );
+  }
+
+  /// Saves somewhere new to the user's places and adds it to the current day.
+  async function addNewPlace(input: {
+    name: string;
+    lat: number;
+    lng: number;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    countryCode: string | null;
+    category: string;
+  }) {
+    setBusy(true);
+    setError(null);
+
+    // A trip that has already finished is a log, so anything added to it has
+    // been visited; a trip still ahead is a plan, so it goes on the wishlist.
+    // Read at click time — the clock is not something to consult during render.
+    const alreadyHappened = trip.endDate ? Date.parse(trip.endDate) < Date.now() : false;
+
+    const res = await fetch("/api/places", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: input.name,
+        category: input.category,
+        status: alreadyHappened ? "visited" : "wishlist",
+        lat: input.lat,
+        lng: input.lng,
+        address: input.address,
+        city: input.city,
+        country: input.country,
+        countryCode: input.countryCode,
+      }),
+    });
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setBusy(false);
+      setError(body.error ?? "Could not save that place");
+      return;
+    }
+
+    const place: PlaceDTO = body.place;
+    setLibrary((prev) => [place, ...prev]);
+    setBusy(false);
+
+    await addItem({ title: place.name, placeId: place.id, category: place.category });
+  }
+
+  async function dropPin(lat: number, lng: number) {
+    setDropMode(false);
+    setNotice("Looking up that spot…");
+
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const body = await res.json();
+      const r = body.result;
+      await addNewPlace({
+        name: r.name || `Pin at ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        lat,
+        lng,
+        address: r.address ?? null,
+        city: r.city ?? null,
+        country: r.country ?? null,
+        countryCode: r.countryCode ?? null,
+        category: r.category ?? "other",
+      });
+    } catch {
+      await addNewPlace({
+        name: `Pin at ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        lat,
+        lng,
+        address: null,
+        city: null,
+        country: null,
+        countryCode: null,
+        category: "other",
+      });
+    } finally {
+      setNotice(null);
+    }
   }
 
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
@@ -332,9 +420,13 @@ export default function TripPlanner({
         {error && <p className="text-xs text-red-500">{error}</p>}
 
         <AddStop
-          places={places}
+          places={library}
           usedPlaceIds={new Set(items.map((i) => i.placeId).filter(Boolean) as string[])}
           onAdd={addItem}
+          onAddNew={addNewPlace}
+          dropMode={dropMode}
+          onToggleDrop={() => setDropMode((v) => !v)}
+          notice={notice}
           busy={busy}
         />
       </aside>
@@ -346,8 +438,16 @@ export default function TripPlanner({
           routeColor={trip.color}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          onMapClick={dropMode ? dropPin : undefined}
           fitToken={`trip-${trip.id}-${activeDay}`}
         />
+        {dropMode && (
+          <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+            <p className="card px-3 py-1.5 text-xs shadow-lg">
+              Click the map to add a stop to day {activeDay + 1}
+            </p>
+          </div>
+        )}
         {pins.length === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
             <p className="card px-3 py-1.5 text-xs shadow-lg">
@@ -366,15 +466,59 @@ function AddStop({
   places,
   usedPlaceIds,
   onAdd,
+  onAddNew,
+  dropMode,
+  onToggleDrop,
+  notice,
   busy,
 }: {
   places: PlaceDTO[];
   usedPlaceIds: Set<string>;
   onAdd: (payload: { title: string; placeId?: string | null; category?: string }) => Promise<boolean>;
+  onAddNew: (input: {
+    name: string;
+    lat: number;
+    lng: number;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    countryCode: string | null;
+    category: string;
+  }) => Promise<void>;
+  dropMode: boolean;
+  onToggleDrop: () => void;
+  notice: string | null;
   busy: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("other");
+  // Searching the wider world from inside a trip, so adding somewhere new no
+  // longer means a detour to the map and back.
+  const [world, setWorld] = useState<{ q: string; items: SearchResult[] }>({
+    q: "",
+    items: [],
+  });
+  const requestId = useRef(0);
+  const trimmed = query.trim();
+
+  useEffect(() => {
+    if (trimmed.length < 3) return;
+    const id = ++requestId.current;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(trimmed)}`);
+        const body = await res.json();
+        if (id === requestId.current) setWorld({ q: trimmed, items: body.results ?? [] });
+      } catch {
+        if (id === requestId.current) setWorld({ q: trimmed, items: [] });
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [trimmed]);
+
+  const worldResults = world.q === trimmed ? world.items : [];
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -394,10 +538,21 @@ function AddStop({
 
       <input
         className="input"
-        placeholder="Search your places, or type anything…"
+        placeholder="Search your places or anywhere in the world…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className={`chip ${dropMode ? "is-on" : ""}`}
+          onClick={onToggleDrop}
+        >
+          📌 {dropMode ? "Click the map…" : "Drop a pin"}
+        </button>
+        {notice && <span className="text-xs text-muted">{notice}</span>}
+      </div>
 
       {matches.length > 0 && (
         <ul className="mt-2 divide-y divide-line overflow-hidden rounded-lg border border-line">
@@ -431,6 +586,46 @@ function AddStop({
             );
           })}
         </ul>
+      )}
+
+      {trimmed.length >= 3 && worldResults.length > 0 && (
+        <>
+          <p className="mt-3 mb-1 text-xs tracking-wide text-muted uppercase">
+            Somewhere new
+          </p>
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+            {worldResults.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
+                  onClick={async () => {
+                    await onAddNew({
+                      name: r.name,
+                      lat: r.lat,
+                      lng: r.lng,
+                      address: r.address,
+                      city: r.city,
+                      country: r.country,
+                      countryCode: r.countryCode,
+                      category: r.category,
+                    });
+                    setQuery("");
+                    setWorld({ q: "", items: [] });
+                  }}
+                >
+                  <span aria-hidden>{categoryOf(r.category).icon}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm">{r.name}</span>
+                    <span className="block truncate text-xs text-muted">{r.context}</span>
+                  </span>
+                  <span className="text-xs text-accent">Save &amp; add</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {query.trim().length > 0 && (
