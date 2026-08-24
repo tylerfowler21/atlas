@@ -24,7 +24,12 @@ export default async function TripsPage() {
             Plan a trip day by day from the places you&apos;ve saved.
           </p>
         </div>
-        <NewTripForm />
+        <div className="flex items-center gap-2">
+          <Link href="/trips/import" className="btn btn-ghost">
+            Add a past trip
+          </Link>
+          <NewTripForm />
+        </div>
       </div>
 
       {trips.length === 0 ? (

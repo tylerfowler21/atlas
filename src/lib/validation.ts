@@ -76,3 +76,33 @@ export const itemUpdateSchema = z.object(itemFields).partial();
 export function firstIssue(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Invalid input";
 }
+
+/// One resolved line of a pasted itinerary. `place` is null when the entry is
+/// something that isn't a location ("Train to Zermatt"), which still belongs on
+/// the day but never gets a map pin.
+const importEntrySchema = z.object({
+  dayIndex: z.number().int().min(0).max(365),
+  title: trimmed(160).min(1),
+  startTime: optionalText(5),
+  notes: optionalText(1000),
+  category: z.enum(CATEGORY_IDS).default("other"),
+  place: z
+    .object({
+      name: trimmed(160).min(1),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      address: optionalText(300),
+      city: optionalText(120),
+      country: optionalText(120),
+      countryCode: optionalText(8).transform((v) => v?.toLowerCase() ?? null),
+    })
+    .nullable()
+    .optional(),
+});
+
+export const tripImportSchema = z.object({
+  trip: tripCreateSchema,
+  /// A trip you've already taken: every place it creates is marked visited.
+  markVisited: z.boolean().default(true),
+  entries: z.array(importEntrySchema).min(1, "Nothing to import").max(300),
+});
