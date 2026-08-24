@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
+import { visibleTripsWhere } from "@/lib/trip-access";
 import { serializeTrip } from "@/lib/types";
 import { formatRange, relativeLabel } from "@/lib/trips";
 import NewTripForm from "@/components/NewTripForm";
@@ -10,9 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function TripsPage() {
   const user = await requireUser();
   const trips = await prisma.trip.findMany({
-    where: { userId: user.id },
+    where: visibleTripsWhere(user),
     orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
-    include: { _count: { select: { items: true } } },
+    include: { _count: { select: { items: true } }, user: { select: { name: true, email: true } } },
   });
 
   return (
@@ -33,7 +34,19 @@ export default async function TripsPage() {
       </div>
 
       {trips.length === 0 ? (
-        <p className="mt-10 text-sm text-muted">No trips yet.</p>
+        <div className="card mt-10 space-y-3 p-5 text-center">
+          <p className="text-sm font-medium">No trips yet</p>
+          <p className="mx-auto max-w-md text-sm text-muted">
+            Planning something? Start a new trip and build it from your saved
+            places. Already been somewhere? Paste the itinerary and every stop
+            is found and pinned for you.
+          </p>
+          <div className="flex justify-center gap-2">
+            <Link href="/trips/import" className="btn btn-primary">
+              Add a past trip
+            </Link>
+          </div>
+        </div>
       ) : (
         <ul className="mt-8 space-y-3">
           {trips.map((trip) => {
@@ -57,6 +70,11 @@ export default async function TripsPage() {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
+                    {trip.userId !== user.id && (
+                      <p className="text-xs text-accent">
+                        shared by {trip.user.name ?? trip.user.email}
+                      </p>
+                    )}
                     {when && <p className="text-xs font-medium">{when}</p>}
                     <p className="text-xs text-muted">
                       {trip._count.items} {trip._count.items === 1 ? "stop" : "stops"}

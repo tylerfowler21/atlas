@@ -106,3 +106,12 @@ export const tripImportSchema = z.object({
   markVisited: z.boolean().default(true),
   entries: z.array(importEntrySchema).min(1, "Nothing to import").max(300),
 });
+
+export const collaboratorInviteSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("That doesn't look like an email address"))
+    .refine((v) => v.length <= 200, "That email is too long"),
+});

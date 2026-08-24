@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { tripAccess } from "@/lib/trip-access";
 import { firstIssue, itemUpdateSchema } from "@/lib/validation";
+import type { CurrentUser } from "@/lib/user";
 
-async function loadOwned(id: string, userId: string) {
-  const item = await prisma.itineraryItem.findUnique({
-    where: { id },
-    include: { trip: { select: { userId: true } } },
-  });
-  return item && item.trip.userId === userId ? item : null;
+/// An item is editable by anyone who can edit its trip.
+async function loadEditable(id: string, user: CurrentUser) {
+  const item = await prisma.itineraryItem.findUnique({ where: { id } });
+  if (!item) return null;
+  const access = await tripAccess(item.tripId, user);
+  return access ? item : null;
 }
 
 export async function PATCH(
@@ -20,7 +22,7 @@ export async function PATCH(
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await loadOwned(id, user.id);
+  const existing = await loadEditable(id, user);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const parsed = itemUpdateSchema.safeParse(await request.json());
@@ -56,7 +58,7 @@ export async function DELETE(
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await loadOwned(id, user.id);
+  const existing = await loadEditable(id, user);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.itineraryItem.delete({ where: { id } });

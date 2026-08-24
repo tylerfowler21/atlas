@@ -43,6 +43,27 @@ async function checkDatabase() {
   }
   ok("DATABASE_URL is set", url.replace(/:\/\/([^:]+):[^@]*@/, "://$1:****@"));
 
+  // pg currently treats sslmode=require as an alias for verify-full, but pg v9
+  // will give it libpq semantics, which skip certificate verification. Saying
+  // verify-full explicitly keeps today's behaviour across that upgrade.
+  const isLocal = /@(127\.0\.0\.1|localhost)/.test(url);
+  const sslmode = url.match(/[?&]sslmode=([^&]+)/)?.[1];
+  if (isLocal) {
+    ok("local database", "TLS not required");
+  } else if (sslmode === "verify-full") {
+    ok("sslmode=verify-full", "certificate and hostname verified");
+  } else if (sslmode) {
+    warn(
+      `sslmode=${sslmode} rather than verify-full`,
+      "Works today (pg aliases it to verify-full) but will mean unverified certificates under pg v9. Change it to sslmode=verify-full wherever DATABASE_URL is set.",
+    );
+  } else {
+    warn(
+      "no sslmode in the connection string",
+      "Add ?sslmode=verify-full so certificates are verified.",
+    );
+  }
+
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
   try {
     await prisma.$queryRaw`SELECT 1`;

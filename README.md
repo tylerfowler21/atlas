@@ -115,7 +115,7 @@ The short version. You need a hosted Postgres and a host. [Neon](https://neon.te
 
    | Variable | Value |
    | --- | --- |
-   | `DATABASE_URL` | your Postgres connection string |
+   | `DATABASE_URL` | your Postgres connection string, ending `?sslmode=verify-full` |
    | `AUTH_SECRET` | `openssl rand -base64 33` |
    | `AUTH_GOOGLE_ID` | from the OAuth client above |
    | `AUTH_GOOGLE_SECRET` | from the OAuth client above |
@@ -177,9 +177,27 @@ and rating stay in your library, and the owner's name and email are never on
 the page. The trip-specific notes on an itinerary item *are* shared, since
 those are the point of sending someone a plan.
 
-Collaborative editing — friends changing an itinerary rather than reading it —
-is the next step up, and needs a `TripCollaborator` table so edits can be
-attributed.
+### Collaborative trips
+
+"Who's on this trip" lets the owner invite people by email. Invitations are
+addressed to an email rather than an account, so you can invite someone who
+hasn't signed up; `TripCollaborator.userId` is filled in the first time they
+open the trip signed in with that address.
+
+Two roles, and the split is deliberate:
+
+- **owner** — everything, including renaming, share links, inviting and deleting
+- **editor** — the itinerary only: add, reorder, retime and remove stops
+
+`tripAccess()` in `src/lib/trip-access.ts` is the single place that resolves a
+role, and it returns null rather than throwing so callers answer 404 instead of
+403 — an id can't be probed for existence.
+
+Everyone adds stops from *their own* saved places, so an itinerary can reference
+places belonging to several people while each library stays private.
+
+Atlas doesn't send invitation emails — there's no mail provider wired up. Tell
+the person yourself; the trip appears in their list as soon as they sign in.
 
 ## Moving data between databases
 

@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { visibleTripsWhere } from "@/lib/trip-access";
 import { firstIssue, tripCreateSchema } from "@/lib/validation";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
   const trips = await prisma.trip.findMany({
-    where: { userId: user.id },
+    // Trips you own plus trips you have been invited to edit.
+    where: visibleTripsWhere(user),
     orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
     include: { _count: { select: { items: true } } },
   });

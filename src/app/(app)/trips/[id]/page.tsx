@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
+import { tripAccess } from "@/lib/trip-access";
 import { serializePlace, serializeTrip, type ItineraryItemDTO } from "@/lib/types";
 import TripPlanner from "@/components/TripPlanner";
 
@@ -14,7 +15,10 @@ export default async function TripPage({
   const { id } = await params;
   const user = await requireUser();
 
-  const trip = await prisma.trip.findUnique({
+  const access = await tripAccess(id, user);
+  if (!access) notFound();
+
+  const trip = await prisma.trip.findUniqueOrThrow({
     where: { id },
     include: {
       items: {
@@ -24,7 +28,13 @@ export default async function TripPage({
     },
   });
 
-  if (!trip || trip.userId !== user.id) notFound();
+  // Editors see whose trip they are helping with.
+  const ownerRecord = await prisma.user.findUnique({
+    where: { id: trip.userId },
+    select: { name: true, email: true },
+  });
+  const owner =
+    access.role === "owner" ? "You" : (ownerRecord?.name ?? ownerRecord?.email ?? "Someone");
 
   const places = await prisma.place.findMany({
     where: { userId: user.id },
@@ -41,6 +51,8 @@ export default async function TripPage({
       trip={serializeTrip(trip)}
       initialItems={items}
       places={places.map(serializePlace)}
+      role={access.role}
+      ownerLabel={owner}
     />
   );
 }

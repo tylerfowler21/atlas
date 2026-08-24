@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
@@ -267,11 +268,27 @@ export default function Explorer({
                 Your places ({localMatches.length})
               </h2>
               {localMatches.length === 0 ? (
-                <p className="text-xs text-muted">
-                  {places.length === 0
-                    ? "Nothing saved yet — search for somewhere, or drop a pin on the map."
-                    : "No saved places match."}
-                </p>
+                places.length === 0 ? (
+                  // A brand-new account lands on an empty world map. Pasting a
+                  // trip you have already taken is by far the fastest way to a
+                  // map that feels like yours, so lead with it.
+                  <div className="card space-y-3 p-3">
+                    <p className="text-sm font-medium">Your map is empty</p>
+                    <p className="text-xs text-muted">
+                      The quickest start is a trip you&apos;ve already taken — paste
+                      where you went and every place gets found and pinned for you.
+                    </p>
+                    <Link href="/trips/import" className="btn btn-primary w-full justify-center">
+                      Paste a trip you&apos;ve taken
+                    </Link>
+                    <p className="text-xs text-muted">
+                      Or search for somewhere above, or press{" "}
+                      <span className="font-medium">Drop a pin</span> and click the map.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted">No saved places match.</p>
+                )
               ) : (
                 <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
                   {localMatches.map((p) => {

@@ -4,6 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { newShareToken } from "@/lib/share";
 
+/// Publishing a trip to the world is the owner's call, not an editor's.
 async function loadOwnedTrip(id: string, userId: string) {
   const trip = await prisma.trip.findUnique({
     where: { id },

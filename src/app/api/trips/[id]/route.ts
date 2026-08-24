@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { tripAccess } from "@/lib/trip-access";
 import { firstIssue, tripUpdateSchema } from "@/lib/validation";
 
 export async function PATCH(
@@ -12,10 +13,16 @@ export async function PATCH(
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await prisma.trip.findUnique({ where: { id } });
-  if (!existing || existing.userId !== user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Editors change the itinerary, not the trip itself.
+  const access = await tripAccess(id, user);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (access.role !== "owner") {
+    return NextResponse.json(
+      { error: "Only the trip owner can change these details" },
+      { status: 403 },
+    );
   }
+  const existing = access.trip;
 
   const parsed = tripUpdateSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -40,9 +47,13 @@ export async function DELETE(
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await prisma.trip.findUnique({ where: { id } });
-  if (!existing || existing.userId !== user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const access = await tripAccess(id, user);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (access.role !== "owner") {
+    return NextResponse.json(
+      { error: "Only the trip owner can delete this trip" },
+      { status: 403 },
+    );
   }
 
   await prisma.trip.delete({ where: { id } });

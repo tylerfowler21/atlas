@@ -19,6 +19,11 @@ it your real web address (which doesn't exist yet).
    postgresql://user:password@ep-something.eu-central-1.aws.neon.tech/neondb?sslmode=require
    ```
 
+⚠️ **Change the ending from `?sslmode=require` to `?sslmode=verify-full`.**
+Both work today, but `verify-full` explicitly means "check the certificate and
+the hostname", and it will keep doing so after the Postgres driver's next major
+version. Use that form everywhere you paste this string.
+
 **Keep this somewhere for a minute. It's a password — don't paste it into
 chat, a ticket, or a commit.**
 

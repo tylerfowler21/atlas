@@ -4,19 +4,25 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import ShareTrip from "@/components/ShareTrip";
+import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
 import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import type { ItineraryItemDTO, PlaceDTO, TripDTO } from "@/lib/types";
+import type { TripRole } from "@/lib/trip-access";
 
 export default function TripPlanner({
   trip: initialTrip,
   initialItems,
   places,
+  role,
+  ownerLabel,
 }: {
   trip: TripDTO;
   initialItems: ItineraryItemDTO[];
   places: PlaceDTO[];
+  role: TripRole;
+  ownerLabel: string;
 }) {
   // The trip is editable in place (title, dates, colour), so it lives in state
   // rather than being read straight from props.
@@ -155,9 +161,16 @@ export default function TripPlanner({
           </p>
         </div>
 
-        <TripSettings trip={trip} onUpdated={setTrip} />
+        {/* Renaming, sharing and deleting stay with the owner; an editor gets
+            the itinerary and nothing else. */}
+        {role === "owner" && (
+          <>
+            <TripSettings trip={trip} onUpdated={setTrip} />
+            <ShareTrip tripId={trip.id} />
+          </>
+        )}
 
-        <ShareTrip tripId={trip.id} />
+        <TripPeople tripId={trip.id} role={role} ownerLabel={ownerLabel} />
 
         <div className="flex flex-wrap gap-1.5">
           {Array.from({ length: days }, (_, i) => {

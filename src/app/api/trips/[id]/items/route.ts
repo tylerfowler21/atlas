@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { tripAccess } from "@/lib/trip-access";
 import { firstIssue, itemCreateSchema } from "@/lib/validation";
 
 export async function POST(
@@ -12,10 +13,9 @@ export async function POST(
   if (!user) return unauthorized();
   const { id: tripId } = await params;
 
-  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
-  if (!trip || trip.userId !== user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  // Editors may add stops; that is the whole point of inviting them.
+  const access = await tripAccess(tripId, user);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const parsed = itemCreateSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -23,8 +23,8 @@ export async function POST(
   }
   const data = parsed.data;
 
-  // A placeId from another user's library would leak rows across accounts once
-  // sharing exists, so verify ownership rather than trusting the client.
+  // Everyone adds from their own library, so the place must belong to whoever
+  // is asking — not to the trip's owner.
   if (data.placeId) {
     const place = await prisma.place.findUnique({ where: { id: data.placeId } });
     if (!place || place.userId !== user.id) {
