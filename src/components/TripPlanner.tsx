@@ -297,19 +297,6 @@ export default function TripPlanner({
                       </button>
                     </div>
 
-                    {/* Notes are written while adding a trip, so they need to be
-                        editable afterwards or they would be write-once. */}
-                    <input
-                      className="input mt-2 text-xs"
-                      aria-label={`Notes for ${item.title}`}
-                      placeholder="Notes…"
-                      defaultValue={item.notes ?? ""}
-                      onBlur={(e) => {
-                        const value = e.target.value.trim() || null;
-                        if (value !== item.notes) patchItem(item.id, { notes: value });
-                      }}
-                    />
-
                     {selectedId === item.id && (
                       <div className="mt-2 space-y-1.5 border-t border-line pt-2">
                         <textarea
