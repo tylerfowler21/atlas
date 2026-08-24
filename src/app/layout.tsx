@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
   title: "Atlas — your travel map",
@@ -8,15 +7,15 @@ export const metadata: Metadata = {
     "Save the places you want to go, plan trips day by day, and keep a map of everywhere you have been.",
 };
 
+/// Deliberately bare. The signed-in chrome (the nav bar) lives in the (app)
+/// group instead, so a shared itinerary at /s/<token> renders as a standalone
+/// page rather than inside someone else's private navigation.
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="flex h-full flex-col overflow-hidden">
-        <NavBar />
-        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
-      </body>
+      <body className="flex h-full flex-col overflow-hidden">{children}</body>
     </html>
   );
 }

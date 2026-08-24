@@ -90,3 +90,62 @@ export type PlaceDraft = {
   countryCode: string | null;
   category: string;
 };
+
+// --- public (shared-link) shapes -----------------------------------------
+//
+// A shared itinerary is readable by anyone holding the link, so these types
+// are an explicit allow-list rather than a copy of the private DTOs. Notably
+// absent: a place's personal notes and rating, which belong to the owner's
+// library rather than to the trip they were used in.
+
+export type PublicPlaceDTO = {
+  id: string;
+  name: string;
+  category: string;
+  lat: number;
+  lng: number;
+  city: string | null;
+  country: string | null;
+  countryCode: string | null;
+};
+
+export type PublicItemDTO = {
+  id: string;
+  title: string;
+  notes: string | null;
+  dayIndex: number;
+  startTime: string | null;
+  category: string;
+  position: number;
+  place: PublicPlaceDTO | null;
+};
+
+export type PublicTripDTO = {
+  title: string;
+  destination: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  color: string;
+};
+
+export function toPublicPlace(p: {
+  id: string;
+  name: string;
+  category: string;
+  lat: number;
+  lng: number;
+  city: string | null;
+  country: string | null;
+  countryCode: string | null;
+}): PublicPlaceDTO {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    lat: p.lat,
+    lng: p.lng,
+    city: p.city,
+    country: p.country,
+    countryCode: p.countryCode,
+  };
+}

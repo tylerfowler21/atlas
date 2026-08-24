@@ -77,8 +77,24 @@ model Trip {
 
   user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   items ItineraryItem[]
+  share TripShare?
 
   @@index([userId])
+}
+
+/// A secret link that lets someone read one trip's itinerary without an
+/// account. The token *is* the credential, so it is long, random, and can be
+/// rotated or revoked. One link per trip: re-sharing rotates the token, which
+/// immediately breaks every copy of the old URL.
+model TripShare {
+  id           String    @id @default(cuid())
+  tripId       String    @unique
+  token        String    @unique
+  createdAt    DateTime  @default(now())
+  lastViewedAt DateTime?
+  viewCount    Int       @default(0)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
 /// One entry on one day of a trip. Usually points at a saved Place, but

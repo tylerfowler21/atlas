@@ -91,6 +91,7 @@ export default function MapCanvas({
   useEffect(() => {
     let cancelled = false;
     let created: MapLibreMap | null = null;
+    let observer: ResizeObserver | null = null;
     const markers = markersRef.current;
 
     // maplibre-gl touches `window` on import, so it is loaded in the effect
@@ -119,6 +120,12 @@ export default function MapCanvas({
       );
       instance.on("load", () => setStyleReady(true));
 
+      // If the container has no size yet — a hidden tab, a collapsed panel, a
+      // parent that lays out after us — maplibre falls back to 400x300 and
+      // stays there. Watching the container is what makes the map recover.
+      observer = new ResizeObserver(() => instance.resize());
+      observer.observe(containerRef.current);
+
       libRef.current = maplibregl;
       created = instance;
       setMap(instance);
@@ -126,6 +133,7 @@ export default function MapCanvas({
 
     return () => {
       cancelled = true;
+      observer?.disconnect();
       markers.forEach(({ marker }) => marker.remove());
       markers.clear();
       created?.remove();

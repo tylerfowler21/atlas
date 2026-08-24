@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
+import ShareTrip from "@/components/ShareTrip";
 import TripSettings from "@/components/TripSettings";
 import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
@@ -155,6 +156,8 @@ export default function TripPlanner({
         </div>
 
         <TripSettings trip={trip} onUpdated={setTrip} />
+
+        <ShareTrip tripId={trip.id} />
 
         <div className="flex flex-wrap gap-1.5">
           {Array.from({ length: days }, (_, i) => {
