@@ -35,7 +35,18 @@ export async function PATCH(
     return NextResponse.json({ error: "The trip ends before it starts" }, { status: 400 });
   }
 
-  const trip = await prisma.trip.update({ where: { id }, data: parsed.data });
+  const { published, ...fields } = parsed.data;
+  const trip = await prisma.trip.update({
+    where: { id },
+    data: {
+      ...fields,
+      // Republishing an already-published trip keeps its original timestamp,
+      // so a small edit does not shove it back to the top of every feed.
+      ...(published === undefined
+        ? {}
+        : { publishedAt: published ? (existing.publishedAt ?? new Date()) : null }),
+    },
+  });
   return NextResponse.json({ trip });
 }
 

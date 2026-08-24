@@ -50,7 +50,11 @@ export const tripCreateSchema = z.object(tripFields).extend({
     .default("#2563eb"),
 });
 
-export const tripUpdateSchema = z.object(tripFields).partial();
+export const tripUpdateSchema = z.object(tripFields).partial().extend({
+  /// Publishing puts the trip on your public profile and in your followers'
+  /// feeds. Stored as a timestamp, so it also orders the feed.
+  published: z.boolean().optional(),
+});
 
 const itemFields = {
   title: trimmed(160).min(1, "Give the item a title"),
@@ -114,4 +118,27 @@ export const collaboratorInviteSchema = z.object({
     .toLowerCase()
     .pipe(z.email("That doesn't look like an email address"))
     .refine((v) => v.length <= 200, "That email is too long"),
+});
+
+/// Handles are lowercase, URL-safe and unmistakable in a path like /u/tyler.
+/// The reserved list stops someone claiming a name that collides with a route.
+const RESERVED_USERNAMES = new Set([
+  "admin", "api", "atlas", "been", "feed", "help", "me", "new", "places",
+  "settings", "signin", "signout", "s", "support", "trips", "u", "user", "users",
+]);
+
+export const profileSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9_]{3,30}$/, "Use 3–30 letters, numbers or underscores")
+    .refine((v) => !RESERVED_USERNAMES.has(v), "That name is reserved")
+    .nullable()
+    .optional(),
+  bio: optionalText(280),
+});
+
+export const followSchema = z.object({
+  username: z.string().trim().toLowerCase().min(1, "Which person?"),
 });

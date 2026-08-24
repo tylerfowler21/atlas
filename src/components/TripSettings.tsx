@@ -25,6 +25,30 @@ export default function TripSettings({
   const [error, setError] = useState<string | null>(null);
   // Deleting a whole itinerary deserves a second click, not a browser dialog.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [published, setPublished] = useState(trip.publishedAt !== null);
+
+  /// Saved on its own rather than with the rest of the form, so switching
+  /// visibility takes effect immediately and can't be left pending.
+  async function publish(next: boolean) {
+    setPublished(next);
+    setBusy(true);
+    setError(null);
+
+    const res = await fetch(`/api/trips/${trip.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ published: next }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!res.ok) {
+      setPublished(!next);
+      setError(body.error ?? "Could not change who can see this");
+      return;
+    }
+    onUpdated(body.trip);
+  }
 
   if (!open) {
     return (
@@ -128,6 +152,28 @@ export default function TripSettings({
             style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}66` : undefined }}
           />
         ))}
+      </div>
+
+      {/* Publishing is a different kind of decision from renaming, so it gets
+          its own block rather than sitting among the text fields. */}
+      <div className="space-y-1.5 border-t border-line pt-3">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4"
+            checked={published}
+            disabled={busy}
+            onChange={(e) => publish(e.target.checked)}
+          />
+          <span>
+            <span className="font-medium">Publish to my profile</span>
+            <span className="mt-0.5 block text-xs text-muted">
+              {published
+                ? "Anyone can find this on your profile, and people who follow you see it in their feed. They can copy it, but not change yours."
+                : "Private. Only you and anyone you've invited to edit can see it."}
+            </span>
+          </span>
+        </label>
       </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}

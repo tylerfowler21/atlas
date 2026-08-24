@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/places", label: "Places", icon: "📍" },
   { href: "/trips", label: "Trips", icon: "🧭" },
   { href: "/been", label: "Been", icon: "🌍" },
+  { href: "/feed", label: "Feed", icon: "📡" },
 ];
 
 export type NavUser = {
@@ -96,6 +97,14 @@ export default function NavBar({
             role="menu"
           >
             <p className="truncate px-2 py-1 text-xs text-muted">{user.email}</p>
+            <Link
+              href="/settings"
+              role="menuitem"
+              className="block rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
+              onClick={() => setMenuOpen(false)}
+            >
+              Your profile
+            </Link>
             <form action={signOutAction}>
               <button
                 type="submit"

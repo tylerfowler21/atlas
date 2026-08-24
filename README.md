@@ -199,6 +199,32 @@ places belonging to several people while each library stays private.
 Atlas doesn't send invitation emails — there's no mail provider wired up. Tell
 the person yourself; the trip appears in their list as soon as they sign in.
 
+## Following people
+
+Pick a username at `/settings` and you get a profile at `/u/<username>`. Anyone
+can follow anyone — there is no approval step, because following on its own
+reveals nothing.
+
+**Trips are private until published.** `Trip.publishedAt` is null by default and
+nothing makes it non-null except the owner ticking "Publish to my profile".
+Publishing puts a trip on your profile at `/u/<you>`, in your followers' feeds,
+and at `/t/<id>` for anyone with the link.
+
+A published trip exposes the same allow-list as a share link — the itinerary,
+its stops and their locations. The owner's private notes and ratings on the
+underlying places never cross the boundary, and neither does their email.
+
+### Copying
+
+Any published trip can be copied into your own account. The result is a plan,
+not a memory:
+
+- the itinerary comes across, including each stop's trip-specific notes
+- the dates do not — those were their dates
+- places land on your **wishlist**, not marked as somewhere you've been
+- the copy is private until you publish it yourself
+- `Trip.copiedFromId` records where it came from, for attribution
+
 ## Moving data between databases
 
 ```bash

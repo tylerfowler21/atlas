@@ -64,11 +64,35 @@ model User {
   homeCity      String?
   createdAt     DateTime  @default(now())
 
-  accounts      Account[]
-  sessions      Session[]
-  places        Place[]
-  trips         Trip[]
+  /// Lowercase handle. Null until chosen — a user without one simply has no
+  /// public profile and cannot be followed.
+  username      String?   @unique
+  bio           String?
+
+  accounts       Account[]
+  sessions       Session[]
+  places         Place[]
+  trips          Trip[]
   collaborations TripCollaborator[]
+  /// People this user follows
+  following      Follow[]           @relation("follower")
+  /// People who follow this user
+  followers      Follow[]           @relation("following")
+}
+
+/// A one-way follow. No approval: only trips the owner has explicitly
+/// published are ever visible, so following reveals nothing on its own.
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
 }
 
 /// A saved location: a restaurant, a museum, a hotel, a viewpoint.
@@ -115,6 +139,11 @@ model Trip {
   notes       String?
   /// Hex colour used for this trip's pins and accents
   color       String    @default("#2563eb")
+  /// Null means private. Set when the owner publishes it to their profile,
+  /// and doubles as the ordering key for followers' feeds.
+  publishedAt DateTime?
+  /// Set when this trip was copied from someone else's, for attribution.
+  copiedFromId String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -122,8 +151,11 @@ model Trip {
   items         ItineraryItem[]
   share         TripShare?
   collaborators TripCollaborator[]
+  copiedFrom    Trip?              @relation("copies", fields: [copiedFromId], references: [id], onDelete: SetNull)
+  copies        Trip[]             @relation("copies")
 
   @@index([userId])
+  @@index([publishedAt])
 }
 
 /// Someone the trip owner has invited to edit the itinerary with them.

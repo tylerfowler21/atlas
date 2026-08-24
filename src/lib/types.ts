@@ -27,6 +27,8 @@ export type TripDTO = {
   endDate: string | null;
   notes: string | null;
   color: string;
+  /// ISO timestamp when the owner published it, or null while private.
+  publishedAt: string | null;
 };
 
 export type ItineraryItemDTO = {
@@ -68,13 +70,18 @@ export function serializePlace<T extends { visitedAt: DateLike | null; createdAt
   };
 }
 
-export function serializeTrip<T extends { startDate: DateLike | null; endDate: DateLike | null }>(
-  t: T,
-): TripDTO {
+export function serializeTrip<
+  T extends {
+    startDate: DateLike | null;
+    endDate: DateLike | null;
+    publishedAt?: DateLike | null;
+  },
+>(t: T): TripDTO {
   return {
     ...(t as unknown as TripDTO),
     startDate: t.startDate ? t.startDate.toISOString() : null,
     endDate: t.endDate ? t.endDate.toISOString() : null,
+    publishedAt: t.publishedAt ? t.publishedAt.toISOString() : null,
   };
 }
 
