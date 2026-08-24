@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
-import { category as categoryOf } from "@/lib/taxonomy";
+import { category as categoryOf, placeIcon } from "@/lib/taxonomy";
 import { flagEmoji } from "@/lib/geo";
 import StarRating from "@/components/StarRating";
 
@@ -71,7 +71,7 @@ export default async function PlacesPage() {
                           className="grid size-8 shrink-0 place-items-center rounded-full text-sm"
                           style={{ background: `${meta.color}22` }}
                         >
-                          {meta.icon}
+                          {placeIcon(place)}
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">

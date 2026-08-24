@@ -12,9 +12,27 @@ const optionalText = (max: number) =>
 // strip a `.default()` — a PATCH that omitted `status` would otherwise parse as
 // "wishlist" and silently un-visit the place. Create schemas add the defaults
 // back on top; update schemas take the bare fields.
+/// A single emoji. Deliberately forgiving about length — flags, skin tones and
+/// ZWJ sequences are several code points — but it must actually be pictographic
+/// and must not be letters or digits, so a pin can never become text.
+const emoji = z
+  .string()
+  .trim()
+  .max(16, "That's too long for an emoji")
+  // Flags are pairs of regional-indicator characters rather than pictographs,
+  // and a travel app that rejects 🇨🇭 would be absurd.
+  .refine(
+    (v) => /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(v),
+    "Pick an emoji",
+  )
+  .refine((v) => !/[\p{L}\p{N}]/u.test(v), "Emoji only, no letters or numbers")
+  .nullable()
+  .optional();
+
 const placeFields = {
   name: trimmed(120).min(1, "Give the place a name"),
   category: z.enum(CATEGORY_IDS),
+  emoji,
   status: z.enum(STATUS_IDS),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),

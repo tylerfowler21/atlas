@@ -251,3 +251,10 @@ prisma/schema.prisma  Auth.js tables + User, Place, Trip, ItineraryItem, TripSha
 Categories (restaurant, café, bar, activity, sight, nature, stay, shop,
 transport, other) and their colours and icons are defined once in
 `src/lib/taxonomy.ts`; the map, the lists and the itinerary all read from it.
+
+Any place can override its category's icon with its own emoji (`Place.emoji`).
+Everything that draws a saved place goes through `placeIcon()` in the same file,
+so a place looks the same on the map, in lists and in an itinerary. The
+validator accepts pictographs *and* regional-indicator pairs, because a travel
+app that rejected 🇨🇭 would be absurd, and rejects anything containing letters
+or digits so a pin can never turn into text.

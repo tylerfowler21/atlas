@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
-import { CATEGORIES, category as categoryOf, STATUSES } from "@/lib/taxonomy";
+import { CATEGORIES, category as categoryOf, placeIcon, STATUSES } from "@/lib/taxonomy";
 import type { PlaceDTO, PlaceDraft, SearchResult, TripDTO } from "@/lib/types";
 
 const DRAFT_PIN_ID = "__draft__";
@@ -98,7 +98,7 @@ export default function Explorer({
         lat: p.lat,
         lng: p.lng,
         color: meta.color,
-        icon: meta.icon,
+        icon: placeIcon(p),
         muted: p.status === "visited",
       };
     });
@@ -308,7 +308,7 @@ export default function Explorer({
                             className="grid size-7 shrink-0 place-items-center rounded-full text-xs"
                             style={{ background: `${meta.color}22` }}
                           >
-                            {meta.icon}
+                            {placeIcon(p)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm">{p.name}</span>

@@ -6,7 +6,7 @@ import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
-import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
+import { CATEGORIES, category as categoryOf, placeIcon } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
 import type { TripRole } from "@/lib/trip-access";
@@ -61,7 +61,7 @@ export default function TripPlanner({
           lat: item.place!.lat,
           lng: item.place!.lng,
           color: badge ? trip.color : meta.color,
-          icon: meta.icon,
+          icon: item.place ? placeIcon(item.place) : meta.icon,
           badge: badge ? String(badge) : null,
           muted: !badge,
         };
@@ -327,7 +327,7 @@ export default function TripPlanner({
                       >
                         <p className="truncate text-sm font-medium">{item.title}</p>
                         <p className="truncate text-xs text-muted">
-                          {meta.icon} {meta.label}
+                          {item.place ? placeIcon(item.place) : meta.icon} {meta.label}
                           {item.place?.city ? ` · ${item.place.city}` : ""}
                         </p>
                       </button>
@@ -573,7 +573,7 @@ function AddStop({
                     if (ok) setQuery("");
                   }}
                 >
-                  <span aria-hidden>{meta.icon}</span>
+                  <span aria-hidden>{placeIcon(place)}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{place.name}</span>
                     <span className="block truncate text-xs text-muted">

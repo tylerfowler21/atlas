@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CategoryPicker from "@/components/CategoryPicker";
+import EmojiField from "@/components/EmojiField";
 import StarRating from "@/components/StarRating";
 import { category as categoryOf } from "@/lib/taxonomy";
 import { dayCount, toDateInput } from "@/lib/trips";
@@ -34,6 +35,7 @@ export default function PlaceDetail({
   const dirty =
     draft.name !== place.name ||
     draft.category !== place.category ||
+    draft.emoji !== place.emoji ||
     draft.status !== place.status ||
     draft.rating !== place.rating ||
     draft.notes !== place.notes ||
@@ -173,6 +175,12 @@ export default function PlaceDetail({
         />
       </div>
 
+      <EmojiField
+        emoji={draft.emoji}
+        category={draft.category}
+        onChange={(emoji) => setDraft({ ...draft, emoji })}
+      />
+
       <textarea
         className="input min-h-20 resize-y"
         value={draft.notes ?? ""}
@@ -191,6 +199,7 @@ export default function PlaceDetail({
             patch({
               name: draft.name.trim(),
               category: draft.category,
+              emoji: draft.emoji,
               status: draft.status,
               rating: draft.status === "visited" ? draft.rating : null,
               notes: draft.notes?.trim() || null,

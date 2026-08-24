@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
-import { category as categoryOf } from "@/lib/taxonomy";
+import { category as categoryOf, placeIcon } from "@/lib/taxonomy";
 import type { PlaceDTO } from "@/lib/types";
 
 export default function BeenMap({ places }: { places: PlaceDTO[] }) {
@@ -12,7 +12,7 @@ export default function BeenMap({ places }: { places: PlaceDTO[] }) {
     () =>
       places.map((p) => {
         const meta = categoryOf(p.category);
-        return { id: p.id, lat: p.lat, lng: p.lng, color: meta.color, icon: meta.icon };
+        return { id: p.id, lat: p.lat, lng: p.lng, color: meta.color, icon: placeIcon(p) };
       }),
     [places],
   );

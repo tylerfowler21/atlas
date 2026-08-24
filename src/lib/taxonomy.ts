@@ -28,6 +28,13 @@ export function category(id: string) {
   return BY_ID.get(id) ?? BY_ID.get("other")!;
 }
 
+/// The emoji to show for a saved place: its own if it has one, otherwise its
+/// category's. Every list and every map pin goes through here, so a place looks
+/// the same everywhere it appears.
+export function placeIcon(place: { emoji?: string | null; category: string }) {
+  return place.emoji || category(place.category).icon;
+}
+
 export const STATUSES = [
   { id: "wishlist", label: "Want to go", icon: "🔖" },
   { id: "visited", label: "Been there", icon: "✅" },

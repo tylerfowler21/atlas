@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
-import { category as categoryOf } from "@/lib/taxonomy";
+import { category as categoryOf, placeIcon } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import type { PublicItemDTO, PublicTripDTO } from "@/lib/types";
 
@@ -41,7 +41,7 @@ export default function SharedTrip({
           lat: item.place!.lat,
           lng: item.place!.lng,
           color: badge ? trip.color : meta.color,
-          icon: meta.icon,
+          icon: item.place ? placeIcon(item.place) : meta.icon,
           badge: badge ? String(badge) : null,
           muted: !badge,
         };
@@ -132,7 +132,7 @@ export default function SharedTrip({
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium">{item.title}</span>
                         <span className="block truncate text-xs text-muted">
-                          {meta.icon} {meta.label}
+                          {item.place ? placeIcon(item.place) : meta.icon} {meta.label}
                           {item.place?.city ? ` · ${item.place.city}` : ""}
                         </span>
                         {item.notes && (

@@ -5,6 +5,7 @@ export type PlaceDTO = {
   id: string;
   name: string;
   category: string;
+  emoji: string | null;
   status: string;
   lat: number;
   lng: number;
@@ -109,6 +110,7 @@ export type PublicPlaceDTO = {
   id: string;
   name: string;
   category: string;
+  emoji: string | null;
   lat: number;
   lng: number;
   city: string | null;
@@ -139,6 +141,7 @@ export function toPublicPlace(p: {
   id: string;
   name: string;
   category: string;
+  emoji: string | null;
   lat: number;
   lng: number;
   city: string | null;
@@ -149,6 +152,7 @@ export function toPublicPlace(p: {
     id: p.id,
     name: p.name,
     category: p.category,
+    emoji: p.emoji,
     lat: p.lat,
     lng: p.lng,
     city: p.city,

@@ -103,6 +103,9 @@ model Place {
   name        String
   /// PlaceCategory value — see src/lib/taxonomy.ts
   category    String    @default("other")
+  /// Overrides the category's icon on the map and in lists. Null falls back to
+  /// whatever the category uses.
+  emoji       String?
   /// "wishlist" (want to go) or "visited" (been there)
   status      String    @default("wishlist")
   lat         Float
