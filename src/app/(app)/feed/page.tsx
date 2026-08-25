@@ -42,8 +42,11 @@ export default async function FeedPage() {
 
       {ids.length === 0 ? (
         <p className="mt-8 text-sm text-muted">
-          You&apos;re not following anyone yet. Search for someone above, or share
-          your own handle from{" "}
+          You&apos;re not following anyone yet.{" "}
+          <Link href="/people" className="text-accent underline">
+            See who else is here
+          </Link>
+          , or share your own handle from{" "}
           <Link href="/settings" className="text-accent underline">
             your profile
           </Link>

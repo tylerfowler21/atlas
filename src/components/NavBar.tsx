@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/trips", label: "Trips", icon: "🧭" },
   { href: "/been", label: "Been", icon: "🌍" },
   { href: "/feed", label: "Feed", icon: "📡" },
+  { href: "/people", label: "People", icon: "👥" },
 ];
 
 export type NavUser = {

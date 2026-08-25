@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-/// There is no directory to browse — you follow people whose handle you know,
-/// which is the whole discovery model.
+/// A shortcut straight to a handle you already know. Browsing everyone lives
+/// on /people.
 export default function FindPeople() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -27,6 +28,9 @@ export default function FindPeople() {
       <button type="submit" className="btn btn-ghost shrink-0">
         Go
       </button>
+      <Link href="/people" className="btn btn-ghost shrink-0">
+        Browse everyone
+      </Link>
     </form>
   );
 }

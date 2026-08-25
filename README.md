@@ -205,6 +205,11 @@ Pick a username at `/settings` and you get a profile at `/u/<username>`. Anyone
 can follow anyone — there is no approval step, because following on its own
 reveals nothing.
 
+`/people` lists everyone who has picked a username, with a search box and a
+follow button on each row. Only people with a username appear: choosing one is
+already the act that creates a public profile, so the directory makes existing
+public profiles findable rather than exposing anyone who has not opted in.
+
 **Trips are private until published.** `Trip.publishedAt` is null by default and
 nothing makes it non-null except the owner ticking "Publish to my profile".
 Publishing puts a trip on your profile at `/u/<you>`, in your followers' feeds,
