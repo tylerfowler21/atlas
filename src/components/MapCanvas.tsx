@@ -37,24 +37,16 @@ type Props = {
   className?: string;
 };
 
-/// CARTO's free basemaps: no API key, no billing, OSM data underneath.
+/// CARTO's free basemaps, no API key and OpenStreetMap data underneath.
+///
+/// Vector rather than raster: the browser renders the map from data instead of
+/// stitching pre-drawn images, so labels stay sharp at every zoom and between
+/// zoom levels rather than going soft. Same cartography as the raster tiles
+/// this replaced.
 function styleFor(dark: boolean) {
-  const theme = dark ? "dark_all" : "voyager";
-  return {
-    version: 8 as const,
-    sources: {
-      basemap: {
-        type: "raster" as const,
-        tiles: ["a", "b", "c"].map(
-          (s) => `https://${s}.basemaps.cartocdn.com/rastertiles/${theme}/{z}/{x}/{y}.png`,
-        ),
-        tileSize: 256,
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attributions">CARTO</a>',
-      },
-    },
-    layers: [{ id: "basemap", type: "raster" as const, source: "basemap" }],
-  };
+  return dark
+    ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+    : "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 }
 
 export default function MapCanvas({

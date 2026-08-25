@@ -17,12 +17,21 @@ an itinerary.
 Next.js 16 (App Router), React 19, Prisma 7 + **Postgres**, Auth.js v5 with
 Google sign-in, Tailwind 4, and MapLibre GL for the map.
 
-**The map needs no API keys.** Basemap tiles come from CARTO's free
-OpenStreetMap basemaps and place search from Nominatim, both used without an
-account. Nominatim asks for at most one request per second and an identifying
-User-Agent, so search is proxied through `/api/geocode`, which queues, spaces
-and caches the calls (`src/lib/nominatim.ts`). Don't call Nominatim straight
-from the browser — that's what the proxy is for.
+**The map needs no API keys.** Tiles are CARTO's free vector basemaps — vector
+rather than raster, so the browser draws the map from data and labels stay
+sharp at every zoom.
+
+Search goes through `/api/geocode`, which queries **two** geocoders and merges
+them, because they fail differently. Nominatim is precise but refuses
+misspellings — "Grindlewald" returns nothing. Photon tolerates them but will
+confidently offer a gorge in South Africa when you meant Switzerland. Together,
+deduplicated, and filtered by the country the caller named, they cover far more
+than either alone.
+
+Nominatim asks for at most one request per second and an identifying
+User-Agent, so its calls are queued, spaced and cached in `src/lib/nominatim.ts`.
+Don't call either geocoder straight from the browser — that's what the proxy is
+for.
 
 ## Running it locally
 

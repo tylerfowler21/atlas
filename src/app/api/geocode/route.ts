@@ -1,23 +1,17 @@
 import { NextResponse } from "next/server";
-import { guessCategory } from "@/lib/taxonomy";
-import { search, toPlaceFields } from "@/lib/nominatim";
+import { geocode } from "@/lib/geocode";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
-  // Bias results toward what the user is currently looking at.
-  const viewbox = searchParams.get("viewbox") ?? undefined;
+  // The country or region the caller is looking in, used to rank and then
+  // narrow results.
+  const region = searchParams.get("region")?.trim() || null;
 
   if (q.length < 3) return NextResponse.json({ results: [] });
 
   try {
-    const raw = await search(q, viewbox);
-    const results = raw.map((r) => ({
-      id: String(r.place_id),
-      ...toPlaceFields(r),
-      category: guessCategory(r.category, r.type),
-      context: r.display_name,
-    }));
+    const results = await geocode(q, region);
     return NextResponse.json({ results });
   } catch {
     return NextResponse.json(

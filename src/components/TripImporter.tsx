@@ -75,9 +75,11 @@ export default function TripImporter() {
       working[i] = { ...working[i]!, state: "looking" };
       setRows([...working]);
 
-      const query = hint ? `${working[i]!.title}, ${hint}` : working[i]!.title;
+      const url = `/api/geocode?q=${encodeURIComponent(working[i]!.title)}${
+        hint ? `&region=${encodeURIComponent(hint)}` : ""
+      }`;
       try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+        const res = await fetch(url);
         const body = await res.json();
         const candidates: SearchResult[] = body.results ?? [];
         working[i] = {

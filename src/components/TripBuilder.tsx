@@ -73,9 +73,11 @@ export default function TripBuilder() {
 
     const timer = setTimeout(async () => {
       const hint = destination.trim();
-      const q = hint ? `${trimmed}, ${hint}` : trimmed;
+      const url = `/api/geocode?q=${encodeURIComponent(trimmed)}${
+        hint ? `&region=${encodeURIComponent(hint)}` : ""
+      }`;
       try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+        const res = await fetch(url);
         const body = await res.json();
         if (id === requestId.current) setSearch({ q: trimmed, items: body.results ?? [] });
       } catch {
