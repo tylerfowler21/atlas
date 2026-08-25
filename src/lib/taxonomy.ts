@@ -41,11 +41,38 @@ export function placeIcon(place: { emoji?: string | null; category: string }) {
 export function stopIcon(item: {
   emoji?: string | null;
   category: string;
+  kind?: string | null;
+  mode?: string | null;
   place?: { emoji?: string | null; category: string } | null;
 }) {
   if (item.emoji) return item.emoji;
+  // A journey is identified by how you travelled, not by where it started.
+  if (item.kind === "travel") return travelMode(item.mode).icon;
   if (item.place) return placeIcon(item.place);
   return category(item.category).icon;
+}
+
+/// How you got from one place to the next. Drives the icon, the line drawn on
+/// the map, and which directions mode Apple Maps opens in.
+export const TRAVEL_MODES = [
+  { id: "train", label: "Train", icon: "🚂", dirflg: "r" },
+  { id: "bus", label: "Bus", icon: "🚌", dirflg: "r" },
+  { id: "plane", label: "Flight", icon: "✈️", dirflg: "d" },
+  { id: "ferry", label: "Ferry", icon: "⛴️", dirflg: "r" },
+  { id: "car", label: "Car", icon: "🚗", dirflg: "d" },
+  { id: "walk", label: "Walk", icon: "🚶", dirflg: "w" },
+] as const;
+
+export type TravelModeId = (typeof TRAVEL_MODES)[number]["id"];
+export const TRAVEL_MODE_IDS = TRAVEL_MODES.map((m) => m.id) as [
+  TravelModeId,
+  ...TravelModeId[],
+];
+
+const MODE_BY_ID = new Map(TRAVEL_MODES.map((m) => [m.id as string, m]));
+
+export function travelMode(id: string | null | undefined) {
+  return MODE_BY_ID.get(id ?? "") ?? MODE_BY_ID.get("train")!;
 }
 
 export const STATUSES = [

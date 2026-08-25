@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATEGORY_IDS, STATUS_IDS } from "@/lib/taxonomy";
+import { CATEGORY_IDS, STATUS_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const optionalText = (max: number) =>
@@ -77,6 +77,11 @@ export const tripUpdateSchema = z.object(tripFields).partial().extend({
 const itemFields = {
   title: trimmed(160).min(1, "Give the item a title"),
   emoji,
+  /// "stop" for somewhere you were, "travel" for a journey between two places.
+  kind: z.enum(["stop", "travel"]),
+  toPlaceId: optionalText(40),
+  mode: z.enum(TRAVEL_MODE_IDS).nullable().optional(),
+  endTime: optionalText(5),
   placeId: optionalText(40),
   notes: optionalText(1000),
   dayIndex: z.number().int().min(0).max(365),
@@ -91,6 +96,9 @@ export const itemCreateSchema = z
   .extend({
     dayIndex: z.number().int().min(0).max(365).default(0),
     category: z.enum(CATEGORY_IDS).default("other"),
+    // Everything created before travel legs existed is a stop, and so is
+    // anything that does not say otherwise.
+    kind: z.enum(["stop", "travel"]).default("stop"),
   });
 
 export const itemUpdateSchema = z.object(itemFields).partial();

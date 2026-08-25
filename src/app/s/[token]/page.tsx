@@ -18,7 +18,7 @@ async function loadShared(token: string) {
         include: {
           items: {
             orderBy: [{ dayIndex: "asc" }, { position: "asc" }],
-            include: { place: true },
+            include: { place: true, toPlace: true },
           },
         },
       },
@@ -68,14 +68,18 @@ export default async function SharedTripPage({
 
   const items: PublicItemDTO[] = share.trip.items.map((item) => ({
     id: item.id,
+    kind: item.kind,
+    mode: item.mode,
     title: item.title,
     emoji: item.emoji,
     notes: item.notes,
     dayIndex: item.dayIndex,
     startTime: item.startTime,
+    endTime: item.endTime,
     category: item.category,
     position: item.position,
     place: item.place ? toPublicPlace(item.place) : null,
+    toPlace: item.toPlace ? toPublicPlace(item.toPlace) : null,
   }));
 
   return <SharedTrip trip={trip} items={items} />;

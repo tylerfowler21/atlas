@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
-import { category as categoryOf, stopIcon } from "@/lib/taxonomy";
+import { category as categoryOf, stopIcon, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { PublicItemDTO, PublicTripDTO } from "@/lib/types";
@@ -48,6 +48,17 @@ export default function SharedTrip({
         };
       });
   }, [items, dayItems, trip.color]);
+
+  const legs = useMemo(
+    () =>
+      dayItems
+        .filter((i) => i.kind === "travel" && i.place && i.toPlace)
+        .map((i) => ({
+          from: [i.place!.lng, i.place!.lat] as [number, number],
+          to: [i.toPlace!.lng, i.toPlace!.lat] as [number, number],
+        })),
+    [dayItems],
+  );
 
   const route = useMemo<[number, number][]>(
     () =>
@@ -133,8 +144,18 @@ export default function SharedTrip({
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium">{item.title}</span>
                         <span className="block truncate text-xs text-muted">
-                          {stopIcon(item)} {meta.label}
-                          {item.place?.city ? ` · ${item.place.city}` : ""}
+                          {stopIcon(item)}{" "}
+                          {item.kind === "travel"
+                            ? `${travelMode(item.mode).label}${
+                                item.place && item.toPlace
+                                  ? ` · ${item.place.name} → ${item.toPlace.name}`
+                                  : ""
+                              }${
+                                item.startTime && item.endTime
+                                  ? ` · ${item.startTime}–${item.endTime}`
+                                  : ""
+                              }`
+                            : `${meta.label}${item.place?.city ? ` · ${item.place.city}` : ""}`}
                         </span>
                         {item.notes && (
                           <span className="mt-1 block text-xs text-muted">
@@ -178,6 +199,7 @@ export default function SharedTrip({
         <MapCanvas
           pins={pins}
           route={route}
+          legs={legs}
           routeColor={trip.color}
           selectedId={selectedId}
           onSelect={setSelectedId}

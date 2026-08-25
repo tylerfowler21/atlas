@@ -58,7 +58,7 @@ export async function loadPublishedTrip(tripId: string) {
       ...feedTripInclude,
       items: {
         orderBy: [{ dayIndex: "asc" }, { position: "asc" }],
-        include: { place: true },
+        include: { place: true, toPlace: true },
       },
     },
   });
@@ -66,14 +66,18 @@ export async function loadPublishedTrip(tripId: string) {
 
   const items: PublicItemDTO[] = trip.items.map((item) => ({
     id: item.id,
+    kind: item.kind,
+    mode: item.mode,
     title: item.title,
     emoji: item.emoji,
     notes: item.notes,
     dayIndex: item.dayIndex,
     startTime: item.startTime,
+    endTime: item.endTime,
     category: item.category,
     position: item.position,
     place: item.place ? toPublicPlace(item.place) : null,
+    toPlace: item.toPlace ? toPublicPlace(item.toPlace) : null,
   }));
 
   return { trip, items };

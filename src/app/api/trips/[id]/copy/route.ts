@@ -21,7 +21,7 @@ export async function POST(
   const source = await prisma.trip.findUnique({
     where: { id },
     include: {
-      items: { orderBy: [{ dayIndex: "asc" }, { position: "asc" }], include: { place: true } },
+      items: { orderBy: [{ dayIndex: "asc" }, { position: "asc" }], include: { place: true, toPlace: true } },
       user: { select: { id: true, username: true, name: true } },
     },
   });
@@ -37,8 +37,10 @@ export async function POST(
   const created = await prisma.$transaction(async (tx) => {
     const placeIds = new Map<string, string>();
 
-    for (const item of source.items) {
-      const p = item.place;
+    // Both ends of a travel leg need copying, not just the origin.
+    const sourcePlaces = source.items.flatMap((i) => [i.place, i.toPlace]);
+
+    for (const p of sourcePlaces) {
       if (!p || placeIds.has(p.id)) continue;
 
       const existing = await tx.place.findFirst({
@@ -83,13 +85,18 @@ export async function POST(
         copiedFromId: source.id,
         items: {
           create: source.items.map((item) => ({
+            kind: item.kind,
+            mode: item.mode,
             title: item.title,
+            emoji: item.emoji,
             notes: item.notes,
             dayIndex: item.dayIndex,
             startTime: item.startTime,
+            endTime: item.endTime,
             category: item.category,
             position: item.position,
             placeId: item.placeId ? (placeIds.get(item.placeId) ?? null) : null,
+            toPlaceId: item.toPlaceId ? (placeIds.get(item.toPlaceId) ?? null) : null,
           })),
         },
       },

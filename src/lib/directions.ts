@@ -18,10 +18,13 @@ function coords(p: Point) {
 
 /// Directions to a place, optionally starting from another one — used to route
 /// between consecutive stops on a day.
-export function directionsUrl(to: Point, from?: Point | null) {
+export function directionsUrl(to: Point, from?: Point | null, dirflg?: string) {
   const params = new URLSearchParams();
   params.set("daddr", coords(to));
   if (from) params.set("saddr", coords(from));
+  // r = transit, d = drive, w = walk. A train leg should open Apple Maps on
+  // its transit tab rather than offering to drive you there.
+  if (dirflg) params.set("dirflg", dirflg);
   // Without this Apple sometimes shows a search result rather than the pin.
   if (to.name) params.set("q", to.name);
   return `${BASE}?${params.toString()}`;

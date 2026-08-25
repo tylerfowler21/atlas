@@ -35,15 +35,24 @@ export type TripDTO = {
 export type ItineraryItemDTO = {
   id: string;
   tripId: string;
+  /// "stop" or "travel"
+  kind: string;
   placeId: string | null;
+  /// Where a travel leg ends
+  toPlaceId: string | null;
+  mode: string | null;
   title: string;
   emoji: string | null;
   notes: string | null;
   dayIndex: number;
+  /// Departure, for a travel leg
   startTime: string | null;
+  /// Arrival, for a travel leg
+  endTime: string | null;
   category: string;
   position: number;
   place: PlaceDTO | null;
+  toPlace: PlaceDTO | null;
 };
 
 /// A place as returned by the geocode proxy, before it is saved.
@@ -121,14 +130,18 @@ export type PublicPlaceDTO = {
 
 export type PublicItemDTO = {
   id: string;
+  kind: string;
+  mode: string | null;
   title: string;
   emoji: string | null;
   notes: string | null;
   dayIndex: number;
   startTime: string | null;
+  endTime: string | null;
   category: string;
   position: number;
   place: PublicPlaceDTO | null;
+  toPlace: PublicPlaceDTO | null;
 };
 
 export type PublicTripDTO = {

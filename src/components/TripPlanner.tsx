@@ -7,7 +7,14 @@ import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
-import { CATEGORIES, category as categoryOf, placeIcon, stopIcon } from "@/lib/taxonomy";
+import {
+  CATEGORIES,
+  category as categoryOf,
+  placeIcon,
+  stopIcon,
+  TRAVEL_MODES,
+  travelMode,
+} from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
@@ -56,6 +63,21 @@ export default function TripPlanner({
   const pins = useMemo<MapPin[]>(() => {
     const onThisDay = new Map(dayItems.map((item, index) => [item.id, index + 1]));
 
+    const legEnds = items
+      .filter((i) => i.kind === "travel" && i.toPlace)
+      .map((i) => {
+        const meta = travelMode(i.mode);
+        return {
+          id: `${i.id}-to`,
+          lat: i.toPlace!.lat,
+          lng: i.toPlace!.lng,
+          color: trip.color,
+          icon: meta.icon,
+          badge: null,
+          muted: !dayItems.some((d) => d.id === i.id),
+        };
+      });
+
     return items
       .filter((item) => item.place)
       .map((item) => {
@@ -70,8 +92,20 @@ export default function TripPlanner({
           badge: badge ? String(badge) : null,
           muted: !badge,
         };
-      });
+      })
+      .concat(legEnds);
   }, [items, dayItems, trip.color]);
+
+  const legs = useMemo(
+    () =>
+      dayItems
+        .filter((i) => i.kind === "travel" && i.place && i.toPlace)
+        .map((i) => ({
+          from: [i.place!.lng, i.place!.lat] as [number, number],
+          to: [i.toPlace!.lng, i.toPlace!.lat] as [number, number],
+        })),
+    [dayItems],
+  );
 
   const route = useMemo<[number, number][]>(
     () =>
@@ -104,6 +138,11 @@ export default function TripPlanner({
     title: string;
     placeId?: string | null;
     category?: string;
+    kind?: "stop" | "travel";
+    toPlaceId?: string | null;
+    mode?: string;
+    startTime?: string | null;
+    endTime?: string | null;
   }) {
     return mutate<{ item: ItineraryItemDTO }>(
       () =>
@@ -346,20 +385,50 @@ export default function TripPlanner({
                         onClick={() => setSelectedId(item.id)}
                       >
                         <p className="truncate text-sm font-medium">{item.title}</p>
-                        <p className="truncate text-xs text-muted">
-                          {meta.label}
-                          {item.place?.city ? ` · ${item.place.city}` : ""}
-                        </p>
+                        {item.kind === "travel" ? (
+                          <p className="truncate text-xs text-muted">
+                            {travelMode(item.mode).label}
+                            {item.place && item.toPlace
+                              ? ` · ${item.place.name} → ${item.toPlace.name}`
+                              : ""}
+                            {item.startTime && item.endTime
+                              ? ` · ${item.startTime}–${item.endTime}`
+                              : ""}
+                          </p>
+                        ) : (
+                          <p className="truncate text-xs text-muted">
+                            {meta.label}
+                            {item.place?.city ? ` · ${item.place.city}` : ""}
+                          </p>
+                        )}
                       </button>
-                      <input
-                        type="time"
-                        aria-label="Start time"
-                        className="input w-24 shrink-0 px-1.5 py-1 text-xs"
-                        value={item.startTime ?? ""}
-                        onChange={(e) =>
-                          patchItem(item.id, { startTime: e.target.value || null })
-                        }
-                      />
+                      <div className="flex shrink-0 items-center gap-1">
+                        <input
+                          type="time"
+                          aria-label={item.kind === "travel" ? "Departure time" : "Start time"}
+                          className="input w-24 px-1.5 py-1 text-xs"
+                          value={item.startTime ?? ""}
+                          onChange={(e) =>
+                            patchItem(item.id, { startTime: e.target.value || null })
+                          }
+                        />
+                        {item.kind === "travel" && (
+                          <>
+                            <span aria-hidden className="text-xs text-muted">
+                              →
+                            </span>
+                            <input
+                              type="time"
+                              aria-label="Arrival time"
+                              className="input w-24 px-1.5 py-1 text-xs"
+                              value={item.endTime ?? ""}
+                              onChange={(e) =>
+                                patchItem(item.id, { endTime: e.target.value || null })
+                              }
+                            />
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-2 flex items-center gap-1 text-xs">
@@ -440,7 +509,23 @@ export default function TripPlanner({
                             if (next !== item.notes) patchItem(item.id, { notes: next });
                           }}
                         />
-                        {item.place && (
+                        {item.kind === "travel" && item.place && item.toPlace && (
+                          <a
+                            href={directionsUrl(
+                              { lat: item.toPlace.lat, lng: item.toPlace.lng, name: item.toPlace.name },
+                              { lat: item.place.lat, lng: item.place.lng, name: item.place.name },
+                              travelMode(item.mode).dirflg,
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-accent hover:underline"
+                          >
+                            {travelMode(item.mode).label} times: {item.place.name} →{" "}
+                            {item.toPlace.name} →
+                          </a>
+                        )}
+
+                        {item.kind !== "travel" && item.place && (
                           <div className="flex flex-wrap items-center gap-3">
                             <Link
                               href={`/?place=${item.place.id}`}
@@ -492,6 +577,8 @@ export default function TripPlanner({
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
+        <AddTravel places={library} onAdd={addItem} busy={busy} />
+
         <AddStop
           places={library}
           usedPlaceIds={new Set(items.map((i) => i.placeId).filter(Boolean) as string[])}
@@ -508,6 +595,7 @@ export default function TripPlanner({
         <MapCanvas
           pins={pins}
           route={route}
+          legs={legs}
           routeColor={trip.color}
           selectedId={selectedId}
           onSelect={setSelectedId}
@@ -529,6 +617,179 @@ export default function TripPlanner({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/// Adding a journey between two places you have already saved. Getting from
+/// city to city is most of an international trip, and it is a leg rather than
+/// a stop: two ends, a departure and an arrival.
+function AddTravel({
+  places,
+  onAdd,
+  busy,
+}: {
+  places: PlaceDTO[];
+  onAdd: (payload: {
+    title: string;
+    placeId?: string | null;
+    category?: string;
+    kind?: "stop" | "travel";
+    toPlaceId?: string | null;
+    mode?: string;
+    startTime?: string | null;
+    endTime?: string | null;
+  }) => Promise<boolean>;
+  busy: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<string>("train");
+  const [fromId, setFromId] = useState("");
+  const [toId, setToId] = useState("");
+  const [departs, setDeparts] = useState("");
+  const [arrives, setArrives] = useState("");
+
+  const from = places.find((p) => p.id === fromId);
+  const to = places.find((p) => p.id === toId);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="self-start text-xs text-muted hover:underline"
+        onClick={() => setOpen(true)}
+      >
+        + Add a train, flight or ferry
+      </button>
+    );
+  }
+
+  return (
+    <div className="card space-y-3 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="text-sm font-semibold">Getting somewhere</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            A journey between two places you&apos;ve saved. Both ends show on the
+            map, joined by a line.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Close"
+          className="rounded-md px-2 py-1 text-muted hover:bg-foreground/5"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {TRAVEL_MODES.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            className={`chip ${mode === m.id ? "is-on" : ""}`}
+            onClick={() => setMode(m.id)}
+          >
+            <span aria-hidden>{m.icon}</span>
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-xs text-muted">
+          From
+          <select
+            className="input mt-1"
+            value={fromId}
+            onChange={(e) => setFromId(e.target.value)}
+          >
+            <option value="">Choose a place…</option>
+            {places.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs text-muted">
+          To
+          <select
+            className="input mt-1"
+            value={toId}
+            onChange={(e) => setToId(e.target.value)}
+          >
+            <option value="">Choose a place…</option>
+            {places.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-xs text-muted">
+          Departs
+          <input
+            type="time"
+            className="input mt-1"
+            value={departs}
+            onChange={(e) => setDeparts(e.target.value)}
+          />
+        </label>
+        <label className="text-xs text-muted">
+          Arrives
+          <input
+            type="time"
+            className="input mt-1"
+            value={arrives}
+            onChange={(e) => setArrives(e.target.value)}
+          />
+        </label>
+      </div>
+
+      {places.length < 2 && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          You need two saved places to travel between. Add them above first.
+        </p>
+      )}
+
+      {fromId && fromId === toId && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          That journey starts and ends in the same place.
+        </p>
+      )}
+
+      <button
+        type="button"
+        className="btn btn-primary"
+        disabled={busy || !from || !to || fromId === toId}
+        onClick={async () => {
+          const ok = await onAdd({
+            kind: "travel",
+            mode,
+            title: `${travelMode(mode).label} to ${to!.name}`,
+            placeId: fromId,
+            toPlaceId: toId,
+            category: "transport",
+            startTime: departs || null,
+            endTime: arrives || null,
+          });
+          if (ok) {
+            setOpen(false);
+            setFromId("");
+            setToId("");
+            setDeparts("");
+            setArrives("");
+          }
+        }}
+      >
+        {busy ? "Adding…" : "Add this journey"}
+      </button>
     </div>
   );
 }

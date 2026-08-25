@@ -252,6 +252,21 @@ Categories (restaurant, café, bar, activity, sight, nature, stay, shop,
 transport, other) and their colours and icons are defined once in
 `src/lib/taxonomy.ts`; the map, the lists and the itinerary all read from it.
 
+### Travel legs
+
+An itinerary entry is one of two shapes, set by `ItineraryItem.kind`:
+
+- **stop** — somewhere you were: `placeId` and `startTime`
+- **travel** — a journey between two places: `placeId` → `toPlaceId`, with
+  `startTime`/`endTime` as departure and arrival, and `mode` for train, bus,
+  plane, ferry, car or walk
+
+Getting from city to city is most of an international trip, and it is a leg
+rather than a point. Both ends appear on the map joined by a solid line, which
+reads differently from the dashed connector showing the order of a day. The
+mode also picks the Apple Maps directions tab, so a train opens on transit
+rather than offering to drive you.
+
 The emoji picker searches by keyword (`src/lib/emoji-search.ts`). The list is
 curated rather than taken from Unicode's own annotations, because those are
 literal — 🌊 is "water wave" and nothing else — so searching "waterfall",

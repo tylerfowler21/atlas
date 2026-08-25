@@ -45,7 +45,7 @@ export async function PATCH(
   const item = await prisma.itineraryItem.update({
     where: { id },
     data,
-    include: { place: true },
+    include: { place: true, toPlace: true },
   });
   return NextResponse.json({ item });
 }

@@ -21,6 +21,9 @@ type Props = {
   /// [lng, lat] pairs drawn as a dashed connector between itinerary stops.
   route?: [number, number][];
   routeColor?: string;
+  /// Journeys between two places — a train, a flight — drawn as solid lines so
+  /// they read differently from the dashed order-of-the-day connector.
+  legs?: { from: [number, number]; to: [number, number] }[];
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   /// When set, clicking empty map reports where — this is the drop-a-pin flow.
@@ -58,6 +61,7 @@ export default function MapCanvas({
   pins,
   route,
   routeColor = "#2563eb",
+  legs,
   selectedId,
   onSelect,
   onMapClick,
@@ -118,7 +122,17 @@ export default function MapCanvas({
       instance.on("error", (event) =>
         console.warn("[map]", event.error?.message ?? event),
       );
-      instance.on("load", () => setStyleReady(true));
+      // Adding sources and layers needs the style parsed, not the first tiles
+      // painted. The "load" event waits for both and does not reliably fire
+      // when the map is created in a hidden tab, which left the route and leg
+      // lines missing on a map that otherwise looked fine. `styledata` plus an
+      // isStyleLoaded() check is the earlier, dependable signal.
+      const markReady = () => {
+        if (instance.isStyleLoaded()) setStyleReady(true);
+      };
+      instance.on("styledata", markReady);
+      instance.on("load", markReady);
+      markReady();
 
       // If the container has no size yet — a hidden tab, a collapsed panel, a
       // parent that lays out after us — maplibre falls back to 400x300 and
@@ -225,6 +239,39 @@ export default function MapCanvas({
       },
     });
   }, [map, styleReady, route, routeColor]);
+
+  // --- sync travel legs ----------------------------------------------------
+  useEffect(() => {
+    if (!map || !styleReady) return;
+
+    const data = {
+      type: "FeatureCollection" as const,
+      features: (legs ?? []).map((leg) => ({
+        type: "Feature" as const,
+        properties: {},
+        geometry: { type: "LineString" as const, coordinates: [leg.from, leg.to] },
+      })),
+    };
+
+    const source = map.getSource<GeoJSONSource>("atlas-legs");
+    if (source) {
+      source.setData(data);
+      return;
+    }
+
+    map.addSource("atlas-legs", { type: "geojson", data });
+    map.addLayer({
+      id: "atlas-legs",
+      type: "line",
+      source: "atlas-legs",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": routeColor,
+        "line-width": 3,
+        "line-opacity": 0.55,
+      },
+    });
+  }, [map, styleReady, legs, routeColor]);
 
   // --- fit the viewport to every pin --------------------------------------
   useEffect(() => {

@@ -23,10 +23,11 @@ export async function POST(
   }
   const data = parsed.data;
 
-  // Everyone adds from their own library, so the place must belong to whoever
-  // is asking — not to the trip's owner.
-  if (data.placeId) {
-    const place = await prisma.place.findUnique({ where: { id: data.placeId } });
+  // Everyone adds from their own library, so the places must belong to whoever
+  // is asking — not to the trip's owner. A travel leg has two of them.
+  for (const id of [data.placeId, data.toPlaceId]) {
+    if (!id) continue;
+    const place = await prisma.place.findUnique({ where: { id } });
     if (!place || place.userId !== user.id) {
       return NextResponse.json({ error: "Unknown place" }, { status: 400 });
     }
@@ -40,7 +41,7 @@ export async function POST(
 
   const item = await prisma.itineraryItem.create({
     data: { ...data, tripId, position: (last?.position ?? -1) + 1 },
-    include: { place: true },
+    include: { place: true, toPlace: true },
   });
 
   return NextResponse.json({ item }, { status: 201 });

@@ -124,7 +124,8 @@ model Place {
   updatedAt   DateTime  @updatedAt
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itineraryItems ItineraryItem[]
+  itineraryItems ItineraryItem[] @relation("itemFrom")
+  arrivals       ItineraryItem[] @relation("itemTo")
 
   @@index([userId, status])
   @@index([userId, category])
@@ -199,18 +200,34 @@ model TripShare {
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
-/// One entry on one day of a trip. Usually points at a saved Place, but
-/// placeId is optional so non-place entries ("Flight to Lisbon") still fit.
+/// One entry on one day of a trip.
+///
+/// Two shapes, distinguished by `kind`:
+///   "stop"   — somewhere you were. `placeId` is where, `startTime` is when.
+///   "travel" — a journey between two places: a train, a flight, a ferry.
+///              `placeId` is where it left from and `toPlaceId` where it
+///              arrived, with `startTime`/`endTime` as departure and arrival.
+///
+/// Both keep placeId optional, so entries the map has never heard of still fit.
 model ItineraryItem {
   id        String   @id @default(cuid())
   tripId    String
+  /// "stop" or "travel"
+  kind      String   @default("stop")
   placeId   String?
+  /// Only for travel: where the journey ends.
+  toPlaceId String?
+  /// Only for travel: train, bus, plane, ferry, car, walk
+  mode      String?
   title     String
   notes     String?
   /// 0-based day offset from the trip's first day
   dayIndex  Int      @default(0)
   /// "HH:mm", local to the destination. Null means "sometime this day".
+  /// For travel this is the departure.
   startTime String?
+  /// Only for travel: the arrival time.
+  endTime   String?
   category  String   @default("other")
   /// Overrides the icon for this stop only, so a place can look one way on the
   /// map and another on a particular day. Also the only emoji a stop with no
@@ -221,9 +238,11 @@ model ItineraryItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  trip  Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  trip    Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  place   Place? @relation("itemFrom", fields: [placeId], references: [id], onDelete: SetNull)
+  toPlace Place? @relation("itemTo", fields: [toPlaceId], references: [id], onDelete: SetNull)
 
   @@index([tripId, dayIndex, position])
   @@index([placeId])
+  @@index([toPlaceId])
 }

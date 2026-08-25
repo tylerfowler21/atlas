@@ -23,7 +23,7 @@ export default async function TripPage({
     include: {
       items: {
         orderBy: [{ dayIndex: "asc" }, { position: "asc" }],
-        include: { place: true },
+        include: { place: true, toPlace: true },
       },
     },
   });
@@ -44,6 +44,7 @@ export default async function TripPage({
   const items: ItineraryItemDTO[] = trip.items.map((item) => ({
     ...item,
     place: item.place ? serializePlace(item.place) : null,
+    toPlace: item.toPlace ? serializePlace(item.toPlace) : null,
   }));
 
   return (
