@@ -155,6 +155,8 @@ const RESERVED_USERNAMES = new Set([
 ]);
 
 export const profileSchema = z.object({
+  /// Marks the welcome as done, whether it was completed or skipped.
+  onboarded: z.boolean().optional(),
   username: z
     .string()
     .trim()

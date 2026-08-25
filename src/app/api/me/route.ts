@@ -12,7 +12,7 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
-  const { username, bio } = parsed.data;
+  const { username, bio, onboarded } = parsed.data;
 
   if (username) {
     const taken = await prisma.user.findUnique({
@@ -29,8 +29,9 @@ export async function PATCH(request: Request) {
     data: {
       ...(username !== undefined ? { username } : {}),
       ...(bio !== undefined ? { bio } : {}),
+      ...(onboarded ? { onboardedAt: new Date() } : {}),
     },
-    select: { username: true, bio: true },
+    select: { username: true, bio: true, onboardedAt: true },
   });
 
   return NextResponse.json({ profile: updated });

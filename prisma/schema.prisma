@@ -68,6 +68,9 @@ model User {
   /// public profile and cannot be followed.
   username      String?   @unique
   bio           String?
+  /// Set once someone has been through (or skipped) the welcome. Null means
+  /// they have never seen it, which is what sends them there.
+  onboardedAt   DateTime?
 
   accounts       Account[]
   sessions       Session[]

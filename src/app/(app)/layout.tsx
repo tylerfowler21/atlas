@@ -1,4 +1,6 @@
 import { signOut } from "@/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { isAdmin } from "@/lib/admin";
 import NavBar from "@/components/NavBar";
@@ -10,6 +12,14 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireUser();
+
+  // Anyone who has never seen the welcome goes there first — including people
+  // who signed up before it existed, who are exactly the ones who could use it.
+  const { onboardedAt } = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: { onboardedAt: true },
+  });
+  if (!onboardedAt) redirect("/welcome");
 
   async function signOutAction() {
     "use server";

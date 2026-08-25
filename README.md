@@ -230,6 +230,20 @@ not a memory:
 - the copy is private until you publish it yourself
 - `Trip.copiedFromId` records where it came from, for attribution
 
+## First run
+
+`User.onboardedAt` is null until someone has been through the welcome, and the
+`(app)` layout sends anyone in that state to `/welcome`. That includes people
+who signed up before it existed, who are exactly the ones it helps.
+
+Three steps: what Atlas is, pick a username, choose where to start. The
+username field arrives pre-filled with a free handle derived from their name,
+because a blank box asking you to invent an identity is where people stop. It
+can be skipped — a username is what makes you findable, not what makes the app
+work.
+
+Finishing or skipping sets `onboardedAt`, so it never appears again.
+
 ## Seeing who is using it
 
 `/admin` lists every account newest-first with how they signed in and how much
