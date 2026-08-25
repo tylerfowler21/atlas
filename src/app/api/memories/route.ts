@@ -7,6 +7,7 @@ import { firstIssue, memoryCreateSchema } from "@/lib/validation";
 const WITH_CONTEXT = {
   place: { select: { id: true, name: true, city: true, country: true } },
   trip: { select: { id: true, title: true } },
+  photos: { select: { id: true }, orderBy: { createdAt: "asc" } },
 } as const;
 
 export async function GET(request: Request) {

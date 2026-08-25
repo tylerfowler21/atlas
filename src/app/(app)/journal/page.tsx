@@ -18,6 +18,7 @@ export default async function JournalPage() {
     include: {
       place: { select: { id: true, name: true, city: true, country: true, countryCode: true } },
       trip: { select: { id: true, title: true } },
+      photos: { select: { id: true }, orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -87,7 +88,33 @@ export default async function JournalPage() {
                         </p>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm whitespace-pre-wrap">{m.body}</p>
+                    {m.body && (
+                      <p className="mt-2 text-sm whitespace-pre-wrap">{m.body}</p>
+                    )}
+
+                    {m.photos.length > 0 && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {m.photos.map((photo) => (
+                          <a
+                            key={photo.id}
+                            href={`/api/photos/${photo.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block overflow-hidden rounded-lg border border-line"
+                          >
+                            {/* Streamed through the app after an ownership check,
+                                so there is no public URL for next/image to use. */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`/api/photos/${photo.id}`}
+                              alt=""
+                              loading="lazy"
+                              className="aspect-square w-full object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

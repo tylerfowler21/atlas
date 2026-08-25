@@ -196,4 +196,5 @@ export type MemoryDTO = {
   tripId: string | null;
   place: { id: string; name: string; city: string | null; country: string | null } | null;
   trip: { id: string; title: string } | null;
+  photos: { id: string }[];
 };

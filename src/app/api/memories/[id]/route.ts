@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, memoryUpdateSchema } from "@/lib/validation";
+import { removePhoto } from "@/lib/photos";
 
 async function loadOwned(id: string, userId: string) {
   const memory = await prisma.memory.findUnique({ where: { id } });
@@ -32,6 +33,7 @@ export async function PATCH(
     include: {
       place: { select: { id: true, name: true, city: true, country: true } },
       trip: { select: { id: true, title: true } },
+      photos: { select: { id: true }, orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -50,6 +52,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // The rows cascade, but the files would not: without this the blobs would
+  // sit in storage forever, paid for and unreachable. Deleting an entry should
+  // actually delete what was in it.
+  const photos = await prisma.photo.findMany({
+    where: { memoryId: id },
+    select: { pathname: true },
+  });
+
   await prisma.memory.delete({ where: { id } });
+  await Promise.all(photos.map((p) => removePhoto(p.pathname)));
+
   return NextResponse.json({ ok: true });
 }

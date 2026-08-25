@@ -269,6 +269,20 @@ journal that demands metadata does not get written in.
 private.** Publishing a trip does not publish them, and nothing in the public
 DTOs carries them.
 
+### Photos
+
+Journal entries can carry photos, stored in Vercel Blob with **private**
+access. The blob URL returns 403 to anyone holding it — verified, not assumed —
+so the only way to read one is `/api/photos/[id]`, which checks who is asking
+and streams the bytes. Deleting an entry deletes its files from storage as well
+as its rows, so deleting actually deletes.
+
+Set `BLOB_READ_WRITE_TOKEN` to enable it. Without it everything else works and
+uploads report that storage isn't configured.
+
+An entry needs either words or a photo, not both — some things are remembered
+by looking rather than reading.
+
 ## Notifications
 
 In-app only, at `/notifications`, with an unread count on the nav bell. There

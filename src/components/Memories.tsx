@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MemoryDTO } from "@/lib/types";
 
 function when(m: MemoryDTO) {
@@ -22,7 +22,10 @@ export default function Memories({ placeId }: { placeId: string }) {
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
   const [happenedOn, setHappenedOn] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,16 +61,36 @@ export default function Memories({ placeId }: { placeId: string }) {
       }),
     });
     const data = await res.json().catch(() => ({}));
-    setBusy(false);
 
     if (!res.ok) {
+      setBusy(false);
       setError(data.error ?? "Could not save that");
       return;
     }
-    setMemories((prev) => [data.memory, ...(prev ?? [])]);
+
+    // Photos upload one at a time against the saved entry, so a failure part
+    // way through still leaves the words and the photos that did land.
+    const memory = { ...data.memory, photos: [...(data.memory.photos ?? [])] };
+    for (const [i, file] of files.entries()) {
+      setProgress(`Uploading photo ${i + 1} of ${files.length}…`);
+      const form = new FormData();
+      form.append("file", file);
+      form.append("memoryId", memory.id);
+
+      const up = await fetch("/api/photos", { method: "POST", body: form });
+      const upBody = await up.json().catch(() => ({}));
+      if (up.ok) memory.photos.push({ id: upBody.photo.id });
+      else setError(upBody.error ?? "A photo could not be uploaded");
+    }
+
+    setProgress(null);
+    setBusy(false);
+    setMemories((prev) => [memory, ...(prev ?? [])]);
     setBody("");
     setTitle("");
     setHappenedOn("");
+    setFiles([]);
+    if (fileInput.current) fileInput.current.value = "";
     setWriting(false);
   }
 
@@ -124,6 +147,27 @@ export default function Memories({ placeId }: { placeId: string }) {
             autoFocus
             onChange={(e) => setBody(e.target.value)}
           />
+          <div>
+            <label className="block text-xs text-muted" htmlFor="memory-photos">
+              Photos (optional)
+            </label>
+            <input
+              id="memory-photos"
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              multiple
+              className="input mt-1 text-xs"
+              onChange={(e) => setFiles([...(e.target.files ?? [])])}
+            />
+            {files.length > 0 && (
+              <p className="mt-1 text-xs text-muted">
+                {files.length} {files.length === 1 ? "photo" : "photos"} ready. They
+                stay private — only you can see them.
+              </p>
+            )}
+          </div>
+
           <label className="block text-xs text-muted">
             When it happened (optional)
             <input
@@ -137,10 +181,10 @@ export default function Memories({ placeId }: { placeId: string }) {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy || body.trim().length === 0}
+              disabled={busy || (body.trim().length === 0 && files.length === 0)}
               onClick={add}
             >
-              {busy ? "Saving…" : "Save entry"}
+              {busy ? (progress ?? "Saving…") : "Save entry"}
             </button>
             <button
               type="button"
@@ -179,7 +223,31 @@ export default function Memories({ placeId }: { placeId: string }) {
                   Delete
                 </button>
               </div>
-              <p className="mt-1.5 text-sm whitespace-pre-wrap">{m.body}</p>
+              {m.body && <p className="mt-1.5 text-sm whitespace-pre-wrap">{m.body}</p>}
+
+              {m.photos.length > 0 && (
+                <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  {m.photos.map((photo) => (
+                    <a
+                      key={photo.id}
+                      href={`/api/photos/${photo.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden rounded-md border border-line"
+                    >
+                      {/* Served through the app, never from a public blob URL,
+                          so next/image cannot help and should not try. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/api/photos/${photo.id}`}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-square w-full object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>

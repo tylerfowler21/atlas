@@ -177,7 +177,9 @@ export const followSchema = z.object({
 
 export const memoryCreateSchema = z.object({
   title: optionalText(160),
-  body: trimmed(20000).min(1, "Write something first"),
+  // Optional so a photo with no words is still an entry — some things are
+  // remembered by looking rather than reading.
+  body: trimmed(20000),
   placeId: optionalText(40),
   tripId: optionalText(40),
   happenedOn: z.coerce.date().nullable().optional(),
