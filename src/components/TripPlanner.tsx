@@ -239,6 +239,50 @@ export default function TripPlanner({
     }
   }
 
+  /// Setting a stop's emoji.
+  ///
+  /// When the stop is a real place the emoji belongs to the *place*, so it is
+  /// written there and shows everywhere that place appears — the map, your
+  /// places list and the been map. Anything the map has never heard of has no
+  /// place to write to, so those keep a per-stop emoji of their own.
+  async function setStopEmoji(item: ItineraryItemDTO, emoji: string | null) {
+    if (!item.placeId || !item.place) {
+      await patchItem(item.id, { emoji });
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    const res = await fetch(`/api/places/${item.placeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "Could not change that emoji");
+      return;
+    }
+
+    const placeId = item.placeId;
+    setItems((prev) =>
+      prev.map((i) =>
+        i.placeId === placeId && i.place
+          ? // Clear any older per-stop override, which would otherwise keep
+            // masking the place's emoji.
+            { ...i, emoji: null, place: { ...i.place, emoji } }
+          : i,
+      ),
+    );
+    setLibrary((prev) => prev.map((p) => (p.id === placeId ? { ...p, emoji } : p)));
+
+    // An override may still be stored server-side from before this change.
+    if (item.emoji) await patchItem(item.id, { emoji: null });
+  }
+
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
     return mutate<{ item: ItineraryItemDTO }>(
       () =>
@@ -477,20 +521,22 @@ export default function TripPlanner({
                     {emojiFor === item.id && (
                       <div className="mt-2 border-t border-line pt-2">
                         <EmojiField
-                          emoji={item.emoji}
+                          emoji={item.place ? item.place.emoji : item.emoji}
                           category={item.category}
-                          fallback={
-                            item.place ? placeIcon(item.place) : categoryOf(item.category).icon
-                          }
-                          onChange={(emoji) => patchItem(item.id, { emoji })}
+                          fallback={categoryOf(item.category).icon}
+                          onChange={(emoji) => setStopEmoji(item, emoji)}
                         />
-                        {item.place && (
-                          <p className="mt-1.5 text-xs text-muted">
-                            Changes this stop only. To change{" "}
-                            <span className="font-medium">{item.place.name}</span>{" "}
-                            everywhere, edit it on the map.
-                          </p>
-                        )}
+                        <p className="mt-1.5 text-xs text-muted">
+                          {item.place ? (
+                            <>
+                              Applies to{" "}
+                              <span className="font-medium">{item.place.name}</span>{" "}
+                              everywhere — the map, your places and your been map.
+                            </>
+                          ) : (
+                            "Applies to this entry. It isn't a place on the map, so it has nowhere else to show."
+                          )}
+                        </p>
                       </div>
                     )}
 
