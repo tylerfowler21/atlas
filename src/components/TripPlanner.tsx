@@ -19,6 +19,7 @@ import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
 import type { TripRole } from "@/lib/trip-access";
+import type { Collaborator } from "@/components/TripPeople";
 
 export default function TripPlanner({
   trip: initialTrip,
@@ -26,12 +27,16 @@ export default function TripPlanner({
   places,
   role,
   ownerLabel,
+  ownerImage,
+  people,
 }: {
   trip: TripDTO;
   initialItems: ItineraryItemDTO[];
   places: PlaceDTO[];
   role: TripRole;
   ownerLabel: string;
+  ownerImage: string | null;
+  people: Collaborator[];
 }) {
   // The trip is editable in place (title, dates, colour), so it lives in state
   // rather than being read straight from props.
@@ -385,7 +390,13 @@ export default function TripPlanner({
           </>
         )}
 
-        <TripPeople tripId={trip.id} role={role} ownerLabel={ownerLabel} />
+        <TripPeople
+          tripId={trip.id}
+          role={role}
+          ownerLabel={ownerLabel}
+          ownerImage={ownerImage}
+          initialPeople={people}
+        />
 
         <div className="flex flex-wrap gap-1.5">
           {Array.from({ length: days }, (_, i) => {

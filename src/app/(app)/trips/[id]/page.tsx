@@ -31,10 +31,18 @@ export default async function TripPage({
   // Editors see whose trip they are helping with.
   const ownerRecord = await prisma.user.findUnique({
     where: { id: trip.userId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, image: true },
   });
   const owner =
     access.role === "owner" ? "You" : (ownerRecord?.name ?? ownerRecord?.email ?? "Someone");
+
+  // Loaded here rather than fetched on open, so the trip shows who is on it the
+  // moment it renders instead of after a click.
+  const collaborators = await prisma.tripCollaborator.findMany({
+    where: { tripId: id },
+    orderBy: { invitedAt: "asc" },
+    include: { user: { select: { name: true, image: true } } },
+  });
 
   const places = await prisma.place.findMany({
     where: { userId: user.id },
@@ -54,6 +62,14 @@ export default async function TripPage({
       places={places.map(serializePlace)}
       role={access.role}
       ownerLabel={owner}
+      ownerImage={ownerRecord?.image ?? null}
+      people={collaborators.map((c) => ({
+        email: c.email,
+        role: c.role,
+        accepted: c.acceptedAt !== null,
+        name: c.user?.name ?? null,
+        image: c.user?.image ?? null,
+      }))}
     />
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { TripRole } from "@/lib/trip-access";
 
-type Collaborator = {
+export type Collaborator = {
   email: string;
   role: string;
   accepted: boolean;
@@ -11,23 +11,55 @@ type Collaborator = {
   image: string | null;
 };
 
+/// A small stack of who is on a trip. Initials rather than a text link,
+/// because "who else can edit this" is a thing you should be able to see
+/// rather than a thing you have to go looking for.
+function Avatar({ person, title }: { person: Collaborator; title: string }) {
+  const initial = (person.name ?? person.email).charAt(0).toUpperCase();
+  return person.image ? (
+    // Avatars come from the identity provider on arbitrary hosts.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={person.image}
+      alt=""
+      title={title}
+      width={24}
+      height={24}
+      className="size-6 rounded-full object-cover ring-2 ring-surface"
+    />
+  ) : (
+    <span
+      title={title}
+      className={`grid size-6 place-items-center rounded-full text-[10px] font-semibold ring-2 ring-surface ${
+        person.accepted ? "bg-accent/15 text-accent" : "bg-foreground/10 text-muted"
+      }`}
+    >
+      {initial}
+    </span>
+  );
+}
+
 export default function TripPeople({
   tripId,
   role,
   ownerLabel,
+  ownerImage,
+  initialPeople,
 }: {
   tripId: string;
   role: TripRole;
   ownerLabel: string;
+  ownerImage: string | null;
+  initialPeople: Collaborator[];
 }) {
   const [open, setOpen] = useState(false);
-  const [people, setPeople] = useState<Collaborator[] | null>(null);
+  const [people, setPeople] = useState<Collaborator[] | null>(initialPeople);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || people) return;
+    if (!open || people !== null) return;
     let cancelled = false;
 
     fetch(`/api/trips/${tripId}/collaborators`)
@@ -83,13 +115,52 @@ export default function TripPeople({
   }
 
   if (!open) {
+    const shown = (people ?? []).slice(0, 4);
+    const extra = (people ?? []).length - shown.length;
+
     return (
       <button
         type="button"
-        className="self-start text-xs text-muted hover:underline"
+        className="-m-1 flex items-center gap-2 self-start rounded-md p-1 hover:bg-foreground/5"
         onClick={() => setOpen(true)}
+        title={
+          role === "owner"
+            ? "Who can edit this trip"
+            : `${ownerLabel} shared this trip with you`
+        }
       >
-        {role === "owner" ? "Who's on this trip" : "Shared with you"}
+        <span className="flex -space-x-1.5">
+          <Avatar
+            person={{
+              email: ownerLabel,
+              role: "owner",
+              accepted: true,
+              name: ownerLabel,
+              image: ownerImage,
+            }}
+            title={`${ownerLabel} — owner`}
+          />
+          {shown.map((p) => (
+            <Avatar
+              key={p.email}
+              person={p}
+              title={`${p.name ?? p.email}${p.accepted ? "" : " — invited"}`}
+            />
+          ))}
+          {extra > 0 && (
+            <span className="grid size-6 place-items-center rounded-full bg-foreground/10 text-[10px] font-semibold text-muted ring-2 ring-surface">
+              +{extra}
+            </span>
+          )}
+        </span>
+
+        <span className="text-xs text-accent">
+          {role !== "owner"
+            ? "Shared with you"
+            : (people ?? []).length === 0
+              ? "+ Invite someone"
+              : "Manage"}
+        </span>
       </button>
     );
   }
