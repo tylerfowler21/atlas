@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { category as categoryOf } from "@/lib/taxonomy";
+import { searchEmoji } from "@/lib/emoji-search";
 
 /// Travel-shaped quick picks. Typing or pasting anything else works too — on a
 /// Mac the system picker is ctrl+cmd+space — so this is a shortcut, not a limit.
@@ -23,6 +25,12 @@ export default function EmojiField({
   onChange: (emoji: string | null) => void;
 }) {
   const fallback = explicitFallback ?? categoryOf(category).icon;
+  const [query, setQuery] = useState("");
+
+  // Searching is local, so results appear as you type with no network call —
+  // unlike place search, which has a geocoder's rate limit to respect.
+  const hits = useMemo(() => searchEmoji(query), [query]);
+  const searching = query.trim().length > 0;
 
   return (
     <div>
@@ -57,21 +65,40 @@ export default function EmojiField({
         />
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            aria-label={`Use ${s}`}
-            className={`grid size-8 place-items-center rounded-md border text-base hover:bg-foreground/5 ${
-              emoji === s ? "border-accent bg-accent/10" : "border-line"
-            }`}
-            onClick={() => onChange(s)}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
+      <input
+        className="input mt-2 text-xs"
+        aria-label="Search emoji"
+        placeholder="Search — waterfall, cheese, castle, hike…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
+      {searching && hits.length === 0 ? (
+        <p className="mt-2 text-xs text-muted">
+          Nothing for “{query.trim()}”. Any emoji works in the box above —
+          ctrl+cmd+space opens the system picker.
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {(searching ? hits.map((h) => h.emoji) : SUGGESTIONS).map((s, i) => (
+            <button
+              key={`${s}-${i}`}
+              type="button"
+              aria-label={`Use ${s}`}
+              title={searching ? hits[i]?.keyword : undefined}
+              className={`grid size-8 place-items-center rounded-md border text-base hover:bg-foreground/5 ${
+                emoji === s ? "border-accent bg-accent/10" : "border-line"
+              }`}
+              onClick={() => {
+                onChange(s);
+                setQuery("");
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

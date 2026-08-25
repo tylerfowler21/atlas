@@ -252,6 +252,12 @@ Categories (restaurant, café, bar, activity, sight, nature, stay, shop,
 transport, other) and their colours and icons are defined once in
 `src/lib/taxonomy.ts`; the map, the lists and the itinerary all read from it.
 
+The emoji picker searches by keyword (`src/lib/emoji-search.ts`). The list is
+curated rather than taken from Unicode's own annotations, because those are
+literal — 🌊 is "water wave" and nothing else — so searching "waterfall",
+"hike" or "gondola" against them finds nothing despite good answers existing.
+Search runs locally, so results appear as you type with no network call.
+
 A stop's emoji resolves most-specific-first via `stopIcon()`: the stop's own
 `ItineraryItem.emoji`, then its place's `Place.emoji`, then the category icon.
 That is what lets a stop with no place — the plain entries for things the map
