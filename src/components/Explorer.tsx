@@ -46,6 +46,11 @@ export default function Explorer({
   // The list is useful, but this is a map — being able to get it out of the
   // way matters most on a phone, where it otherwise fills the screen.
   const [listOpen, setListOpen] = useState(true);
+  // How far the sheet has been dragged from its resting position, in pixels.
+  // Non-zero only while a finger is down, so the sheet follows the thumb
+  // instead of only responding to a tap on something that looks draggable.
+  const [drag, setDrag] = useState(0);
+  const dragFrom = useRef<number | null>(null);
 
   // --- world search, debounced to respect the geocoder's rate limit ---------
   const requestId = useRef(0);
@@ -174,20 +179,59 @@ export default function Explorer({
       {/* On a phone this is a sheet sitting over a full-screen map; from lg up
           it is an ordinary sidebar beside it. One component, two shapes. */}
       <aside
-        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-96 lg:max-h-none lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
-          listOpen ? "max-h-[78%] overflow-y-auto" : "overflow-visible lg:hidden"
-        }`}
+        style={drag ? { transform: `translateY(${drag}px)` } : undefined}
+        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-96 lg:max-h-none lg:translate-y-0 lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
+          drag ? "" : "transition-[max-height,transform] duration-200"
+        } ${listOpen ? "max-h-[78%] overflow-y-auto" : "overflow-visible lg:hidden"}`}
       >
-        {/* The grab handle doubles as the control, so the sheet can be put
-            away by pulling at the thing that looks draggable. */}
+        {/* Drag it or tap it. A short drag counts as a tap, so the sheet never
+            feels stuck when a finger moves a few pixels. */}
         <button
           type="button"
           aria-expanded={listOpen}
           aria-label={listOpen ? "Hide your places" : "Show your places"}
-          className="-mt-1 mb-1 flex shrink-0 justify-center py-1 lg:hidden"
-          onClick={() => setListOpen((v) => !v)}
+          className="-mt-1 mb-1 flex shrink-0 cursor-grab touch-none justify-center py-2 active:cursor-grabbing lg:hidden"
+          onPointerDown={(e) => {
+            dragFrom.current = e.clientY;
+            // Capture keeps the drag alive if the finger leaves the handle,
+            // but a drag must not depend on it succeeding.
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {}
+          }}
+          onPointerMove={(e) => {
+            if (dragFrom.current === null) return;
+            const delta = e.clientY - dragFrom.current;
+            // Only downward when open, only upward when closed; the other
+            // direction has nowhere to go.
+            setDrag(listOpen ? Math.max(0, delta) : Math.min(0, delta));
+          }}
+          onPointerUp={(e) => {
+            const start = dragFrom.current;
+            dragFrom.current = null;
+            const delta = start === null ? 0 : e.clientY - start;
+
+            // Decide first, tidy up after: releasing capture can throw, and a
+            // throw here used to swallow the whole gesture.
+            setDrag(0);
+            if (Math.abs(delta) < 6) {
+              setListOpen((v) => !v);   // a tap
+            } else if (delta > 48) {
+              setListOpen(false);
+            } else if (delta < -48) {
+              setListOpen(true);
+            }
+
+            try {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            } catch {}
+          }}
+          onPointerCancel={() => {
+            dragFrom.current = null;
+            setDrag(0);
+          }}
         >
-          <span className="h-1 w-10 rounded-full bg-foreground/20" />
+          <span className="h-1.5 w-12 rounded-full bg-foreground/25" />
         </button>
 
         {draft ? (
