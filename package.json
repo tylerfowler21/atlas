@@ -21,6 +21,7 @@
     "@auth/prisma-adapter": "^2.11.3",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@vercel/blob": "^2.8.0",
     "maplibre-gl": "^5.9.0",
     "next": "16.3.1",
     "next-auth": "^5.0.0-beta.32",
