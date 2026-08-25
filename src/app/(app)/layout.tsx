@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/user";
 import { isAdmin } from "@/lib/admin";
 import { unreadCount } from "@/lib/notifications";
 import NavBar from "@/components/NavBar";
+import MobileTabBar from "@/components/MobileTabBar";
 
 /// Everything the signed-in owner sees. The auth check lives here rather than
 /// in each page, so a new page under (app) is private by default; shared
@@ -38,6 +39,7 @@ export default async function AppLayout({
         signOutAction={signOutAction}
       />
       <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+      <MobileTabBar admin={isAdmin(user)} signOutAction={signOutAction} />
     </>
   );
 }

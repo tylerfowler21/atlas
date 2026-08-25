@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const LINKS = [
+export const LINKS = [
   { href: "/", label: "Map", icon: "🗺️" },
   { href: "/places", label: "Places", icon: "📍" },
   { href: "/trips", label: "Trips", icon: "🧭" },
@@ -13,6 +13,15 @@ const LINKS = [
   { href: "/feed", label: "Feed", icon: "📡" },
   { href: "/people", label: "People", icon: "👥" },
 ];
+
+/// Seven destinations do not fit across a phone, so on small screens four of
+/// them get a thumb-reachable bottom bar and the rest live behind "More".
+/// Chosen by what you open while travelling rather than by importance.
+export const PRIMARY = ["/", "/trips", "/been", "/journal"];
+
+export function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
 
 export type NavUser = {
   name: string | null;
@@ -47,7 +56,7 @@ export default function NavBar({
         <span>Atlas</span>
       </Link>
 
-      <nav className="flex items-center gap-1">
+      <nav className="hidden items-center gap-1 sm:flex">
         {LINKS.map((link) => {
           const active =
             link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
@@ -108,7 +117,7 @@ export default function NavBar({
               {initial}
             </span>
           )}
-          <span className="hidden max-w-32 truncate text-xs text-muted sm:block">
+          <span className="hidden max-w-32 truncate text-xs text-muted md:block">
             {label}
           </span>
         </button>

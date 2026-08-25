@@ -18,15 +18,15 @@ export default async function TripsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Trips</h1>
           <p className="mt-1 text-sm text-muted">
             Plan a trip day by day from the places you&apos;ve saved.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/trips/import" className="btn btn-ghost">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Link href="/trips/import" className="btn btn-ghost whitespace-nowrap">
             Add a past trip
           </Link>
           <NewTripForm />

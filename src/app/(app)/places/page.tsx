@@ -26,7 +26,7 @@ export default async function PlacesPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Places</h1>
           <p className="mt-1 text-sm text-muted">
@@ -34,7 +34,7 @@ export default async function PlacesPage() {
             {groups.size === 1 ? "place" : "places"}
           </p>
         </div>
-        <Link href="/" className="btn btn-primary">
+        <Link href="/" className="btn btn-primary shrink-0 self-start whitespace-nowrap">
           Add on the map
         </Link>
       </div>
