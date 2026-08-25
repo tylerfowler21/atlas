@@ -283,6 +283,25 @@ export default function TripPlanner({
     if (item.emoji) await patchItem(item.id, { emoji: null });
   }
 
+  async function setPublished(next: boolean) {
+    setBusy(true);
+    setError(null);
+
+    const res = await fetch(`/api/trips/${trip.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ published: next }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "Could not change who can see this");
+      return;
+    }
+    setTrip(body.trip);
+  }
+
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
     return mutate<{ item: ItineraryItemDTO }>(
       () =>
@@ -335,6 +354,26 @@ export default function TripPlanner({
           <p className="text-xs text-muted">
             {[trip.destination, formatRange(trip)].filter(Boolean).join(" · ")}
           </p>
+
+          {/* Whether a trip is public should be readable without opening a
+              panel — it is the one setting where not knowing is a problem. */}
+          {role === "owner" ? (
+            <button
+              type="button"
+              className={`chip mt-2 ${trip.publishedAt ? "is-on" : ""}`}
+              disabled={busy}
+              onClick={() => setPublished(trip.publishedAt === null)}
+              title={
+                trip.publishedAt
+                  ? "On your profile and in your followers' feeds. Click to make private."
+                  : "Only you and anyone you've invited. Click to publish."
+              }
+            >
+              {trip.publishedAt ? "🌍 Published" : "🔒 Private"}
+            </button>
+          ) : (
+            <span className="chip mt-2">✏️ Shared with you</span>
+          )}
         </div>
 
         {/* Renaming, sharing and deleting stay with the owner; an editor gets
@@ -542,6 +581,34 @@ export default function TripPlanner({
 
                     {selectedId === item.id && (
                       <div className="mt-2 space-y-1.5 border-t border-line pt-2">
+                        <input
+                          // Uncontrolled and saved on blur, like the notes below:
+                          // no request per keystroke, and `key` resets it when a
+                          // different stop is selected.
+                          key={`name-${item.id}`}
+                          className="input text-sm"
+                          aria-label="Name of this stop"
+                          defaultValue={item.title}
+                          onBlur={(e) => {
+                            const next = e.target.value.trim();
+                            if (next && next !== item.title) patchItem(item.id, { title: next });
+                            else e.target.value = item.title;
+                          }}
+                        />
+
+                        <select
+                          aria-label="Category for this stop"
+                          className="input text-xs"
+                          value={item.category}
+                          onChange={(e) => patchItem(item.id, { category: e.target.value })}
+                        >
+                          {CATEGORIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.icon} {c.label}
+                            </option>
+                          ))}
+                        </select>
+
                         <textarea
                           // Uncontrolled and saved on blur: no keystroke-by-keystroke
                           // requests, and `key` resets it when the stop changes.

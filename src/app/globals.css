@@ -66,6 +66,33 @@ body {
     box-shadow 120ms ease;
 }
 
+.atlas-pin {
+  position: relative;
+}
+
+.atlas-pin-face {
+  line-height: 1;
+}
+
+/* The day's running order, small enough to leave the emoji legible. */
+.atlas-pin-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border: 1.5px solid #fff;
+  border-radius: 999px;
+  background: var(--pin-color);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .atlas-pin:hover {
   transform: scale(1.15);
 }

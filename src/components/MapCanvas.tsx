@@ -196,9 +196,31 @@ export default function MapCanvas({
       el.classList.toggle("is-muted", Boolean(pin.muted));
       el.classList.toggle("is-selected", pin.id === selectedId);
       el.setAttribute("aria-label", pin.badge ? `Stop ${pin.badge}` : "Map pin");
-      // textContent, not innerHTML — badges and icons are never raw user input,
-      // but there is no reason to open that door.
-      el.textContent = pin.badge ?? pin.icon;
+
+      // The emoji is the point of choosing one, so it stays visible and the
+      // day's running order rides along in a corner badge rather than
+      // replacing it. textContent, not innerHTML — these are never raw user
+      // input, but there is no reason to open that door.
+      const face = el.querySelector<HTMLElement>(".atlas-pin-face") ?? (() => {
+        const span = document.createElement("span");
+        span.className = "atlas-pin-face";
+        el.appendChild(span);
+        return span;
+      })();
+      face.textContent = pin.icon;
+
+      const existingBadge = el.querySelector<HTMLElement>(".atlas-pin-badge");
+      if (pin.badge) {
+        const badge = existingBadge ?? (() => {
+          const span = document.createElement("span");
+          span.className = "atlas-pin-badge";
+          el.appendChild(span);
+          return span;
+        })();
+        badge.textContent = pin.badge;
+      } else if (existingBadge) {
+        existingBadge.remove();
+      }
     }
 
     for (const [id, entry] of existing) {

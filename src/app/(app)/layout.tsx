@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { isAdmin } from "@/lib/admin";
+import { unreadCount } from "@/lib/notifications";
 import NavBar from "@/components/NavBar";
 
 /// Everything the signed-in owner sees. The auth check lives here rather than
@@ -21,6 +22,8 @@ export default async function AppLayout({
   });
   if (!onboardedAt) redirect("/welcome");
 
+  const unread = await unreadCount(user.id);
+
   async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/signin" });
@@ -31,6 +34,7 @@ export default async function AppLayout({
       <NavBar
         user={{ name: user.name, email: user.email, image: user.image }}
         admin={isAdmin(user)}
+        unread={unread}
         signOutAction={signOutAction}
       />
       <main className="min-h-0 flex-1 overflow-auto">{children}</main>

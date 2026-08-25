@@ -81,6 +81,35 @@ model User {
   following      Follow[]           @relation("follower")
   /// People who follow this user
   followers      Follow[]           @relation("following")
+  notifications  Notification[]     @relation("recipient")
+  caused         Notification[]     @relation("actor")
+}
+
+/// Something someone else did that you would want to know about.
+///
+/// In-app only: there is no mail provider wired up, and a notification you see
+/// next time you open the app is worth more than an email nobody set up.
+model Notification {
+  id        String    @id @default(cuid())
+  /// Who should see it
+  userId    String
+  /// "follow" or "copy"
+  kind      String
+  /// Who did the thing
+  actorId   String?
+  /// The trip involved, for a copy
+  tripId    String?
+  /// Denormalised so the notification still reads correctly after the trip is
+  /// renamed or deleted.
+  tripTitle String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user  User  @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 /// A one-way follow. No approval: only trips the owner has explicitly

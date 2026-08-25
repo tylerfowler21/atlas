@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, followSchema } from "@/lib/validation";
+import { notify } from "@/lib/notifications";
 
 async function resolveTarget(username: string) {
   return prisma.user.findUnique({ where: { username }, select: { id: true } });
@@ -24,11 +25,26 @@ export async function POST(request: Request) {
   }
 
   // Idempotent: following twice is the same as following once.
-  await prisma.follow.upsert({
+  const existing = await prisma.follow.findUnique({
     where: { followerId_followingId: { followerId: user.id, followingId: target.id } },
-    update: {},
-    create: { followerId: user.id, followingId: target.id },
   });
+
+  if (!existing) {
+    await prisma.follow.create({
+      data: { followerId: user.id, followingId: target.id },
+    });
+
+    // Unfollowing and following again is a new row, so without this the same
+    // person could be announced repeatedly. One follow notification per pair,
+    // ever, is enough.
+    const announced = await prisma.notification.findFirst({
+      where: { userId: target.id, actorId: user.id, kind: "follow" },
+      select: { id: true },
+    });
+    if (!announced) {
+      await notify({ userId: target.id, kind: "follow", actorId: user.id });
+    }
+  }
 
   return NextResponse.json({ following: true });
 }

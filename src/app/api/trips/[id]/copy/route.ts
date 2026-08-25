@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { notify } from "@/lib/notifications";
 
 const SAME_PLACE_DEGREES = 0.0005;
 
@@ -101,6 +102,14 @@ export async function POST(
         },
       },
     });
+  });
+
+  await notify({
+    userId: source.userId,
+    kind: "copy",
+    actorId: user.id,
+    tripId: source.id,
+    tripTitle: source.title,
   });
 
   return NextResponse.json({ tripId: created.id }, { status: 201 });

@@ -22,9 +22,12 @@ export type NavUser = {
 export default function NavBar({
   user,
   admin = false,
+  unread = 0,
   signOutAction,
 }: {
   user: NavUser;
+  /// Unread notifications, shown as a dot on the bell.
+  unread?: number;
   /// Shows the admin entry. The page guards itself as well — this only keeps
   /// it out of sight for everyone else.
   admin?: boolean;
@@ -67,7 +70,20 @@ export default function NavBar({
         })}
       </nav>
 
-      <div className="relative ml-auto">
+      <Link
+        href="/notifications"
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+        className="relative ml-auto rounded-md px-2 py-1.5 text-sm text-muted hover:bg-foreground/5"
+      >
+        <span aria-hidden>🔔</span>
+        {unread > 0 && (
+          <span className="absolute -top-0.5 right-0 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </Link>
+
+      <div className="relative">
         <button
           type="button"
           className="flex items-center gap-2 rounded-full p-0.5 pr-2 hover:bg-foreground/5"

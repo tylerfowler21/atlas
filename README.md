@@ -244,6 +244,19 @@ work.
 
 Finishing or skipping sets `onboardedAt`, so it never appears again.
 
+## Notifications
+
+In-app only, at `/notifications`, with an unread count on the nav bell. There
+is no mail provider wired up, and a notification seen next time you open the
+app is worth more than an email nobody configured.
+
+Two kinds: someone followed you, someone copied one of your trips. A follow is
+announced once per pair ever, so unfollowing and following again cannot be used
+to nag. `notify()` never throws into the caller — a notification failing is not
+a reason for the follow or the copy itself to fail. A copied trip's title is
+denormalised onto the notification so it still reads correctly after the trip
+is renamed or deleted.
+
 ## Seeing who is using it
 
 `/admin` lists every account newest-first with how they signed in and how much
