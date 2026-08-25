@@ -20,9 +20,13 @@ export type NavUser = {
 
 export default function NavBar({
   user,
+  admin = false,
   signOutAction,
 }: {
   user: NavUser;
+  /// Shows the admin entry. The page guards itself as well — this only keeps
+  /// it out of sight for everyone else.
+  admin?: boolean;
   signOutAction: () => Promise<void>;
 }) {
   const pathname = usePathname();
@@ -105,6 +109,16 @@ export default function NavBar({
             >
               Your profile
             </Link>
+            {admin && (
+              <Link
+                href="/admin"
+                role="menuitem"
+                className="block rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
+                onClick={() => setMenuOpen(false)}
+              >
+                Who&apos;s using Atlas
+              </Link>
+            )}
             <form action={signOutAction}>
               <button
                 type="submit"

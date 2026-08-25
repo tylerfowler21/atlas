@@ -225,6 +225,26 @@ not a memory:
 - the copy is private until you publish it yourself
 - `Trip.copiedFromId` records where it came from, for attribution
 
+## Seeing who is using it
+
+`/admin` lists every account newest-first with how they signed in and how much
+they have added, plus totals and every shared link's view count.
+
+Access comes from `ADMIN_EMAILS`, a comma-separated list of emails. It is
+configuration rather than a database flag, so it cannot be granted by anything
+happening inside the app, and with the variable unset — the default — nobody
+can reach the page. Non-admins are redirected rather than shown a 403, and the
+menu entry does not render for them.
+
+The most useful number on it is "have added something": people who signed in
+and stopped tell you more than people who didn't sign in at all.
+
+The same information is available without a browser:
+
+```bash
+DATABASE_URL="<production url>" npm run db:users
+```
+
 ## Moving data between databases
 
 ```bash
