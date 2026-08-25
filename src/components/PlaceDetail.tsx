@@ -7,6 +7,7 @@ import StarRating from "@/components/StarRating";
 import { category as categoryOf } from "@/lib/taxonomy";
 import { dayCount, toDateInput } from "@/lib/trips";
 import { flagEmoji } from "@/lib/geo";
+import { directionsUrl } from "@/lib/directions";
 import type { PlaceDTO, TripDTO } from "@/lib/types";
 
 export default function PlaceDetail({
@@ -122,6 +123,15 @@ export default function PlaceDetail({
       </div>
 
       {place.address && <p className="text-xs text-muted">{place.address}</p>}
+
+      <a
+        href={directionsUrl({ lat: place.lat, lng: place.lng, name: place.name })}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-ghost w-full justify-center"
+      >
+        Directions in Apple Maps →
+      </a>
 
       <div className="flex gap-1.5">
         {(["wishlist", "visited"] as const).map((s) => (

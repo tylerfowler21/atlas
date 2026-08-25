@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import { category as categoryOf, stopIcon } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
+import { directionsUrl } from "@/lib/directions";
 import type { PublicItemDTO, PublicTripDTO } from "@/lib/types";
 
 /// The read-only twin of TripPlanner, rendered for anyone holding a share
@@ -147,6 +148,20 @@ export default function SharedTrip({
                         </span>
                       )}
                     </button>
+                    {item.place && (
+                      <a
+                        href={directionsUrl({
+                          lat: item.place.lat,
+                          lng: item.place.lng,
+                          name: item.place.name,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 ml-10 inline-block text-xs text-accent hover:underline"
+                      >
+                        Directions →
+                      </a>
+                    )}
                   </li>
                 );
               })}

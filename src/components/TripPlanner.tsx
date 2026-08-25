@@ -9,6 +9,7 @@ import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
 import { CATEGORIES, category as categoryOf, placeIcon, stopIcon } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
+import { directionsUrl } from "@/lib/directions";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
 import type { TripRole } from "@/lib/trip-access";
 
@@ -440,12 +441,45 @@ export default function TripPlanner({
                           }}
                         />
                         {item.place && (
-                          <Link
-                            href={`/?place=${item.place.id}`}
-                            className="inline-block text-xs text-accent hover:underline"
-                          >
-                            Open on the map →
-                          </Link>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Link
+                              href={`/?place=${item.place.id}`}
+                              className="text-xs text-accent hover:underline"
+                            >
+                              Open on the map →
+                            </Link>
+                            <a
+                              href={directionsUrl({
+                                lat: item.place.lat,
+                                lng: item.place.lng,
+                                name: item.place.name,
+                              })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-accent hover:underline"
+                            >
+                              Directions →
+                            </a>
+                            {/* Routing from the stop before it is the question you
+                                actually have while standing at one. */}
+                            {(() => {
+                              const previous = dayItems[index - 1]?.place;
+                              if (!previous) return null;
+                              return (
+                                <a
+                                  href={directionsUrl(
+                                    { lat: item.place!.lat, lng: item.place!.lng, name: item.place!.name },
+                                    { lat: previous.lat, lng: previous.lng, name: previous.name },
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-accent hover:underline"
+                                >
+                                  From {previous.name} →
+                                </a>
+                              );
+                            })()}
+                          </div>
                         )}
                       </div>
                     )}
