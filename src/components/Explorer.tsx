@@ -43,6 +43,9 @@ export default function Explorer({
     },
   );
   const [notice, setNotice] = useState<string | null>(null);
+  // The list is useful, but this is a map — being able to get it out of the
+  // way matters most on a phone, where it otherwise fills the screen.
+  const [listOpen, setListOpen] = useState(true);
 
   // --- world search, debounced to respect the geocoder's rate limit ---------
   const requestId = useRef(0);
@@ -168,7 +171,8 @@ export default function Explorer({
 
   return (
     <div className="flex h-full flex-col lg:flex-row">
-      <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-b border-line p-3 lg:h-full lg:w-96 lg:border-r lg:border-b-0">
+      {listOpen && (
+      <aside className="flex max-h-[55vh] w-full shrink-0 flex-col gap-3 overflow-y-auto border-b border-line p-3 lg:max-h-none lg:h-full lg:w-96 lg:border-r lg:border-b-0">
         {draft ? (
           <PlaceForm
             draft={draft}
@@ -198,6 +202,15 @@ export default function Explorer({
         ) : (
           <>
             <div>
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  className="text-xs text-muted hover:underline"
+                  onClick={() => setListOpen(false)}
+                >
+                  Hide list ▾
+                </button>
+              </div>
               <input
                 className="input"
                 value={query}
@@ -365,8 +378,18 @@ export default function Explorer({
           </>
         )}
       </aside>
+      )}
 
       <div className="relative min-h-[55vh] flex-1 lg:min-h-0">
+        {!listOpen && (
+          <button
+            type="button"
+            className="card absolute top-3 left-3 z-10 px-3 py-1.5 text-xs font-medium shadow-lg"
+            onClick={() => setListOpen(true)}
+          >
+            ☰ Your places ({visiblePlaces.length})
+          </button>
+        )}
         <MapCanvas
           pins={pins}
           selectedId={draft ? DRAFT_PIN_ID : selectedId}
