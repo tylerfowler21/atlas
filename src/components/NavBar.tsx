@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/places", label: "Places", icon: "📍" },
   { href: "/trips", label: "Trips", icon: "🧭" },
   { href: "/been", label: "Been", icon: "🌍" },
+  { href: "/journal", label: "Journal", icon: "📔" },
   { href: "/feed", label: "Feed", icon: "📡" },
   { href: "/people", label: "People", icon: "👥" },
 ];

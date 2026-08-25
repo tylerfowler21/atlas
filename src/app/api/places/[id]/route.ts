@@ -30,7 +30,16 @@ export async function PATCH(
   if (data.status === "visited" && !existing.visitedAt && data.visitedAt === undefined) {
     data.visitedAt = new Date();
   }
-  if (data.status === "wishlist") data.visitedAt = null;
+  if (data.status === "wishlist") {
+    data.visitedAt = null;
+    data.livedFrom = null;
+    data.livedTo = null;
+  }
+  // Somewhere you lived is somewhere you have been, so it keeps a visited date
+  // and still counts on the been map.
+  if (data.status === "lived" && !existing.visitedAt && data.visitedAt === undefined) {
+    data.visitedAt = new Date();
+  }
 
   const place = await prisma.place.update({ where: { id }, data });
   return NextResponse.json({ place });

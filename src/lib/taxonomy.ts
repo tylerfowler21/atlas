@@ -78,7 +78,11 @@ export function travelMode(id: string | null | undefined) {
 export const STATUSES = [
   { id: "wishlist", label: "Want to go", icon: "🔖" },
   { id: "visited", label: "Been there", icon: "✅" },
+  { id: "lived", label: "Lived there", icon: "🏠" },
 ] as const;
+
+/// Somewhere you have actually been, whether you passed through or stayed.
+export const BEEN_STATUSES = ["visited", "lived"] as const;
 
 export type StatusId = (typeof STATUSES)[number]["id"];
 export const STATUS_IDS = STATUSES.map((s) => s.id) as [StatusId, ...StatusId[]];

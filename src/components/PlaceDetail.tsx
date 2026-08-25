@@ -3,8 +3,9 @@
 import { useState } from "react";
 import CategoryPicker from "@/components/CategoryPicker";
 import EmojiField from "@/components/EmojiField";
+import Memories from "@/components/Memories";
 import StarRating from "@/components/StarRating";
-import { category as categoryOf } from "@/lib/taxonomy";
+import { category as categoryOf, STATUSES } from "@/lib/taxonomy";
 import { dayCount, toDateInput } from "@/lib/trips";
 import { flagEmoji } from "@/lib/geo";
 import { directionsUrl } from "@/lib/directions";
@@ -39,6 +40,8 @@ export default function PlaceDetail({
     draft.emoji !== place.emoji ||
     draft.status !== place.status ||
     draft.rating !== place.rating ||
+    draft.livedFrom !== place.livedFrom ||
+    draft.livedTo !== place.livedTo ||
     draft.notes !== place.notes ||
     draft.visitedAt !== place.visitedAt;
 
@@ -133,18 +136,47 @@ export default function PlaceDetail({
         Directions in Apple Maps →
       </a>
 
-      <div className="flex gap-1.5">
-        {(["wishlist", "visited"] as const).map((s) => (
+      <div className="flex flex-wrap gap-1.5">
+        {STATUSES.map((s) => (
           <button
-            key={s}
+            key={s.id}
             type="button"
-            onClick={() => setDraft({ ...draft, status: s })}
-            className={`chip ${draft.status === s ? "is-on" : ""}`}
+            onClick={() => setDraft({ ...draft, status: s.id })}
+            className={`chip ${draft.status === s.id ? "is-on" : ""}`}
           >
-            {s === "wishlist" ? "🔖 Want to go" : "✅ Been there"}
+            <span aria-hidden>{s.icon}</span> {s.label}
           </button>
         ))}
       </div>
+
+      {draft.status === "lived" && (
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-muted">
+            Moved in
+            <input
+              type="date"
+              className="input mt-1"
+              value={draft.livedFrom ? draft.livedFrom.slice(0, 10) : ""}
+              onChange={(e) =>
+                setDraft({ ...draft, livedFrom: e.target.value || null })
+              }
+            />
+          </label>
+          <label className="text-xs text-muted">
+            Left
+            <input
+              type="date"
+              className="input mt-1"
+              value={draft.livedTo ? draft.livedTo.slice(0, 10) : ""}
+              min={draft.livedFrom ? draft.livedFrom.slice(0, 10) : undefined}
+              onChange={(e) => setDraft({ ...draft, livedTo: e.target.value || null })}
+            />
+            <span className="mt-1 block text-xs text-muted">
+              Leave empty if you&apos;re still there.
+            </span>
+          </label>
+        </div>
+      )}
 
       {draft.status === "visited" && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -211,7 +243,9 @@ export default function PlaceDetail({
               category: draft.category,
               emoji: draft.emoji,
               status: draft.status,
-              rating: draft.status === "visited" ? draft.rating : null,
+              livedFrom: draft.status === "lived" ? draft.livedFrom : null,
+              livedTo: draft.status === "lived" ? draft.livedTo : null,
+              rating: draft.status === "wishlist" ? null : draft.rating,
               notes: draft.notes?.trim() || null,
               visitedAt: draft.status === "visited" ? draft.visitedAt : null,
             })
@@ -223,6 +257,8 @@ export default function PlaceDetail({
           Delete
         </button>
       </div>
+
+      <Memories placeId={place.id} />
 
       {trips.length > 0 && (
         <div className="space-y-2 border-t border-line pt-3">

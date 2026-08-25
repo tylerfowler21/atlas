@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CategoryPicker from "@/components/CategoryPicker";
+import { STATUSES } from "@/lib/taxonomy";
 import StarRating from "@/components/StarRating";
 import type { PlaceDTO, PlaceDraft } from "@/lib/types";
 
@@ -16,7 +17,7 @@ export default function PlaceForm({
 }) {
   const [name, setName] = useState(draft.name);
   const [category, setCategory] = useState(draft.category);
-  const [status, setStatus] = useState<"wishlist" | "visited">("wishlist");
+  const [status, setStatus] = useState<string>("wishlist");
   const [rating, setRating] = useState<number | null>(null);
   // Empty means "no particular date" — the server stamps today for a visit.
   const [visitedAt, setVisitedAt] = useState("");
@@ -42,7 +43,7 @@ export default function PlaceForm({
         country: draft.country,
         countryCode: draft.countryCode,
         notes: notes.trim() || null,
-        rating: status === "visited" ? rating : null,
+        rating: status === "wishlist" ? null : rating,
         visitedAt:
           status === "visited" && visitedAt
             ? new Date(visitedAt).toISOString()
@@ -82,20 +83,20 @@ export default function PlaceForm({
 
       <CategoryPicker value={category} onChange={setCategory} />
 
-      <div className="flex gap-1.5">
-        {(["wishlist", "visited"] as const).map((s) => (
+      <div className="flex flex-wrap gap-1.5">
+        {STATUSES.map((s) => (
           <button
-            key={s}
+            key={s.id}
             type="button"
-            onClick={() => setStatus(s)}
-            className={`chip ${status === s ? "is-on" : ""}`}
+            onClick={() => setStatus(s.id)}
+            className={`chip ${status === s.id ? "is-on" : ""}`}
           >
-            {s === "wishlist" ? "🔖 Want to go" : "✅ Been there"}
+            <span aria-hidden>{s.icon}</span> {s.label}
           </button>
         ))}
       </div>
 
-      {status === "visited" && (
+      {status !== "wishlist" && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted">Rating</span>

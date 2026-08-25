@@ -253,6 +253,22 @@ work.
 
 Finishing or skipping sets `onboardedAt`, so it never appears again.
 
+## Lived there, and the journal
+
+A place's `status` is `wishlist`, `visited` or `lived`. Somewhere you lived is
+somewhere you have been, so it keeps a `visitedAt` and still counts on the been
+map, with `livedFrom`/`livedTo` for the period — an open end meaning you are
+still there.
+
+`Memory` is a journal entry: text, an optional title, and an optional
+`happenedOn`, which is rarely the day it was written. It hangs off a place, a
+trip, both or neither, and everything except the text is optional, because a
+journal that demands metadata does not get written in.
+
+`/journal` shows everything newest-first, grouped by year. **Entries are always
+private.** Publishing a trip does not publish them, and nothing in the public
+DTOs carries them.
+
 ## Notifications
 
 In-app only, at `/notifications`, with an unread count on the nav bell. There

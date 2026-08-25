@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { flagEmoji } from "@/lib/geo";
+import { BEEN_STATUSES } from "@/lib/taxonomy";
 import { formatDay } from "@/lib/trips";
 import { serializePlace } from "@/lib/types";
 import BeenMap from "@/components/BeenMap";
@@ -12,7 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function BeenPage() {
   const user = await requireUser();
   const visited = await prisma.place.findMany({
-    where: { userId: user.id, status: "visited" },
+    // Somewhere you lived is somewhere you have been.
+    where: { userId: user.id, status: { in: [...BEEN_STATUSES] } },
     orderBy: [{ visitedAt: "desc" }, { createdAt: "desc" }],
   });
 
@@ -34,8 +36,11 @@ export default async function BeenPage() {
 
   const ranked = [...countries.values()].sort((a, b) => b.count - a.count);
 
+  const livedCount = visited.filter((p) => p.status === "lived").length;
+
   const stats = [
     { label: "Places", value: visited.length },
+    ...(livedCount > 0 ? [{ label: "Lived", value: livedCount }] : []),
     { label: "Cities", value: cities.size },
     { label: "Countries", value: countries.size },
   ];
@@ -44,10 +49,11 @@ export default async function BeenPage() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-xl font-semibold">Everywhere you&apos;ve been</h1>
       <p className="mt-1 text-sm text-muted">
-        Every place marked <span aria-hidden>✅</span> Been there shows up here.
+        Everywhere marked <span aria-hidden>✅</span> Been there or{" "}
+        <span aria-hidden>🏠</span> Lived there.
       </p>
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="card px-4 py-3">
             <p className="text-2xl font-semibold tabular-nums">{s.value}</p>

@@ -44,6 +44,8 @@ const placeFields = {
   rating: z.number().int().min(1).max(5).nullable().optional(),
   website: optionalText(500),
   visitedAt: z.coerce.date().nullable().optional(),
+  livedFrom: z.coerce.date().nullable().optional(),
+  livedTo: z.coerce.date().nullable().optional(),
 };
 
 export const placeCreateSchema = z.object(placeFields).extend({
@@ -171,3 +173,14 @@ export const profileSchema = z.object({
 export const followSchema = z.object({
   username: z.string().trim().toLowerCase().min(1, "Which person?"),
 });
+
+
+export const memoryCreateSchema = z.object({
+  title: optionalText(160),
+  body: trimmed(20000).min(1, "Write something first"),
+  placeId: optionalText(40),
+  tripId: optionalText(40),
+  happenedOn: z.coerce.date().nullable().optional(),
+});
+
+export const memoryUpdateSchema = memoryCreateSchema.partial();

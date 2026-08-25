@@ -76,6 +76,7 @@ model User {
   sessions       Session[]
   places         Place[]
   trips          Trip[]
+  memories       Memory[]
   collaborations TripCollaborator[]
   /// People this user follows
   following      Follow[]           @relation("follower")
@@ -138,8 +139,12 @@ model Place {
   /// Overrides the category's icon on the map and in lists. Null falls back to
   /// whatever the category uses.
   emoji       String?
-  /// "wishlist" (want to go) or "visited" (been there)
+  /// "wishlist" (want to go), "visited" (been there) or "lived" (lived there)
   status      String    @default("wishlist")
+  /// Only for "lived": when you moved there, and when you left. An open end
+  /// means you are still there.
+  livedFrom   DateTime?
+  livedTo     DateTime?
   lat         Float
   lng         Float
   address     String?
@@ -158,6 +163,7 @@ model Place {
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   itineraryItems ItineraryItem[] @relation("itemFrom")
   arrivals       ItineraryItem[] @relation("itemTo")
+  memories       Memory[]
 
   @@index([userId, status])
   @@index([userId, category])
@@ -189,6 +195,7 @@ model Trip {
   collaborators TripCollaborator[]
   copiedFrom    Trip?              @relation("copies", fields: [copiedFromId], references: [id], onDelete: SetNull)
   copies        Trip[]             @relation("copies")
+  memories      Memory[]
 
   @@index([userId])
   @@index([publishedAt])
@@ -230,6 +237,33 @@ model TripShare {
   viewCount    Int       @default(0)
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+/// Something that happened, written down.
+///
+/// Hangs off a place, a trip, both or neither: "the summer we lived in Lisbon"
+/// belongs to a place, "the night the train broke down" belongs to a trip, and
+/// some things belong to no map pin at all. Everything except the text is
+/// optional, because a journal that demands metadata does not get written in.
+model Memory {
+  id         String    @id @default(cuid())
+  userId     String
+  placeId    String?
+  tripId     String?
+  title      String?
+  body       String
+  /// When it happened, which is rarely when it was written.
+  happenedOn DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  trip  Trip?  @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([userId, happenedOn])
+  @@index([placeId])
+  @@index([tripId])
 }
 
 /// One entry on one day of a trip.

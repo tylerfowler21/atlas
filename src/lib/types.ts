@@ -17,6 +17,8 @@ export type PlaceDTO = {
   rating: number | null;
   website: string | null;
   visitedAt: string | null;
+  livedFrom: string | null;
+  livedTo: string | null;
   createdAt: string;
 };
 
@@ -71,12 +73,19 @@ export type SearchResult = {
 
 type DateLike = { toISOString(): string };
 
-export function serializePlace<T extends { visitedAt: DateLike | null; createdAt: DateLike }>(
-  p: T,
-): PlaceDTO {
+export function serializePlace<
+  T extends {
+    visitedAt: DateLike | null;
+    livedFrom?: DateLike | null;
+    livedTo?: DateLike | null;
+    createdAt: DateLike;
+  },
+>(p: T): PlaceDTO {
   return {
     ...(p as unknown as PlaceDTO),
     visitedAt: p.visitedAt ? p.visitedAt.toISOString() : null,
+    livedFrom: p.livedFrom ? p.livedFrom.toISOString() : null,
+    livedTo: p.livedTo ? p.livedTo.toISOString() : null,
     createdAt: p.createdAt.toISOString(),
   };
 }
@@ -175,3 +184,16 @@ export function toPublicPlace(p: {
     countryCode: p.countryCode,
   };
 }
+
+
+export type MemoryDTO = {
+  id: string;
+  title: string | null;
+  body: string;
+  happenedOn: string | null;
+  createdAt: string;
+  placeId: string | null;
+  tripId: string | null;
+  place: { id: string; name: string; city: string | null; country: string | null } | null;
+  trip: { id: string; title: string } | null;
+};
