@@ -170,9 +170,26 @@ export default function Explorer({
   const visitedCount = places.length - wishlistCount;
 
   return (
-    <div className="flex h-full flex-col lg:flex-row">
-      {listOpen && (
-      <aside className="flex max-h-[55vh] w-full shrink-0 flex-col gap-3 overflow-y-auto border-b border-line p-3 lg:max-h-none lg:h-full lg:w-96 lg:border-r lg:border-b-0">
+    <div className="relative h-full lg:flex">
+      {/* On a phone this is a sheet sitting over a full-screen map; from lg up
+          it is an ordinary sidebar beside it. One component, two shapes. */}
+      <aside
+        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-96 lg:max-h-none lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
+          listOpen ? "max-h-[78%] overflow-y-auto" : "overflow-visible lg:hidden"
+        }`}
+      >
+        {/* The grab handle doubles as the control, so the sheet can be put
+            away by pulling at the thing that looks draggable. */}
+        <button
+          type="button"
+          aria-expanded={listOpen}
+          aria-label={listOpen ? "Hide your places" : "Show your places"}
+          className="-mt-1 mb-1 flex shrink-0 justify-center py-1 lg:hidden"
+          onClick={() => setListOpen((v) => !v)}
+        >
+          <span className="h-1 w-10 rounded-full bg-foreground/20" />
+        </button>
+
         {draft ? (
           <PlaceForm
             draft={draft}
@@ -202,13 +219,13 @@ export default function Explorer({
         ) : (
           <>
             <div>
-              <div className="mb-2 flex justify-end">
+              <div className="mb-2 hidden justify-end lg:flex">
                 <button
                   type="button"
                   className="text-xs text-muted hover:underline"
                   onClick={() => setListOpen(false)}
                 >
-                  Hide list ▾
+                  Hide list ‹
                 </button>
               </div>
               <input
@@ -226,12 +243,18 @@ export default function Explorer({
                   📌 {dropMode ? "Click the map…" : "Drop a pin"}
                 </button>
                 <span className="text-xs text-muted">
-                  {wishlistCount} to go · {visitedCount} visited
+                  {listOpen ? (
+                    <>
+                      {wishlistCount} to go · {visitedCount} visited
+                    </>
+                  ) : (
+                    <>{visiblePlaces.length} places — pull up to see them</>
+                  )}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
               {[{ id: "all", label: "All", icon: "•" }, ...STATUSES].map((s) => (
                 <button
                   key={s.id}
@@ -248,7 +271,7 @@ export default function Explorer({
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
               {CATEGORIES.map((c) => {
                 const on = !hidden.has(c.id);
                 return (
@@ -276,7 +299,7 @@ export default function Explorer({
 
             {notice && <p className="text-xs text-muted">{notice}</p>}
 
-            <section className="min-h-0">
+            <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
               <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
                 Your places ({localMatches.length})
               </h2>
@@ -378,13 +401,12 @@ export default function Explorer({
           </>
         )}
       </aside>
-      )}
 
-      <div className="relative min-h-[55vh] flex-1 lg:min-h-0">
+      <div className="absolute inset-0 lg:static lg:order-2 lg:min-h-0 lg:flex-1">
         {!listOpen && (
           <button
             type="button"
-            className="card absolute top-3 left-3 z-10 px-3 py-1.5 text-xs font-medium shadow-lg"
+            className="card absolute top-3 left-3 z-10 hidden px-3 py-1.5 text-xs font-medium shadow-lg lg:block"
             onClick={() => setListOpen(true)}
           >
             ☰ Your places ({visiblePlaces.length})
