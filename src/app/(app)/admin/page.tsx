@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 import { checkAppleCredentials } from "@/lib/apple-check";
+import { inspectAppleSecret } from "@/lib/apple-secret-inspect";
 
 export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ export default async function AdminPage({
   await requireAdmin();
 
   const appleCheck = verify === "apple" ? await verifyApple() : null;
+
+  const apple = inspectAppleSecret();
 
   const authErrors = await prisma.authError.findMany({
     orderBy: { createdAt: "desc" },
@@ -192,6 +195,45 @@ export default async function AdminPage({
           </ul>
         </>
       )}
+
+      <h2 className="mt-8 mb-2 text-sm font-medium">Apple credentials on this deployment</h2>
+      <ul className="card divide-y divide-line text-xs">
+        {[
+          ["AUTH_APPLE_ID (quoted)", apple.clientIdQuoted ?? "not set"],
+          ["secret length", apple.secretLength === null ? "not set" : `${apple.secretLength} characters`],
+          ["signed by key", apple.keyId ?? "could not decode"],
+          ["team (iss)", apple.teamId ?? "—"],
+          ["subject (sub)", apple.subject ?? "—"],
+          ["audience (aud)", apple.audience ?? "—"],
+          ["expires", apple.expiresAt ?? "—"],
+        ].map(([label, value]) => (
+          <li key={label} className="flex gap-3 px-3 py-1.5">
+            <span className="text-muted">{label}</span>
+            <span className="ml-auto font-mono break-all">{value}</span>
+          </li>
+        ))}
+        <li className="flex gap-3 px-3 py-1.5">
+          <span className="text-muted">subject matches client id</span>
+          <span
+            className={`ml-auto font-medium ${
+              apple.subjectMatchesClientId
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-red-500"
+            }`}
+          >
+            {apple.subjectMatchesClientId === null
+              ? "—"
+              : apple.subjectMatchesClientId
+                ? "yes"
+                : "NO — Apple rejects the pair"}
+          </span>
+        </li>
+        {apple.looksWhitespaceDamaged && (
+          <li className="px-3 py-1.5 text-red-500">
+            A value has leading or trailing whitespace — re-paste it in Vercel.
+          </li>
+        )}
+      </ul>
 
       <h2 className="mt-8 mb-2 text-sm font-medium">Configuration</h2>
       {appleCheck ? (
