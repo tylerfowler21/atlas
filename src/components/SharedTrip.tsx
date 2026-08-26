@@ -197,6 +197,11 @@ export default function SharedTrip({
 
       <div className="relative min-h-[55vh] flex-1 lg:min-h-0">
         <MapCanvas
+          // A shared itinerary is readable with no account, so this map is
+          // shown to strangers and crawlers. Keeping it on the free basemap
+          // means public traffic can never exhaust the Apple quota and take
+          // the map down for everyone.
+          basemap="free"
           pins={pins}
           route={route}
           legs={legs}

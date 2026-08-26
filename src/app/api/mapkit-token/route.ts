@@ -19,9 +19,10 @@ export async function GET(request: Request) {
   return new NextResponse(token, {
     headers: {
       "Content-Type": "text/plain",
-      // Shorter than the token's own life, so a cached copy is never handed
-      // out close to expiry.
-      "Cache-Control": "private, max-age=600",
+      // Never cached. The client also uses this endpoint to decide whether
+      // Apple Maps is available at all, and a cached 200 from a deployment
+      // that has since lost its credentials picks a map that cannot load.
+      "Cache-Control": "no-store",
     },
   });
 }
