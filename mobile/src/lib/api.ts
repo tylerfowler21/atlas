@@ -110,6 +110,38 @@ export type Person = {
   following: boolean;
 };
 
+export type ItineraryItem = {
+  id: string;
+  tripId: string;
+  /// "stop" or "travel"
+  kind: string;
+  placeId: string | null;
+  toPlaceId: string | null;
+  mode: string | null;
+  title: string;
+  emoji: string | null;
+  notes: string | null;
+  dayIndex: number;
+  startTime: string | null;
+  endTime: string | null;
+  category: string;
+  position: number;
+  /// Carries emoji and category because the icon for a stop resolves through
+  /// them — the stop's own override, then the place's, then the category's.
+  /// Without those a saved place would show a different icon on the phone than
+  /// on the map it came from.
+  place: ItemPlace | null;
+  toPlace: ItemPlace | null;
+};
+
+type ItemPlace = {
+  id: string;
+  name: string;
+  city: string | null;
+  emoji: string | null;
+  category: string;
+};
+
 export type Trip = {
   id: string;
   title: string;

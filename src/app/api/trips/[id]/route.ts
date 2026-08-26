@@ -4,6 +4,47 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { firstIssue, tripUpdateSchema } from "@/lib/validation";
+import { serializePlace, serializeTrip } from "@/lib/types";
+
+/// One trip with its itinerary.
+///
+/// The website renders this page on the server, so nothing served it as data
+/// until the app needed it. It reuses tripAccess and the same serializers the
+/// page uses, so a collaborator sees exactly what they see in a browser — and
+/// somebody with no access gets the same 404, rather than a 403 that would
+/// confirm the trip exists.
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await getCurrentUser();
+  if (!user) return unauthorized();
+
+  const { id } = await params;
+  const access = await tripAccess(id, user);
+  if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const trip = await prisma.trip.findUnique({
+    where: { id },
+    include: {
+      items: {
+        orderBy: [{ dayIndex: "asc" }, { position: "asc" }],
+        include: { place: true, toPlace: true },
+      },
+    },
+  });
+  if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({
+    trip: serializeTrip(trip),
+    role: access.role,
+    items: trip.items.map((item) => ({
+      ...item,
+      place: item.place ? serializePlace(item.place) : null,
+      toPlace: item.toPlace ? serializePlace(item.toPlace) : null,
+    })),
+  });
+}
 
 export async function PATCH(
   request: Request,

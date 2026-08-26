@@ -1,11 +1,13 @@
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Link } from "expo-router";
 import { usePalette } from "@/lib/use-palette";
 import type { Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
@@ -46,7 +48,8 @@ export default function TripsScreen() {
         renderItem={({ item }) => {
           const when = dateRange(item);
           return (
-            <View style={styles.row}>
+            <Link href={{ pathname: "/trip/[id]", params: { id: item.id } }} asChild>
+              <Pressable style={styles.row}>
               <View style={[styles.stripe, { backgroundColor: item.color }]} />
               <View style={styles.rowBody}>
                 <Text style={[styles.title, { color: palette.ink }]} numberOfLines={1}>
@@ -58,8 +61,9 @@ export default function TripsScreen() {
               </View>
               {item.publishedAt && (
                 <Text style={[styles.badge, { color: palette.accentText }]}>Published</Text>
-              )}
-            </View>
+                )}
+              </Pressable>
+            </Link>
           );
         }}
       />
