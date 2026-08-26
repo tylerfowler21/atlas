@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 import type { ItineraryItem } from "@/lib/api";
@@ -70,6 +70,15 @@ export default function TripMap({
 
   const region = useMemo(() => regionFor(points), [points]);
 
+  /// initialRegion only applies when the map mounts, so filtering to a single
+  /// day would redraw the lines and leave the camera where it was — showing a
+  /// day's route somewhere off screen. Moving it explicitly is what makes the
+  /// filter feel like it did anything.
+  const map = useRef<MapView>(null);
+  useEffect(() => {
+    if (region) map.current?.animateToRegion(region, 400);
+  }, [region]);
+
   if (points.length === 0) {
     return (
       <View style={[styles.empty, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -81,7 +90,7 @@ export default function TripMap({
   }
 
   return (
-    <MapView style={styles.map} initialRegion={region}>
+    <MapView ref={map} style={styles.map} initialRegion={region}>
       {stops.length > 1 && (
         <Polyline
           coordinates={stops.map((i) => ({

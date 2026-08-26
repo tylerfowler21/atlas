@@ -57,6 +57,9 @@ export default function TripScreen() {
   const router = useRouter();
   const [settings, setSettings] = useState(false);
   const [item, setItem] = useState<ItemDraft | null>(null);
+  /// Which day the map is showing. Null is the whole trip, which is the right
+  /// opening view — the shape of the thing before its parts.
+  const [mapDay, setMapDay] = useState<number | null>(null);
 
   const days = useMemo(
     () => (data ? dayCount(data.trip, data.items) : 0),
@@ -183,14 +186,50 @@ export default function TripScreen() {
         />
       )}
       <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
-        <TripMap items={data.items} color={data.trip.color} />
+        <TripMap
+          items={
+            mapDay === null ? data.items : data.items.filter((i) => i.dayIndex === mapDay)
+          }
+          color={data.trip.color}
+        />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dayChips}
+        >
+          {[null, ...Array.from({ length: days }, (_, d) => d)].map((d) => {
+            const on = mapDay === d;
+            return (
+              <Pressable
+                key={d ?? "all"}
+                onPress={() => setMapDay(d)}
+                style={[
+                  styles.dayChip,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                  on && { backgroundColor: palette.accent, borderColor: palette.accent },
+                ]}
+              >
+                <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
+                  {d === null ? "Whole trip" : dayLabel(data.trip, d)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         {Array.from({ length: days }, (_, day) => {
           const stops = data.items.filter((i) => i.dayIndex === day);
           return (
             <View key={day} style={styles.day}>
-              <Text style={[styles.dayLabel, { color: palette.muted }]}>
+              <Text
+                style={[
+                  styles.dayLabel,
+                  { color: mapDay === day ? palette.accentText : palette.muted },
+                ]}
+              >
                 {dayLabel(data.trip, day)}
+                {mapDay === day ? "  · on the map" : ""}
               </Text>
 
               {stops.map((entry, index) => {
@@ -313,6 +352,8 @@ export default function TripScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
+  dayChips: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingVertical: 12 },
+  dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   day: { paddingHorizontal: 12, paddingTop: 16 },
   dayLabel: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
   stop: {
