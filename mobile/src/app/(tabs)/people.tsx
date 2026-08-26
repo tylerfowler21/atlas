@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -11,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { api, type Person } from "@/lib/api";
+import { REPORT_REASONS } from "@/lib/report-reasons";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -54,6 +57,82 @@ export default function PeopleScreen() {
       reload();
     },
     [reload],
+  );
+
+  const block = useCallback(
+    (person: Person, name: string) => {
+      Alert.alert(
+        `Block ${name}?`,
+        "Neither of you will see the other's profile or published trips, and any follows between you are removed.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Block",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await api("/api/block", {
+                  method: "POST",
+                  body: JSON.stringify({ username: person.username }),
+                });
+                reload();
+              } catch (e) {
+                Alert.alert("Could not block", e instanceof Error ? e.message : "Try again");
+              }
+            },
+          },
+        ],
+      );
+    },
+    [reload],
+  );
+
+  const report = useCallback((person: Person, name: string) => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: `Report ${name}`,
+        message: "Nothing is shared with them.",
+        options: ["Cancel", ...REPORT_REASONS.map((r) => r.label)],
+        cancelButtonIndex: 0,
+      },
+      async (chosen) => {
+        if (chosen === 0) return;
+        const reason = REPORT_REASONS[chosen - 1];
+        try {
+          await api("/api/report", {
+            method: "POST",
+            body: JSON.stringify({ reason: reason.id, username: person.username }),
+          });
+          Alert.alert("Reported", "Thank you — this has been sent for review.");
+        } catch (e) {
+          Alert.alert("Could not report", e instanceof Error ? e.message : "Try again");
+        }
+      },
+    );
+  }, []);
+
+  /// Blocking and reporting live on the person, which is the only place
+  /// anyone thinks to look for them — and the App Store expects both to exist
+  /// in the app rather than only on the website.
+  const moderate = useCallback(
+    (person: Person) => {
+      if (!person.username) return;
+      const name = person.name ?? `@${person.username}`;
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: name,
+          options: ["Cancel", "Report", "Block"],
+          destructiveButtonIndex: 2,
+          cancelButtonIndex: 0,
+        },
+        (chosen) => {
+          if (chosen === 1) report(person, name);
+          if (chosen === 2) block(person, name);
+        },
+      );
+    },
+    [report, block],
   );
 
   if (loading && !data) {
@@ -109,6 +188,9 @@ export default function PeopleScreen() {
                   {item.publishedTrips === 1 ? "" : "s"}
                 </Text>
               </View>
+              <Pressable onPress={() => moderate(item)} hitSlop={8} style={styles.more}>
+                <Text style={{ color: palette.muted, fontSize: 20 }}>⋯</Text>
+              </Pressable>
               <Pressable
                 onPress={() => toggle(item)}
                 style={[
@@ -162,4 +244,5 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: "500" },
   meta: { fontSize: 12, marginTop: 2 },
   follow: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  more: { paddingHorizontal: 4 },
 });

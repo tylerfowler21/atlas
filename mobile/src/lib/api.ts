@@ -138,6 +138,24 @@ export type FeedTrip = {
   author: { username: string | null; name: string | null; image: string | null };
 };
 
+export type Notification = {
+  id: string;
+  kind: string;
+  tripTitle: string | null;
+  tripId: string | null;
+  readAt: string | null;
+  createdAt: string;
+  actor: { name: string | null; username: string | null; image: string | null } | null;
+};
+
+export type Me = {
+  id: string;
+  name: string | null;
+  username: string | null;
+  image: string | null;
+  onboarded: boolean;
+};
+
 export type Person = {
   id: string;
   name: string | null;

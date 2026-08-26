@@ -6,8 +6,10 @@
 /// on its own, which is exactly why it is worth a check.
 import { readFileSync } from "node:fs";
 
-const SOURCE = "src/lib/taxonomy.ts";
-const MIRROR = "mobile/src/lib/taxonomy.ts";
+const PAIRS = [
+  ["src/lib/taxonomy.ts", "mobile/src/lib/taxonomy.ts"],
+  ["src/lib/report-reasons.ts", "mobile/src/lib/report-reasons.ts"],
+] as const;
 
 /// The mirror carries an explanatory header the original does not. Everything
 /// from the first import or export onwards has to match exactly.
@@ -16,16 +18,16 @@ function body(text: string) {
   return start === -1 ? text : text.slice(start);
 }
 
-const source = body(readFileSync(SOURCE, "utf8"));
-const mirror = body(readFileSync(MIRROR, "utf8"));
-
-if (source !== mirror) {
-  console.error(
-    `${MIRROR} has drifted from ${SOURCE}.\n\n` +
-      `Copy the website's version over the app's, keeping the header comment:\n` +
-      `    npm run sync:mirror\n`,
-  );
+let drifted = false;
+for (const [source, mirror] of PAIRS) {
+  if (body(readFileSync(source, "utf8")) !== body(readFileSync(mirror, "utf8"))) {
+    console.error(`${mirror} has drifted from ${source}.`);
+    drifted = true;
+  } else {
+    console.log(`${mirror} matches ${source}`);
+  }
+}
+if (drifted) {
+  console.error("\nCopy the website's versions over the app's:\n    npm run sync:mirror\n");
   process.exit(1);
 }
-
-console.log(`${MIRROR} matches ${SOURCE}`);

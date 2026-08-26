@@ -2,15 +2,17 @@
 /// header comment. The counterpart to check-mirror.
 import { readFileSync, writeFileSync } from "node:fs";
 
-const SOURCE = "src/lib/taxonomy.ts";
-const MIRROR = "mobile/src/lib/taxonomy.ts";
+const PAIRS = [
+  ["src/lib/taxonomy.ts", "mobile/src/lib/taxonomy.ts"],
+  ["src/lib/report-reasons.ts", "mobile/src/lib/report-reasons.ts"],
+] as const;
 
-const source = readFileSync(SOURCE, "utf8");
-const existing = readFileSync(MIRROR, "utf8");
-
-const bodyStart = source.search(/^(import|export) /m);
-const headerEnd = existing.search(/^(import|export) /m);
-if (headerEnd === -1) throw new Error(`${MIRROR} has no header to preserve`);
-
-writeFileSync(MIRROR, existing.slice(0, headerEnd) + source.slice(bodyStart));
-console.log(`Copied ${SOURCE} into ${MIRROR}`);
+for (const [source, mirror] of PAIRS) {
+  const from = readFileSync(source, "utf8");
+  const existing = readFileSync(mirror, "utf8");
+  const bodyStart = from.search(/^(import|export) /m);
+  const headerEnd = existing.search(/^(import|export) /m);
+  if (headerEnd === -1) throw new Error(`${mirror} has no header to preserve`);
+  writeFileSync(mirror, existing.slice(0, headerEnd) + from.slice(bodyStart));
+  console.log(`Copied ${source} into ${mirror}`);
+}

@@ -7,6 +7,7 @@ import {
   PeopleIcon,
   PlacesIcon,
   TripsIcon,
+  YourProfileIcon,
 } from "@/components/nav-icons";
 import { usePalette } from "@/lib/use-palette";
 
@@ -60,6 +61,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="people"
         options={{ title: "People", tabBarIcon: ({ color }) => <PeopleIcon color={color} /> }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{ title: "You", tabBarIcon: ({ color }) => <YourProfileIcon color={color} /> }}
       />
     </Tabs>
   );

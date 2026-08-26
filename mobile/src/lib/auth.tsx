@@ -3,13 +3,8 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { createContext, use, useCallback, useEffect, useState } from "react";
 import { API_URL, clearToken, storeToken, storedToken } from "@/lib/api";
 
-export type Me = {
-  id: string;
-  name: string | null;
-  username: string | null;
-  image: string | null;
-  onboarded: boolean;
-};
+import type { Me } from "@/lib/api";
+export type { Me };
 
 type AuthState = {
   /// Undefined while the keychain is still being read, so the UI can wait
