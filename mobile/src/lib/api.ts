@@ -71,9 +71,26 @@ export type Place = {
   status: string;
   lat: number;
   lng: number;
+  address: string | null;
   city: string | null;
   country: string | null;
+  countryCode: string | null;
   notes: string | null;
+  rating: number | null;
+};
+
+/// A place found by the geocoder, before anyone saves it.
+export type SearchResult = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  countryCode: string | null;
+  category: string;
+  context: string;
 };
 
 export type Memory = {

@@ -1,8 +1,18 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePalette } from "@/lib/use-palette";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
+import { api, type Place, type SearchResult } from "@/lib/api";
+import {
+  ActivityIndicator,
+  Keyboard,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
-import type { Place } from "@/lib/api";
 import { placeIcon } from "@/lib/taxonomy";
 import { useApi } from "@/lib/use-api";
 
@@ -39,8 +49,32 @@ const RING = {
 } as const;
 
 export default function MapScreen() {
-  const { data, error, loading } = useApi<{ places: Place[] }>("/api/places");
+  const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
+
+  const [draft, setDraft] = useState<PlaceDraft | null>(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  /// Searched on demand rather than as you type: the geocoders behind this are
+  /// rate limited, and a request per keystroke is how you get throttled.
+  const search = useCallback(async () => {
+    const q = query.trim();
+    if (q.length < 3) return;
+    Keyboard.dismiss();
+    setSearching(true);
+    try {
+      const found = await api<{ results: SearchResult[] }>(
+        `/api/geocode?q=${encodeURIComponent(q)}`,
+      );
+      setResults(found.results);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [query]);
   // MapView reads initialRegion once, when it mounts, and ignores it after —
   // so recomputing this cannot drag the map out from under someone who has
   // panned away.
@@ -65,13 +99,26 @@ export default function MapScreen() {
 
   return (
     <View style={styles.fill}>
-      <MapView style={styles.fill} initialRegion={initial} showsUserLocation>
+      <PlaceEditor draft={draft} onClose={() => setDraft(null)} onSaved={reload} />
+
+      <MapView
+        style={styles.fill}
+        initialRegion={initial}
+        showsUserLocation
+        // Long press rather than tap: a tap is how you dismiss things and pan,
+        // and dropping a pin every time someone touches the map is maddening.
+        onLongPress={(e) => {
+          const { latitude, longitude } = e.nativeEvent.coordinate;
+          setDraft({ name: "", lat: latitude, lng: longitude });
+        }}
+      >
         {places.map((place) => (
           <Marker
             key={place.id}
             coordinate={{ latitude: place.lat, longitude: place.lng }}
             title={place.name}
             description={[place.city, place.country].filter(Boolean).join(", ")}
+            onCalloutPress={() => setDraft(placeToDraft(place))}
           >
             <View
               style={[
@@ -88,10 +135,58 @@ export default function MapScreen() {
         ))}
       </MapView>
 
-      {places.length === 0 && (
+      <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={search}
+          returnKeyType="search"
+          placeholder="Search anywhere in the world…"
+          placeholderTextColor={palette.muted}
+          style={{ flex: 1, fontSize: 15, color: palette.ink }}
+        />
+        {searching && <ActivityIndicator />}
+      </View>
+
+      {results.length > 0 && (
+        <ScrollView
+          style={[styles.results, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {results.map((r) => (
+            <Pressable
+              key={r.id}
+              onPress={() => {
+                setResults([]);
+                setQuery("");
+                setDraft({
+                  name: r.name,
+                  lat: r.lat,
+                  lng: r.lng,
+                  category: r.category,
+                  address: r.address,
+                  city: r.city,
+                  country: r.country,
+                  countryCode: r.countryCode,
+                });
+              }}
+              style={[styles.result, { borderBottomColor: palette.border }]}
+            >
+              <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                {r.name}
+              </Text>
+              <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                {r.context}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      {places.length === 0 && results.length === 0 && (
         <View style={styles.empty} pointerEvents="none">
           <Text style={styles.emptyText}>
-            No places yet. Add one on the website and it appears here.
+            Search above, or press and hold anywhere on the map to drop a pin.
           </Text>
         </View>
       )}
@@ -116,6 +211,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   pinGlyph: { fontSize: 16 },
+  searchBar: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  results: {
+    position: "absolute",
+    top: 62,
+    left: 12,
+    right: 12,
+    maxHeight: 260,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  result: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
   empty: { position: "absolute", left: 24, right: 24, bottom: 48 },
   emptyText: {
     backgroundColor: "rgba(0,0,0,0.7)",

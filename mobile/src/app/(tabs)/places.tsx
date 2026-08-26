@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { usePalette } from "@/lib/use-palette";
+import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
 import type { Place } from "@/lib/api";
 import { placeIcon } from "@/lib/taxonomy";
 import { useApi } from "@/lib/use-api";
@@ -23,6 +24,7 @@ const FILTERS = [
 export default function PlacesScreen() {
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const [filter, setFilter] = useState<string>("all");
+  const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const palette = usePalette();
 
   const places = useMemo(() => {
@@ -40,6 +42,8 @@ export default function PlacesScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
+      <PlaceEditor draft={draft} onClose={() => setDraft(null)} onSaved={reload} />
+
       <View style={styles.filters}>
         {FILTERS.map((f) => (
           <Pressable
@@ -75,7 +79,7 @@ export default function PlacesScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <Pressable style={styles.row} onPress={() => setDraft(placeToDraft(item))}>
             <Text style={styles.rowGlyph}>{placeIcon(item)}</Text>
             <View style={styles.rowBody}>
               <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
@@ -87,7 +91,7 @@ export default function PlacesScreen() {
             </View>
             {item.status === "visited" && <Text style={styles.tick}>✅</Text>}
             {item.status === "lived" && <Text style={styles.tick}>🏠</Text>}
-          </View>
+          </Pressable>
         )}
       />
     </View>
