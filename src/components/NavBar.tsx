@@ -3,16 +3,32 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BeenIcon,
+  FeedIcon,
+  JournalIcon,
+  MapIcon,
+  PeopleIcon,
+  PlacesIcon,
+  SignOutIcon,
+  TripsIcon,
+  WhosUsingRoavaIcon,
+  YourProfileIcon,
+} from "@/components/nav-icons";
 import { useState } from "react";
 
+/// The brand's own icons rather than emoji. They are components, not strings,
+/// because their stroke is currentColor — so they take the colour of whatever
+/// they sit in and go teal alongside an active label instead of staying the
+/// same picture everywhere.
 export const LINKS = [
-  { href: "/", label: "Map", icon: "🗺️" },
-  { href: "/places", label: "Places", icon: "📍" },
-  { href: "/trips", label: "Trips", icon: "🧭" },
-  { href: "/been", label: "Been", icon: "🌍" },
-  { href: "/journal", label: "Journal", icon: "📔" },
-  { href: "/feed", label: "Feed", icon: "📡" },
-  { href: "/people", label: "People", icon: "👥" },
+  { href: "/", label: "Map", Icon: MapIcon },
+  { href: "/places", label: "Places", Icon: PlacesIcon },
+  { href: "/trips", label: "Trips", Icon: TripsIcon },
+  { href: "/been", label: "Been", Icon: BeenIcon },
+  { href: "/journal", label: "Journal", Icon: JournalIcon },
+  { href: "/feed", label: "Feed", Icon: FeedIcon },
+  { href: "/people", label: "People", Icon: PeopleIcon },
 ];
 
 /// Seven destinations do not fit across a phone, so on small screens four of
@@ -72,9 +88,7 @@ export default function NavBar({
                   : "text-muted hover:bg-foreground/5"
               }`}
             >
-              <span aria-hidden className="mr-1.5">
-                {link.icon}
-              </span>
+              <link.Icon className="mr-1.5 h-4 w-4 shrink-0" />
               {link.label}
             </Link>
           );
@@ -132,18 +146,20 @@ export default function NavBar({
             <Link
               href="/settings"
               role="menuitem"
-              className="block rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
               onClick={() => setMenuOpen(false)}
             >
+              <YourProfileIcon className="h-4 w-4 shrink-0" />
               Your profile
             </Link>
             {admin && (
               <Link
                 href="/admin"
                 role="menuitem"
-                className="block rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
                 onClick={() => setMenuOpen(false)}
               >
+                <WhosUsingRoavaIcon className="h-4 w-4 shrink-0" />
                 Who&apos;s using Roava
               </Link>
             )}
@@ -151,8 +167,9 @@ export default function NavBar({
               <button
                 type="submit"
                 role="menuitem"
-                className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5"
               >
+                <SignOutIcon className="h-4 w-4 shrink-0" />
                 Sign out
               </button>
             </form>

@@ -4,6 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { LINKS, PRIMARY, isActive } from "@/components/NavBar";
+import {
+  SignOutIcon,
+  WhosUsingRoavaIcon,
+  YourProfileIcon,
+} from "@/components/nav-icons";
 
 /// The phone navigation. Rendered after <main> so it sits at the bottom of the
 /// flex column — a sibling rather than a fixed overlay, so it can never cover
@@ -38,9 +43,7 @@ export default function MobileTabBar({
               active ? "font-medium text-accent-text" : "text-muted"
             }`}
           >
-            <span aria-hidden className="text-lg leading-none">
-              {link.icon}
-            </span>
+            <link.Icon className="h-6 w-6" />
             {link.label}
           </Link>
         );
@@ -80,7 +83,7 @@ export default function MobileTabBar({
                   className="flex items-center gap-3 px-4 py-3 text-sm"
                   onClick={() => setMoreOpen(false)}
                 >
-                  <span aria-hidden>{link.icon}</span>
+                  <link.Icon className="h-5 w-5 shrink-0" />
                   {link.label}
                 </Link>
               </li>
@@ -91,7 +94,7 @@ export default function MobileTabBar({
                 className="flex items-center gap-3 px-4 py-3 text-sm"
                 onClick={() => setMoreOpen(false)}
               >
-                <span aria-hidden>⚙️</span>
+                <YourProfileIcon className="h-5 w-5 shrink-0" />
                 Your profile
               </Link>
             </li>
@@ -102,7 +105,7 @@ export default function MobileTabBar({
                   className="flex items-center gap-3 px-4 py-3 text-sm"
                   onClick={() => setMoreOpen(false)}
                 >
-                  <span aria-hidden>📊</span>
+                  <WhosUsingRoavaIcon className="h-5 w-5 shrink-0" />
                   Who&apos;s using Roava
                 </Link>
               </li>
@@ -113,7 +116,7 @@ export default function MobileTabBar({
                   type="submit"
                   className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm"
                 >
-                  <span aria-hidden>↩️</span>
+                  <SignOutIcon className="h-5 w-5 shrink-0" />
                   Sign out
                 </button>
               </form>
