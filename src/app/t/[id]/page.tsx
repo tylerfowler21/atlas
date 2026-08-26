@@ -52,7 +52,7 @@ export default async function PublishedTripPage({
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">
             {trip.user.username ? (
-              <Link href={`/u/${trip.user.username}`} className="text-accent hover:underline">
+              <Link href={`/u/${trip.user.username}`} className="text-accent-text hover:underline">
                 @{trip.user.username}
               </Link>
             ) : (

@@ -50,7 +50,7 @@ export default async function SettingsPage() {
       </div>
 
       <div className="mt-8 space-y-3 border-t border-line pt-4">
-        <Link href="/privacy" className="block text-xs text-accent hover:underline">
+        <Link href="/privacy" className="block text-xs text-accent-text hover:underline">
           What Roava stores and who can see it →
         </Link>
         <DeleteAccount

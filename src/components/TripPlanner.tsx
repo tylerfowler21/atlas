@@ -642,7 +642,7 @@ export default function TripPlanner({
                             )}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-accent hover:underline"
+                            className="text-xs text-accent-text hover:underline"
                           >
                             {travelMode(item.mode).label} times: {item.place.name} →{" "}
                             {item.toPlace.name} →
@@ -653,7 +653,7 @@ export default function TripPlanner({
                           <div className="flex flex-wrap items-center gap-3">
                             <Link
                               href={`/?place=${item.place.id}`}
-                              className="text-xs text-accent hover:underline"
+                              className="text-xs text-accent-text hover:underline"
                             >
                               Open on the map →
                             </Link>
@@ -665,7 +665,7 @@ export default function TripPlanner({
                               })}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-accent hover:underline"
+                              className="text-xs text-accent-text hover:underline"
                             >
                               Directions →
                             </a>
@@ -682,7 +682,7 @@ export default function TripPlanner({
                                   )}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-accent hover:underline"
+                                  className="text-xs text-accent-text hover:underline"
                                 >
                                   From {previous.name} →
                                 </a>
@@ -1038,7 +1038,7 @@ function AddStop({
                       {[place.city, place.country].filter(Boolean).join(", ") || meta.label}
                     </span>
                   </span>
-                  <span className="text-xs text-accent">Add</span>
+                  <span className="text-xs text-accent-text">Add</span>
                 </button>
               </li>
             );
@@ -1078,7 +1078,7 @@ function AddStop({
                     <span className="block truncate text-sm">{r.name}</span>
                     <span className="block truncate text-xs text-muted">{r.context}</span>
                   </span>
-                  <span className="text-xs text-accent">Save &amp; add</span>
+                  <span className="text-xs text-accent-text">Save &amp; add</span>
                 </button>
               </li>
             ))}
@@ -1117,7 +1117,7 @@ function AddStop({
       {places.length === 0 && (
         <p className="mt-2 text-xs text-muted">
           You have no saved places yet —{" "}
-          <Link href="/" className="text-accent underline">
+          <Link href="/" className="text-accent-text underline">
             find some on the map
           </Link>
           .

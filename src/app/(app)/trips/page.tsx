@@ -71,7 +71,7 @@ export default async function TripsPage() {
                   </div>
                   <div className="shrink-0 text-right">
                     {trip.userId !== user.id && (
-                      <p className="text-xs text-accent">
+                      <p className="text-xs text-accent-text">
                         shared by {trip.user.name ?? trip.user.email}
                       </p>
                     )}

@@ -42,7 +42,7 @@ export default async function NotificationsPage() {
       {notifications.length === 0 ? (
         <p className="mt-8 text-sm text-muted">
           Nothing yet. Pick a username at{" "}
-          <Link href="/settings" className="text-accent underline">
+          <Link href="/settings" className="text-accent-text underline">
             your profile
           </Link>{" "}
           so people can find and follow you.

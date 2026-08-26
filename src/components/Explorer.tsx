@@ -434,7 +434,7 @@ export default function Explorer({
                               {r.context}
                             </span>
                           </span>
-                          <span className="text-xs text-accent">Add</span>
+                          <span className="text-xs text-accent-text">Add</span>
                         </button>
                       </li>
                     ))}

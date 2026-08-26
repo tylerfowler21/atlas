@@ -101,7 +101,7 @@ export default async function BeenPage({
               }`}
             >
               <p className="text-2xl font-semibold tabular-nums">{t.value}</p>
-              <p className={`text-xs ${active ? "text-accent" : "text-muted"}`}>{t.label}</p>
+              <p className={`text-xs ${active ? "text-accent-text" : "text-muted"}`}>{t.label}</p>
             </Link>
           );
         })}
@@ -110,7 +110,7 @@ export default async function BeenPage({
       {visited.length === 0 ? (
         <p className="mt-10 text-sm text-muted">
           Nothing marked as visited yet. Open a place on the{" "}
-          <Link href="/" className="text-accent underline">
+          <Link href="/" className="text-accent-text underline">
             map
           </Link>{" "}
           and switch it to “Been there”.

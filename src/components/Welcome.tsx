@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -73,9 +74,7 @@ export default function Welcome({
       {step === 0 && (
         <div className="space-y-5">
           <div>
-            <p className="text-4xl" aria-hidden>
-              🧭
-            </p>
+            <Image src="/brand/mark.png" alt="" width={64} height={64} />
             <h1 className="mt-3 text-2xl font-semibold">
               {name ? `Welcome, ${name.split(" ")[0]}` : "Welcome to Roava"}
             </h1>

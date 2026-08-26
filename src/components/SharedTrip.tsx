@@ -178,7 +178,7 @@ export default function SharedTrip({
                         })}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-1 ml-10 inline-block text-xs text-accent hover:underline"
+                        className="mt-1 ml-10 inline-block text-xs text-accent-text hover:underline"
                       >
                         Directions →
                       </a>

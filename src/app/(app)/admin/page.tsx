@@ -149,7 +149,7 @@ export default async function AdminPage({
                   {r.tripId && (
                     <>
                       {" · "}
-                      <Link href={`/t/${r.tripId}`} className="text-accent hover:underline">
+                      <Link href={`/t/${r.tripId}`} className="text-accent-text hover:underline">
                         view the trip
                       </Link>
                     </>
@@ -173,7 +173,7 @@ export default async function AdminPage({
         </p>
       ) : (
         <p className="mb-2 text-xs">
-          <Link href="/admin?verify=apple" className="text-accent hover:underline">
+          <Link href="/admin?verify=apple" className="text-accent-text hover:underline">
             Ask Apple whether this deployment&apos;s sign-in credentials work →
           </Link>
         </p>
@@ -241,7 +241,7 @@ export default async function AdminPage({
                   <span className="block truncate">{u.name ?? "—"}</span>
                   <span className="block truncate text-xs text-muted">{u.email}</span>
                   {u.username && (
-                    <Link href={`/u/${u.username}`} className="text-xs text-accent hover:underline">
+                    <Link href={`/u/${u.username}`} className="text-xs text-accent-text hover:underline">
                       @{u.username}
                     </Link>
                   )}

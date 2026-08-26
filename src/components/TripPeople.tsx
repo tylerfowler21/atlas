@@ -31,7 +31,7 @@ function Avatar({ person, title }: { person: Collaborator; title: string }) {
     <span
       title={title}
       className={`grid size-6 place-items-center rounded-full text-[10px] font-semibold ring-2 ring-surface ${
-        person.accepted ? "bg-accent/15 text-accent" : "bg-foreground/10 text-muted"
+        person.accepted ? "bg-accent/15 text-accent-text" : "bg-foreground/10 text-muted"
       }`}
     >
       {initial}
@@ -154,7 +154,7 @@ export default function TripPeople({
           )}
         </span>
 
-        <span className="text-xs text-accent">
+        <span className="text-xs text-accent-text">
           {role !== "owner"
             ? "Shared with you"
             : (people ?? []).length === 0
@@ -188,7 +188,7 @@ export default function TripPeople({
 
       <ul className="space-y-1.5">
         <li className="flex items-center gap-2 text-sm">
-          <span className="grid size-6 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent">
+          <span className="grid size-6 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent-text">
             {ownerLabel.charAt(0).toUpperCase()}
           </span>
           <span className="min-w-0 flex-1 truncate">{ownerLabel}</span>

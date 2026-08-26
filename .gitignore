@@ -24,3 +24,6 @@ roava-export.json
 *[0-9].ts
 *[0-9].tsx
 .vercel
+
+# Brand source art. Large, and the generated assets in public/ are what ship.
+brand/*.pdf

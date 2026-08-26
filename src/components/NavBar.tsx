@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -52,7 +53,7 @@ export default function NavBar({
   return (
     <header className="relative flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
       <Link href="/" className="mr-3 flex items-center gap-2 px-1 text-sm font-semibold">
-        <span aria-hidden>🧭</span>
+        <Image src="/brand/mark-64.png" alt="" width={22} height={22} />
         <span>Roava</span>
       </Link>
 
@@ -67,7 +68,7 @@ export default function NavBar({
               aria-current={active ? "page" : undefined}
               className={`rounded-md px-2.5 py-1.5 text-sm ${
                 active
-                  ? "bg-accent/12 font-medium text-accent"
+                  ? "bg-accent/12 font-medium text-accent-text"
                   : "text-muted hover:bg-foreground/5"
               }`}
             >
@@ -113,7 +114,7 @@ export default function NavBar({
               className="size-7 rounded-full object-cover"
             />
           ) : (
-            <span className="grid size-7 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent">
+            <span className="grid size-7 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent-text">
               {initial}
             </span>
           )}

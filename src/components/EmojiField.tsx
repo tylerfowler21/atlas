@@ -39,7 +39,7 @@ export default function EmojiField({
         {emoji ? (
           <button
             type="button"
-            className="text-accent hover:underline"
+            className="text-accent-text hover:underline"
             onClick={() => onChange(null)}
           >
             — reset to {fallback}

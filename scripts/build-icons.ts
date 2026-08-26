@@ -1,0 +1,72 @@
+/// Builds every icon the web app and the iOS app need from one source file.
+///
+/// The source is a rounded square with transparent corners — how an icon looks
+/// once a platform has masked it, not how a platform wants to be given one.
+/// iOS applies its own mask, so a rounded source gets rounded twice and the
+/// transparent corners render black; App Review rejects icons with an alpha
+/// channel outright. So the iOS icon is flattened onto the brand green, corner
+/// to corner, with the artwork scaled to sit inside where the rounding was.
+import sharp from "sharp";
+import { mkdir } from "node:fs/promises";
+
+const SOURCE = "brand/roava-icon-source.png";
+
+/// How far inside the trimmed tile to crop, as a fraction of its width.
+///
+/// Filling the transparent corners with a sampled colour left a visible seam:
+/// the tile carries a soft shadow and slight shading, so a flat fill never
+/// quite matches it. Cutting inside the corner radius avoids the problem
+/// instead of trying to disguise it — every pixel of the result is then the
+/// tile's own background. The radius looks to be about a fifth of the width,
+/// and a square inscribed in that needs roughly 6%; 9% leaves margin for the
+/// shadow.
+const INSET = 0.09;
+
+async function main() {
+  await mkdir("public/brand", { recursive: true });
+  await mkdir("mobile/assets/images", { recursive: true });
+
+  // Trim the transparent margin down to the tile, then cut a square from
+  // inside its rounded corners.
+  const tile = await sharp(SOURCE).trim().toBuffer({ resolveWithObject: true });
+  const side = Math.min(tile.info.width, tile.info.height);
+  const inset = Math.round(side * INSET);
+  const size = side - inset * 2;
+
+  const flattenedSquare = await sharp(tile.data)
+    .extract({
+      left: Math.round((tile.info.width - side) / 2) + inset,
+      top: Math.round((tile.info.height - side) / 2) + inset,
+      width: size,
+      height: size,
+    })
+    // Removes the alpha channel entirely — App Review rejects icons that have
+    // one, even when nothing in the image is transparent.
+    .flatten()
+    .png()
+    .toBuffer();
+
+  const icon = await sharp(flattenedSquare).resize(1024, 1024).png().toBuffer();
+
+  await sharp(icon).toFile("mobile/assets/images/icon.png");
+  await sharp(icon).resize(512, 512).toFile("public/brand/icon-512.png");
+  await sharp(icon).resize(192, 192).toFile("public/brand/icon-192.png");
+
+  // The web mark keeps its transparency: it is placed on the page's own
+  // background, which is not the icon's green.
+  await sharp(SOURCE).resize(256, 256).png().toFile("public/brand/mark.png");
+  await sharp(SOURCE).resize(64, 64).png().toFile("public/brand/mark-64.png");
+
+  // Favicons. 32px is what a browser tab actually shows.
+  await sharp(icon).resize(32, 32).png().toFile("public/brand/favicon-32.png");
+  await sharp(icon).resize(180, 180).png().toFile("public/apple-touch-icon.png");
+
+  const check = await sharp("mobile/assets/images/icon.png").metadata();
+  console.log(
+    `  iOS icon: ${check.width}x${check.height}, alpha: ${check.hasAlpha} (must be false)`,
+  );
+  console.log("  wrote public/brand/{mark,mark-64,icon-512,icon-192,favicon-32}.png");
+  console.log("  wrote public/apple-touch-icon.png and mobile/assets/images/icon.png");
+}
+
+main();

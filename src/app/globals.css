@@ -1,34 +1,45 @@
 @import "tailwindcss";
 
-/* Coastal: deep navy, teal, sea glass, warm sand, slate.
-   The sand is the page and white is the card, so content sits on top of the
-   background rather than dissolving into it. */
+/* The brand guide's colour system, with its roles:
+     Deep Ocean   primary / navigation
+     Coastal Teal CTA / active
+     Sea Glass    accent / highlights
+     Warm Cream   brand surface
+     Soft White   app background
+     Ink          body text
+
+   White on Coastal Teal is 2.5:1, so buttons carry Ink instead — hence a
+   separate token for text drawn on the accent. */
 :root {
-  --background: #f2e6db;
+  --background: #fcfaf6;
   --surface: #ffffff;
-  --foreground: #0d2b45;
-  --muted: #4a6b8a;
-  --border: rgba(13, 43, 69, 0.14);
-  --accent: #0d2b45;
-  /* Text drawn on top of --accent. A separate token because the accent is the
-     dark navy in light mode and the teal in dark mode, and one fixed colour
-     cannot stay legible on both. */
-  --accent-contrast: #ffffff;
-  --sea-glass: #a8d5e2;
+  --brand-surface: #f4ede1;
+  --foreground: #14212b;
+  --muted: #55677a;
+  --border: rgba(20, 33, 43, 0.12);
+  --accent: #14b8a6;
+  --accent-contrast: #14212b;
+  /* Coastal Teal is a CTA colour, not a text colour: it is 2.5:1 on the page
+     background, so links set in it are unreadable. Text that wants to look
+     active uses Deep Ocean, which is 13.5:1. */
+  --accent-text: #0f2d4a;
+  --brand: #0f2d4a;
+  --sea-glass: #a7f3e0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #071a29;
-    --surface: #0d2b45;
-    --foreground: #eaf2f7;
-    --muted: #a8c2d4;
-    --border: rgba(168, 213, 226, 0.16);
-    /* Navy is the page here, so the teal becomes the accent — with navy text
-       on it, which is far more readable than white would be. */
-    --accent: #4db6ac;
-    --accent-contrast: #062033;
-    --sea-glass: #a8d5e2;
+    --background: #0b1620;
+    --surface: #14212b;
+    --brand-surface: #0f2d4a;
+    --foreground: #fcfaf6;
+    --muted: #9fb3c4;
+    --border: rgba(167, 243, 224, 0.14);
+    --accent: #14b8a6;
+    --accent-contrast: #0b1620;
+    --accent-text: #a7f3e0;
+    --brand: #0f2d4a;
+    --sea-glass: #a7f3e0;
   }
 }
 
@@ -40,6 +51,9 @@
   --color-line: var(--border);
   --color-accent: var(--accent);
   --color-sea-glass: var(--sea-glass);
+  --color-brand: var(--brand);
+  --color-brand-surface: var(--brand-surface);
+  --color-accent-text: var(--accent-text);
 }
 
 html,
@@ -50,8 +64,20 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* The display serif is for page titles only. The guide asks for editorial
+   serif *moments*; applying it to every h2 put a tiny uppercase list label
+   ("YOUR PLACES (10)") in a display face, which reads as a mistake rather than
+   as a moment. Add .display to opt anything else in. */
+h1,
+.display {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* --- map pins ----------------------------------------------------------- */

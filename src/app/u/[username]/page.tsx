@@ -82,7 +82,7 @@ export default async function ProfilePage({
             className="size-14 rounded-full object-cover"
           />
         ) : (
-          <span className="grid size-14 place-items-center rounded-full bg-accent/15 text-lg font-semibold text-accent">
+          <span className="grid size-14 place-items-center rounded-full bg-accent/15 text-lg font-semibold text-accent-text">
             {(profile.name ?? profile.username ?? "?").charAt(0).toUpperCase()}
           </span>
         )}

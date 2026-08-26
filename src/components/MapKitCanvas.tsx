@@ -94,7 +94,7 @@ function pinElement(pin: MapPin) {
 export default function MapKitCanvas({
   pins,
   route,
-  routeColor = "#0D2B45",
+  routeColor = "#0F2D4A",
   legs,
   selectedId,
   onSelect,

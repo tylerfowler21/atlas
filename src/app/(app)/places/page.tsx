@@ -42,7 +42,7 @@ export default async function PlacesPage() {
       {places.length === 0 ? (
         <p className="mt-10 text-sm text-muted">
           Nothing saved yet.{" "}
-          <Link href="/" className="text-accent underline">
+          <Link href="/" className="text-accent-text underline">
             Open the map
           </Link>{" "}
           and search for somewhere you want to go.

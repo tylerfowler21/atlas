@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Trip" ALTER COLUMN "color" SET DEFAULT '#0F2D4A';
+

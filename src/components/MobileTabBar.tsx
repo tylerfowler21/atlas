@@ -35,7 +35,7 @@ export default function MobileTabBar({
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
-              active ? "font-medium text-accent" : "text-muted"
+              active ? "font-medium text-accent-text" : "text-muted"
             }`}
           >
             <span aria-hidden className="text-lg leading-none">
@@ -52,7 +52,7 @@ export default function MobileTabBar({
         onClick={() => setMoreOpen((v) => !v)}
         className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
           moreOpen || overflow.some((l) => isActive(pathname, l.href))
-            ? "font-medium text-accent"
+            ? "font-medium text-accent-text"
             : "text-muted"
         }`}
       >

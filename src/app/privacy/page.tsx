@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-5 py-10 text-sm">
       <div>
-        <Link href="/" className="text-xs text-accent hover:underline">
+        <Link href="/" className="text-xs text-accent-text hover:underline">
           ← Roava
         </Link>
         <h1 className="mt-2 text-xl font-semibold">Privacy</h1>
@@ -92,7 +92,7 @@ export default function PrivacyPage() {
         <h2 className="font-medium">Deleting it</h2>
         <p className="text-muted">
           You can delete your account at any time from{" "}
-          <Link href="/settings" className="text-accent underline">
+          <Link href="/settings" className="text-accent-text underline">
             your profile
           </Link>
           . That removes your places, trips, journal entries and photos,

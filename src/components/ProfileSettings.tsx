@@ -74,7 +74,7 @@ export default function ProfileSettings({
           {busy ? "Saving…" : "Save profile"}
         </button>
         {saved && (
-          <a href={`/u/${saved}`} className="text-xs text-accent hover:underline">
+          <a href={`/u/${saved}`} className="text-xs text-accent-text hover:underline">
             View your profile →
           </a>
         )}

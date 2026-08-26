@@ -225,7 +225,7 @@ model Trip {
   endDate     DateTime?
   notes       String?
   /// Hex colour used for this trip's pins and accents
-  color       String    @default("#0D2B45")
+  color       String    @default("#0F2D4A")
   /// Null means private. Set when the owner publishes it to their profile,
   /// and doubles as the ordering key for followers' feeds.
   publishedAt DateTime?

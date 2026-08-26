@@ -6,8 +6,8 @@ import { toDateInput } from "@/lib/trips";
 import type { TripDTO } from "@/lib/types";
 
 const COLORS = [
-  "#0D2B45", // deep navy
-  "#4DB6AC", // teal
+  "#0F2D4A", // deep ocean
+  "#14B8A6", // coastal teal
   "#4A6B8A", // slate
   "#E07A5F", // coral
   "#D9A441", // amber

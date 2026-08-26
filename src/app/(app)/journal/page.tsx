@@ -43,7 +43,7 @@ export default async function JournalPage() {
       {memories.length === 0 ? (
         <p className="mt-8 text-sm text-muted">
           Nothing written yet. Open a place on the{" "}
-          <Link href="/" className="text-accent underline">
+          <Link href="/" className="text-accent-text underline">
             map
           </Link>{" "}
           and choose <span className="font-medium">Memories &amp; journal</span>.
@@ -72,7 +72,7 @@ export default async function JournalPage() {
                             <>
                               {" · "}
                               {flagEmoji(m.place.countryCode)}{" "}
-                              <Link href={`/?place=${m.place.id}`} className="text-accent hover:underline">
+                              <Link href={`/?place=${m.place.id}`} className="text-accent-text hover:underline">
                                 {m.place.name}
                               </Link>
                             </>
@@ -80,7 +80,7 @@ export default async function JournalPage() {
                           {m.trip && (
                             <>
                               {" · "}
-                              <Link href={`/trips/${m.trip.id}`} className="text-accent hover:underline">
+                              <Link href={`/trips/${m.trip.id}`} className="text-accent-text hover:underline">
                                 {m.trip.title}
                               </Link>
                             </>

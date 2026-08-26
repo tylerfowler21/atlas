@@ -105,7 +105,7 @@ export default function TripBuilder() {
         id: s.key,
         lat: s.place!.lat,
         lng: s.place!.lng,
-        color: badge ? "#0D2B45" : meta.color,
+        color: badge ? "#0F2D4A" : meta.color,
         icon: meta.icon,
         badge: badge ? String(badge) : null,
         muted: !badge,
@@ -392,7 +392,7 @@ export default function TripBuilder() {
                             {r.context}
                           </span>
                         </span>
-                        <span className="text-xs text-accent">Add</span>
+                        <span className="text-xs text-accent-text">Add</span>
                       </button>
                     </li>
                   ))}

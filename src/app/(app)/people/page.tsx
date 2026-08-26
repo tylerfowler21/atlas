@@ -97,7 +97,7 @@ export default async function PeoplePage({
                   className="size-10 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent/15 text-sm font-semibold text-accent">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent/15 text-sm font-semibold text-accent-text">
                   {(person.name ?? person.username ?? "?").charAt(0).toUpperCase()}
                 </span>
               )}
@@ -133,7 +133,7 @@ export default async function PeoplePage({
 
       <p className="mt-8 text-xs text-muted">
         You&apos;re listed here once you pick a username at{" "}
-        <Link href="/settings" className="text-accent underline">
+        <Link href="/settings" className="text-accent-text underline">
           your profile
         </Link>
         . Without one you have no public profile and don&apos;t appear.

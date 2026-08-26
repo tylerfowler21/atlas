@@ -14,7 +14,7 @@ export default function TabsLayout() {
   // against it, and the teal is washed out on white.
   const dark = useColorScheme() === "dark";
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: dark ? "#4DB6AC" : "#0D2B45" }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: dark ? "#14B8A6" : "#0F2D4A" }}>
       <Tabs.Screen name="index" options={{ title: "Map", tabBarIcon: icon("🗺️") }} />
       <Tabs.Screen name="places" options={{ title: "Places", tabBarIcon: icon("📍") }} />
       <Tabs.Screen name="trips" options={{ title: "Trips", tabBarIcon: icon("🧳") }} />

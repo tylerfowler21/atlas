@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { appleConfigured, auth, devLoginEnabled, googleConfigured, signIn } from "@/auth";
 
@@ -19,10 +20,15 @@ export default async function SignInPage({
     <div className="flex min-h-full flex-1 items-center justify-center overflow-auto p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <p className="text-3xl" aria-hidden>
-            🧭
-          </p>
-          <h1 className="mt-2 text-xl font-semibold">Roava</h1>
+          <Image
+            src="/brand/mark.png"
+            alt=""
+            width={72}
+            height={72}
+            className="mx-auto"
+            priority
+          />
+          <h1 className="mt-2 text-2xl">Roava</h1>
           <p className="mt-1 text-sm text-muted">
             Save the places you want to go, plan trips day by day, and keep a map
             of everywhere you&apos;ve been.
