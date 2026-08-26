@@ -201,7 +201,22 @@ async function recordAuthError(error: unknown) {
       type?: string;
       message?: string;
       stack?: string;
-      cause?: { err?: { name?: string; message?: string; stack?: string }; provider?: string };
+      cause?: {
+        err?: {
+          name?: string;
+          message?: string;
+          stack?: string;
+          /// oauth4webapi's ResponseBodyError carries the provider's own OAuth
+          /// error code here — "invalid_client", "invalid_grant" and so on.
+          /// Without it the message is only "server responded with an error in
+          /// the response body", which says that the provider objected but not
+          /// to what.
+          error?: string;
+          error_description?: string;
+          status?: number;
+        };
+        provider?: string;
+      };
     };
     const inner = e?.cause?.err;
     const provider = e?.cause?.provider;
@@ -212,8 +227,15 @@ async function recordAuthError(error: unknown) {
           .filter(Boolean)
           .join(" <- ") || "Unknown",
         message:
-          [e?.message, inner?.message].filter(Boolean).join(" — ").slice(0, 4000) ||
-          "(no message)",
+          [
+            inner?.error && `${inner.error}${inner.status ? ` (HTTP ${inner.status})` : ""}`,
+            inner?.error_description,
+            inner?.message,
+            e?.message,
+          ]
+            .filter(Boolean)
+            .join(" — ")
+            .slice(0, 4000) || "(no message)",
         // The inner stack points at what actually failed; the outer one only
         // shows Auth.js catching it.
         stack: (inner?.stack ?? e?.stack)?.slice(0, 4000) ?? null,
