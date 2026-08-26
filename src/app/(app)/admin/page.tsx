@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 import { checkAppleCredentials } from "@/lib/apple-check";
 import { inspectAppleSecret } from "@/lib/apple-secret-inspect";
+import { mapkitConfigured } from "@/lib/mapkit";
 
 export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
@@ -55,6 +56,13 @@ export default async function AdminPage({
   const appleCheck = verify === "apple" ? await verifyApple() : null;
 
   const apple = inspectAppleSecret();
+
+  // The origin a MapKit token would be minted for. MapKit refuses a token whose
+  // origin does not match the page requesting it, and the map then falls back
+  // to the free basemap without saying why — so this is the one value that
+  // explains an Apple Maps that quietly is not Apple Maps.
+  const requestHost = (await headers()).get("host");
+  const mapkitOrigin = requestHost ? `https://${requestHost}` : null;
 
   const authErrors = await prisma.authError.findMany({
     orderBy: { createdAt: "desc" },
@@ -195,6 +203,23 @@ export default async function AdminPage({
           </ul>
         </>
       )}
+
+      <h2 className="mt-8 mb-2 text-sm font-medium">Apple Maps</h2>
+      <ul className="card divide-y divide-line text-xs">
+        <li className="flex gap-3 px-3 py-1.5">
+          <span className="text-muted">configured</span>
+          <span className="ml-auto font-mono">{mapkitConfigured ? "yes" : "no"}</span>
+        </li>
+        <li className="flex gap-3 px-3 py-1.5">
+          <span className="text-muted">token origin claim</span>
+          <span className="ml-auto font-mono break-all">{mapkitOrigin ?? "—"}</span>
+        </li>
+        <li className="px-3 py-1.5 text-muted">
+          The origin must match the address in the browser&apos;s bar exactly. If
+          it does not, MapKit rejects the token and the map falls back to the
+          free basemap without reporting anything.
+        </li>
+      </ul>
 
       <h2 className="mt-8 mb-2 text-sm font-medium">Apple credentials on this deployment</h2>
       <ul className="card divide-y divide-line text-xs">
