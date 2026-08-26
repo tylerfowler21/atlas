@@ -8,6 +8,7 @@ import {
   FeedIcon,
   JournalIcon,
   MapIcon,
+  NotificationsIcon,
   PeopleIcon,
   PlacesIcon,
   SignOutIcon,
@@ -100,9 +101,12 @@ export default function NavBar({
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
         className="relative ml-auto rounded-md px-2 py-1.5 text-sm text-muted hover:bg-foreground/5"
       >
-        <span aria-hidden>🔔</span>
+        <NotificationsIcon className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute -top-0.5 right-0 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white">
+          // Ink on the coral, not white. White on it is 2.9:1 and on the teal
+          // this used to be it was 2.5:1 — a count nobody can read is worse
+          // than no count, and this is the smallest text in the interface.
+          <span className="absolute -top-1 -right-0.5 grid min-w-4 place-items-center rounded-full bg-[#E07A5F] px-1 text-[10px] font-bold text-[#14212B]">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

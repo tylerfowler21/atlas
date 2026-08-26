@@ -44,6 +44,14 @@ export function MapIcon({ size = 24, color = INK }: IconProps) {
   );
 }
 
+export function NotificationsIcon({ size = 24, color = INK }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Path d="M32 8c-1.7 0-3 1.3-3 3v2.3C21.5 14.7 16 21.2 16 29v9.5l-3.4 5.1A2 2 0 0 0 14.3 47h35.4a2 2 0 0 0 1.7-3.4L48 38.5V29c0-7.8-5.5-14.3-13-15.7V11c0-1.7-1.3-3-3-3Z" fill="#F4EDE1" stroke={color} strokeWidth="3"/><Path d="M38 22.5c2.6 2 4.2 5 4.4 8.3" stroke="#14B8A6" strokeWidth="2.5"/><Path d="M25 47a7 7 0 0 0 14 0" fill="#14B8A6" stroke={color} strokeWidth="3"/>
+    </Svg>
+  );
+}
+
 export function PeopleIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
