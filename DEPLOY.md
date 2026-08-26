@@ -1,4 +1,4 @@
-# Putting Atlas online
+# Putting Roava online
 
 Follow these in order. Roughly 30 minutes, mostly waiting on other people's
 websites. Everything here needs *your* accounts, which is why it isn't
@@ -32,18 +32,18 @@ chat, a ticket, or a commit.**
 ## 2. Get Google sign-in keys (10 min)
 
 1. Go to **https://console.cloud.google.com**
-2. Top-left project dropdown → **New project** → name it `Atlas` → **Create**.
-   Make sure the dropdown shows `Atlas` before continuing.
+2. Top-left project dropdown → **New project** → name it `Roava` → **Create**.
+   Make sure the dropdown shows `Roava` before continuing.
 3. Left menu → **APIs & Services** → **OAuth consent screen**
    - User type: **External** → **Create**
-   - App name: `Atlas`
+   - App name: `Roava`
    - User support email: your email
    - Developer contact email: your email
    - **Save and continue** through the remaining steps. You don't need to add
      scopes or test users.
 4. Left menu → **Credentials** → **+ Create credentials** → **OAuth client ID**
    - Application type: **Web application**
-   - Name: `Atlas web`
+   - Name: `Roava web`
    - Under **Authorised redirect URIs** click **+ Add URI** and paste exactly:
      ```
      http://localhost:3100/api/auth/callback/google
@@ -59,18 +59,18 @@ chat, a ticket, or a commit.**
 
 ## 3. Put the code on GitHub (5 min)
 
-Atlas is already a git repository with everything committed. It just has
+Roava is already a git repository with everything committed. It just has
 nowhere to go yet.
 
 1. Go to **https://github.com/new**
-2. Repository name: `atlas`. Choose **Private**.
+2. Repository name: `roava`. Choose **Private**.
 3. **Do not** tick "Add a README" — the repo already has one.
 4. **Create repository**.
 5. Copy the URL it shows, then run this in the project folder, replacing
    `YOUR-USERNAME`:
 
 ```bash
-git remote add origin https://github.com/YOUR-USERNAME/atlas.git && git push -u origin main
+git remote add origin https://github.com/YOUR-USERNAME/roava.git && git push -u origin main
 ```
 
 Your `.env` file is **not** uploaded — it's in `.gitignore`. Secrets go into
@@ -81,7 +81,7 @@ Vercel's settings instead, in the next step.
 ## 4. Deploy on Vercel (10 min)
 
 1. Go to **https://vercel.com** and sign in **with GitHub**.
-2. **Add New… → Project** → find `atlas` → **Import**.
+2. **Add New… → Project** → find `roava` → **Import**.
 3. Before clicking Deploy, open **Environment Variables** and add these four.
 
    | Name | Value |
@@ -95,7 +95,7 @@ Vercel's settings instead, in the next step.
 
 4. **Deploy**, and wait.
 5. When it finishes, Vercel shows your address, something like
-   `https://atlas-abc123.vercel.app`. **Copy it.**
+   `https://roava-abc123.vercel.app`. **Copy it.**
 
 Signing in will not work yet — one step to go.
 
@@ -104,18 +104,18 @@ Signing in will not work yet — one step to go.
 ## 5. Tell Google your real address (2 min)
 
 1. Back in **Google Cloud → APIs & Services → Credentials**
-2. Click your `Atlas web` client.
+2. Click your `Roava web` client.
 3. Under **Authorised redirect URIs** → **+ Add URI**, paste your Vercel
    address with `/api/auth/callback/google` on the end:
    ```
-   https://atlas-abc123.vercel.app/api/auth/callback/google
+   https://roava-abc123.vercel.app/api/auth/callback/google
    ```
 4. **Save.** Changes can take a few minutes to take effect.
 
 Not sure of the exact text? Run this and it prints it for you:
 
 ```bash
-npm run preflight -- https://atlas-abc123.vercel.app
+npm run preflight -- https://roava-abc123.vercel.app
 ```
 
 ---
@@ -156,14 +156,14 @@ That's the switch that turns "just me" into "everyone". Until you click it,
 friends get an error telling them the app hasn't completed verification.
 
 Google may ask you to verify the app if you request sensitive permissions.
-Atlas only asks for name, email and profile picture, which is the basic tier —
+Roava only asks for name, email and profile picture, which is the basic tier —
 no verification review needed.
 
 ---
 
 ## 8. Move your existing places over
 
-Your original places and trips are in `atlas-export.json`. After you've signed
+Your original places and trips are in `roava-export.json`. After you've signed
 in to the live site once with Google:
 
 ```bash
@@ -208,7 +208,7 @@ The address in Google doesn't exactly match. It must be your site's address
 plus `/api/auth/callback/google` — no trailing slash, `https` for the live
 site. Run `npm run preflight -- https://your-address` to see the exact string.
 
-**"Access blocked: Atlas has not completed the Google verification process"**
+**"Access blocked: Roava has not completed the Google verification process"**
 You skipped step 7. Publish the consent screen.
 
 **Site loads but every page errors**

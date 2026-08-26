@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { flagEmoji } from "@/lib/geo";
 
-export const metadata: Metadata = { title: "Journal — Atlas" };
+export const metadata: Metadata = { title: "Journal — Roava" };
 export const dynamic = "force-dynamic";
 
 /// Everything written down, newest first — the record rather than the map.

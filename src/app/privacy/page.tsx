@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Privacy — Atlas" };
+export const metadata: Metadata = { title: "Privacy — Roava" };
 
 const CONTACT = process.env.ADMIN_EMAILS?.split(",")[0]?.trim() ?? "";
 
@@ -12,11 +12,11 @@ export default function PrivacyPage() {
     <div className="mx-auto max-w-2xl space-y-6 px-5 py-10 text-sm">
       <div>
         <Link href="/" className="text-xs text-accent hover:underline">
-          ← Atlas
+          ← Roava
         </Link>
         <h1 className="mt-2 text-xl font-semibold">Privacy</h1>
         <p className="mt-1 text-muted">
-          Atlas is a small personal project, not a company. This describes what
+          Roava is a small personal project, not a company. This describes what
           it stores and who can see it, in plain terms.
         </p>
       </div>
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5 text-muted">
           <li>
             Your name, email address and profile picture, from Google when you
-            sign in. Atlas never sees your Google password.
+            sign in. Roava never sees your Google password.
           </li>
           <li>
             The places you save, the trips you build, and any journal entries
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             <span className="text-foreground">Journal entries and photos are
             always private.</span> Publishing a trip does not publish them.
             Photos are stored so that they cannot be read by their URL — only
-            through Atlas, after checking it is you.
+            through Roava, after checking it is you.
           </li>
           <li>
             <span className="text-foreground">Inviting someone to a trip</span>{" "}

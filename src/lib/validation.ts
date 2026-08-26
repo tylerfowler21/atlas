@@ -153,7 +153,7 @@ export const collaboratorInviteSchema = z.object({
 /// Handles are lowercase, URL-safe and unmistakable in a path like /u/tyler.
 /// The reserved list stops someone claiming a name that collides with a route.
 const RESERVED_USERNAMES = new Set([
-  "admin", "api", "atlas", "been", "feed", "help", "me", "new", "places",
+  "admin", "api", "roava", "atlas", "been", "feed", "help", "me", "new", "places",
   "settings", "signin", "signout", "s", "support", "trips", "u", "user", "users",
 ]);
 

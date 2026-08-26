@@ -18,7 +18,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const found = await loadPublishedTrip(id);
-  return { title: found ? `${found.trip.title} on Atlas` : "Not found" };
+  return { title: found ? `${found.trip.title} on Roava` : "Not found" };
 }
 
 /// A published trip, readable by anyone. Unlike a share link this one is meant

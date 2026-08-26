@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { appleConfigured, auth, devLoginEnabled, googleConfigured, signIn } from "@/auth";
 
-export const metadata: Metadata = { title: "Sign in — Atlas" };
+export const metadata: Metadata = { title: "Sign in — Roava" };
 export const dynamic = "force-dynamic";
 
 export default async function SignInPage({
@@ -22,7 +22,7 @@ export default async function SignInPage({
           <p className="text-3xl" aria-hidden>
             🧭
           </p>
-          <h1 className="mt-2 text-xl font-semibold">Atlas</h1>
+          <h1 className="mt-2 text-xl font-semibold">Roava</h1>
           <p className="mt-1 text-sm text-muted">
             Save the places you want to go, plan trips day by day, and keep a map
             of everywhere you&apos;ve been.
@@ -120,7 +120,7 @@ export default async function SignInPage({
         </p>
         <p className="text-center text-xs text-muted">
           <a href="/privacy" className="hover:underline">
-            What Atlas stores and who can see it
+            What Roava stores and who can see it
           </a>
         </p>
       </div>

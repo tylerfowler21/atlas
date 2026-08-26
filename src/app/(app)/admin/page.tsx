@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 
-export const metadata: Metadata = { title: "Who's using Atlas" };
+export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
 
 function ago(date: Date) {
@@ -65,7 +65,7 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-xl font-semibold">Who&apos;s using Atlas</h1>
+      <h1 className="text-xl font-semibold">Who&apos;s using Roava</h1>
       <p className="mt-1 text-sm text-muted">
         Only you can see this. It shows other people&apos;s email addresses, so
         treat it as their data rather than yours.

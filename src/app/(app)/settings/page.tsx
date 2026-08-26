@@ -5,7 +5,7 @@ import Link from "next/link";
 import ProfileSettings from "@/components/ProfileSettings";
 import DeleteAccount from "@/components/DeleteAccount";
 
-export const metadata: Metadata = { title: "Profile — Atlas" };
+export const metadata: Metadata = { title: "Profile — Roava" };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
@@ -51,7 +51,7 @@ export default async function SettingsPage() {
 
       <div className="mt-8 space-y-3 border-t border-line pt-4">
         <Link href="/privacy" className="block text-xs text-accent hover:underline">
-          What Atlas stores and who can see it →
+          What Roava stores and who can see it →
         </Link>
         <DeleteAccount
           username={me.username}

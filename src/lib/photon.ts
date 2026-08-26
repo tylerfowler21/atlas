@@ -10,7 +10,7 @@ import { guessCategory } from "@/lib/taxonomy";
 import type { SearchResult } from "@/lib/types";
 
 const ENDPOINT = "https://photon.komoot.io/api/";
-const USER_AGENT = "Atlas/0.1 (personal travel planner; self-hosted)";
+const USER_AGENT = "Roava/0.1 (personal travel planner; self-hosted)";
 
 type PhotonFeature = {
   geometry: { coordinates: [number, number] };

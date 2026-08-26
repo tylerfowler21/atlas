@@ -42,7 +42,7 @@ export default function ProfileSettings({
       <label className="block text-xs text-muted">
         Username
         <div className="mt-1 flex items-center gap-1">
-          <span className="text-sm text-muted">atlas.app/u/</span>
+          <span className="text-sm text-muted">roava.app/u/</span>
           <input
             className="input"
             placeholder="tyler"

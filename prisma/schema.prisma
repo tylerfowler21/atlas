@@ -1,4 +1,4 @@
-// Atlas — a personal travel map, place log, and trip planner.
+// Roava — a personal travel map, place log, and trip planner.
 //
 // Postgres, so the same engine runs locally (via PGlite, see
 // scripts/dev-postgres.ts) and in production.
@@ -53,7 +53,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-/// A person using Atlas. Name and email are optional because that is the shape
+/// A person using Roava. Name and email are optional because that is the shape
 /// the Auth.js adapter writes — a provider is not obliged to give us either.
 model User {
   id            String    @id @default(cuid())
@@ -136,7 +136,7 @@ model Block {
   @@index([blockedId])
 }
 
-/// Someone flagging content for the person who runs Atlas to look at.
+/// Someone flagging content for the person who runs Roava to look at.
 ///
 /// The reporter is optional so a signed-out visitor looking at a published
 /// trip can still report it, and nothing about a report is visible to the

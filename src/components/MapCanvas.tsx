@@ -166,7 +166,7 @@ export default function MapCanvas({
       if (!entry) {
         const el = document.createElement("button");
         el.type = "button";
-        el.className = "atlas-pin";
+        el.className = "roava-pin";
         el.addEventListener("click", (event) => {
           // Otherwise the map's own click handler treats this as a bare click.
           event.stopPropagation();
@@ -193,19 +193,19 @@ export default function MapCanvas({
       // day's running order rides along in a corner badge rather than
       // replacing it. textContent, not innerHTML — these are never raw user
       // input, but there is no reason to open that door.
-      const face = el.querySelector<HTMLElement>(".atlas-pin-face") ?? (() => {
+      const face = el.querySelector<HTMLElement>(".roava-pin-face") ?? (() => {
         const span = document.createElement("span");
-        span.className = "atlas-pin-face";
+        span.className = "roava-pin-face";
         el.appendChild(span);
         return span;
       })();
       face.textContent = pin.icon;
 
-      const existingBadge = el.querySelector<HTMLElement>(".atlas-pin-badge");
+      const existingBadge = el.querySelector<HTMLElement>(".roava-pin-badge");
       if (pin.badge) {
         const badge = existingBadge ?? (() => {
           const span = document.createElement("span");
-          span.className = "atlas-pin-badge";
+          span.className = "roava-pin-badge";
           el.appendChild(span);
           return span;
         })();
@@ -233,17 +233,17 @@ export default function MapCanvas({
       geometry: { type: "LineString" as const, coordinates: route ?? [] },
     };
 
-    const source = map.getSource<GeoJSONSource>("atlas-route");
+    const source = map.getSource<GeoJSONSource>("roava-route");
     if (source) {
       source.setData(data);
       return;
     }
 
-    map.addSource("atlas-route", { type: "geojson", data });
+    map.addSource("roava-route", { type: "geojson", data });
     map.addLayer({
-      id: "atlas-route",
+      id: "roava-route",
       type: "line",
-      source: "atlas-route",
+      source: "roava-route",
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": routeColor,
@@ -267,17 +267,17 @@ export default function MapCanvas({
       })),
     };
 
-    const source = map.getSource<GeoJSONSource>("atlas-legs");
+    const source = map.getSource<GeoJSONSource>("roava-legs");
     if (source) {
       source.setData(data);
       return;
     }
 
-    map.addSource("atlas-legs", { type: "geojson", data });
+    map.addSource("roava-legs", { type: "geojson", data });
     map.addLayer({
-      id: "atlas-legs",
+      id: "roava-legs",
       type: "line",
-      source: "atlas-legs",
+      source: "roava-legs",
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": routeColor,

@@ -6,7 +6,7 @@
 /// results so retyping the same query is free.
 
 const ENDPOINT = "https://nominatim.openstreetmap.org";
-const USER_AGENT = "Atlas/0.1 (personal travel planner; self-hosted)";
+const USER_AGENT = "Roava/0.1 (personal travel planner; self-hosted)";
 const MIN_INTERVAL_MS = 1100;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_MAX = 300;

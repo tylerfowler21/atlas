@@ -3,7 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 
-export const metadata: Metadata = { title: "Notifications — Atlas" };
+export const metadata: Metadata = { title: "Notifications — Roava" };
 export const dynamic = "force-dynamic";
 
 function ago(date: Date) {

@@ -9,7 +9,7 @@ import { serializePlace } from "@/lib/types";
 import BeenMap from "@/components/BeenMap";
 import StarRating from "@/components/StarRating";
 
-export const metadata: Metadata = { title: "Been — Atlas" };
+export const metadata: Metadata = { title: "Been — Roava" };
 export const dynamic = "force-dynamic";
 
 type View = "all" | "lived" | "cities" | "countries";

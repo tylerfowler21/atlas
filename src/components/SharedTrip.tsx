@@ -191,7 +191,7 @@ export default function SharedTrip({
         </div>
 
         <p className="mt-auto border-t border-line pt-3 text-xs text-muted">
-          Shared with you from Atlas · read-only
+          Shared with you from Roava · read-only
         </p>
       </aside>
 

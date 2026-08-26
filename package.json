@@ -1,5 +1,5 @@
 {
-  "name": "atlas",
+  "name": "roava",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,9 @@
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
-    "db:export": "tsx scripts/export-atlas.ts",
+    "db:export": "tsx scripts/export-roava.ts",
     "db:dev": "tsx scripts/dev-postgres.ts",
-    "db:import": "tsx scripts/import-atlas.ts",
+    "db:import": "tsx scripts/import-roava.ts",
     "db:migrate": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "preflight": "tsx scripts/preflight.ts",

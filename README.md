@@ -1,4 +1,4 @@
-# Atlas
+# Roava
 
 A travel map you can share. Save the places you want to go, plan trips day by
 day, keep a map of everywhere you've been, and send friends a read-only link to
@@ -106,7 +106,7 @@ needs your account.
 5. Copy the client ID and client secret into `AUTH_GOOGLE_ID` and
    `AUTH_GOOGLE_SECRET`.
 
-Atlas only asks for `openid email profile` — identity, nothing else.
+Roava only asks for `openid email profile` — identity, nothing else.
 
 If those two variables are missing the app still boots and shared links still
 work; the sign-in page just tells you no method is configured.
@@ -205,7 +205,7 @@ role, and it returns null rather than throwing so callers answer 404 instead of
 Everyone adds stops from *their own* saved places, so an itinerary can reference
 places belonging to several people while each library stays private.
 
-Atlas doesn't send invitation emails — there's no mail provider wired up. Tell
+Roava doesn't send invitation emails — there's no mail provider wired up. Tell
 the person yourself; the trip appears in their list as soon as they sign in.
 
 ## Following people
@@ -245,7 +245,7 @@ not a memory:
 `(app)` layout sends anyone in that state to `/welcome`. That includes people
 who signed up before it existed, who are exactly the ones it helps.
 
-Three steps: what Atlas is, pick a username, choose where to start. The
+Three steps: what Roava is, pick a username, choose where to start. The
 username field arrives pre-filled with a free handle derived from their name,
 because a blank box asking you to invent an identity is where people stop. It
 can be skipped — a username is what makes you findable, not what makes the app
@@ -371,7 +371,7 @@ DATABASE_URL="<production url>" npm run db:users
 ## Moving data between databases
 
 ```bash
-npm run db:export                    # → atlas-export.json
+npm run db:export                    # → roava-export.json
 npm run db:import -- you@example.com # onto one account
 ```
 

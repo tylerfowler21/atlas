@@ -7,7 +7,7 @@ import TripCard from "@/components/TripCard";
 import FindPeople from "@/components/FindPeople";
 import { hiddenUserIds } from "@/lib/moderation";
 
-export const metadata: Metadata = { title: "Feed — Atlas" };
+export const metadata: Metadata = { title: "Feed — Roava" };
 export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {

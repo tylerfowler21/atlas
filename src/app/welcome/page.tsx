@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import Welcome from "@/components/Welcome";
 
-export const metadata: Metadata = { title: "Welcome to Atlas" };
+export const metadata: Metadata = { title: "Welcome to Roava" };
 export const dynamic = "force-dynamic";
 
 /// Turns a name or email into a plausible free handle, so the field starts

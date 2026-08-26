@@ -103,7 +103,7 @@ export default function MobileTabBar({
                   onClick={() => setMoreOpen(false)}
                 >
                   <span aria-hidden>📊</span>
-                  Who&apos;s using Atlas
+                  Who&apos;s using Roava
                 </Link>
               </li>
             )}

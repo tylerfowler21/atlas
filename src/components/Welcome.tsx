@@ -77,7 +77,7 @@ export default function Welcome({
               🧭
             </p>
             <h1 className="mt-3 text-2xl font-semibold">
-              {name ? `Welcome, ${name.split(" ")[0]}` : "Welcome to Atlas"}
+              {name ? `Welcome, ${name.split(" ")[0]}` : "Welcome to Roava"}
             </h1>
             <p className="mt-2 text-sm text-muted">
               A map of the places you want to go and the ones you&apos;ve been.

@@ -1,5 +1,5 @@
-/// Restores an atlas-export.json onto one account — the other half of
-/// scripts/export-atlas.ts, used to carry data across the SQLite → Postgres
+/// Restores an roava-export.json onto one account — the other half of
+/// scripts/export-roava.ts, used to carry data across the SQLite → Postgres
 /// move.
 ///
 ///   npm run db:import -- you@example.com
@@ -14,7 +14,7 @@ type ExportedPlace = Record<string, unknown> & { id: string };
 type ExportedItem = Record<string, unknown> & { id: string; placeId: string | null };
 type ExportedTrip = Record<string, unknown> & { id: string; items: ExportedItem[] };
 
-const FILE = process.env.ATLAS_EXPORT ?? "atlas-export.json";
+const FILE = process.env.ROAVA_EXPORT ?? "roava-export.json";
 
 function dateOrNull(value: unknown) {
   return typeof value === "string" ? new Date(value) : null;

@@ -1,7 +1,7 @@
 /// Dumps every place and trip to JSON so nothing is lost across a database
-/// change. Pairs with scripts/import-atlas.ts.
+/// change. Pairs with scripts/import-roava.ts.
 ///
-///   npm run db:export            → atlas-export.json
+///   npm run db:export            → roava-export.json
 
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
@@ -22,11 +22,11 @@ async function main() {
   });
 
   const out = { exportedAt: new Date().toISOString(), users };
-  writeFileSync("atlas-export.json", JSON.stringify(out, null, 2));
+  writeFileSync("roava-export.json", JSON.stringify(out, null, 2));
 
   const places = users.reduce((n, u) => n + u.places.length, 0);
   const trips = users.reduce((n, u) => n + u.trips.length, 0);
-  console.log(`Wrote atlas-export.json — ${places} places, ${trips} trips.`);
+  console.log(`Wrote roava-export.json — ${places} places, ${trips} trips.`);
 }
 
 main()

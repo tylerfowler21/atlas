@@ -1,4 +1,4 @@
-/// Checks that an environment is actually ready to run Atlas, before you find
+/// Checks that an environment is actually ready to run Roava, before you find
 /// out from a white screen. Run it locally, and again with production values:
 ///
 ///   npm run preflight
@@ -38,7 +38,7 @@ async function checkDatabase() {
     return;
   }
   if (!/^postgres(ql)?:\/\//.test(url)) {
-    bad("DATABASE_URL is not a Postgres URL", "Atlas moved from SQLite to Postgres; the value must start with postgresql://");
+    bad("DATABASE_URL is not a Postgres URL", "Roava moved from SQLite to Postgres; the value must start with postgresql://");
     return;
   }
   ok("DATABASE_URL is set", url.replace(/:\/\/([^:]+):[^@]*@/, "://$1:****@"));
@@ -142,14 +142,14 @@ function checkRedirectUri() {
     console.log(`  ${origin}/api/auth/callback/google`);
   } else {
     notes.push(
-      "Pass your deployed origin to see its redirect URI, e.g. `npm run preflight -- https://atlas.vercel.app`.",
+      "Pass your deployed origin to see its redirect URI, e.g. `npm run preflight -- https://roava.vercel.app`.",
     );
   }
   console.log("  (Google matches these character for character.)");
 }
 
 async function main() {
-  console.log("Atlas preflight");
+  console.log("Roava preflight");
   await checkDatabase();
   checkAuth();
   checkRedirectUri();

@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/user";
 import FollowButton from "@/components/FollowButton";
 import { hiddenUserIds } from "@/lib/moderation";
 
-export const metadata: Metadata = { title: "People — Atlas" };
+export const metadata: Metadata = { title: "People — Roava" };
 export const dynamic = "force-dynamic";
 
 export default async function PeoplePage({

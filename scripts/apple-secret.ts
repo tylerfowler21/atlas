@@ -8,7 +8,7 @@
 ///
 ///     npm run apple:secret -- --team ABCDE12345 \
 ///                             --key-id XYZ9876543 \
-///                             --services-id com.example.atlas.web \
+///                             --services-id com.example.roava.web \
 ///                             --p8 ~/Downloads/AuthKey_XYZ9876543.p8
 ///
 /// The .p8 is the private half of a signing key: keep it out of the repo, and

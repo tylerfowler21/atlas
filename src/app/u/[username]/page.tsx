@@ -32,7 +32,7 @@ export async function generateMetadata({
   const { username } = await params;
   const profile = await loadProfile(username);
   return {
-    title: profile ? `${profile.name ?? profile.username} on Atlas` : "Not found",
+    title: profile ? `${profile.name ?? profile.username} on Roava` : "Not found",
   };
 }
 

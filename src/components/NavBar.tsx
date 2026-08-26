@@ -53,7 +53,7 @@ export default function NavBar({
     <header className="relative flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
       <Link href="/" className="mr-3 flex items-center gap-2 px-1 text-sm font-semibold">
         <span aria-hidden>🧭</span>
-        <span>Atlas</span>
+        <span>Roava</span>
       </Link>
 
       <nav className="hidden items-center gap-1 sm:flex">
@@ -143,7 +143,7 @@ export default function NavBar({
                 className="block rounded-md px-2 py-1.5 text-sm hover:bg-foreground/5"
                 onClick={() => setMenuOpen(false)}
               >
-                Who&apos;s using Atlas
+                Who&apos;s using Roava
               </Link>
             )}
             <form action={signOutAction}>

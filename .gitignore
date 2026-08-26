@@ -14,7 +14,7 @@ prisma/*.db
 prisma/*.db-journal
 
 # local data dumps
-atlas-export.json
+roava-export.json
 
 # local dev Postgres (PGlite)
 .pgdata/

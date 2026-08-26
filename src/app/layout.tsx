@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Atlas — your travel map",
+  title: "Roava — your travel map",
   description:
     "Save the places you want to go, plan trips day by day, and keep a map of everywhere you have been.",
 };
