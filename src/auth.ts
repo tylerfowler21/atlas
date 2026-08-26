@@ -191,16 +191,32 @@ function adapterWithAccountFilter() {
 /// itself throw would replace the error being diagnosed with its own.
 async function recordAuthError(error: unknown) {
   try {
-    const e = error as { name?: string; message?: string; stack?: string; cause?: unknown };
-    // Auth.js wraps the real failure in its own error, so the cause is usually
-    // the interesting half.
-    const cause = e?.cause as { name?: string; message?: string } | undefined;
+    // Auth.js does not put the underlying error on `cause`; it puts an object
+    // there and the real error under `cause.err` (see @auth/core/errors.js).
+    // And `name` is the minified class name in a production build — the first
+    // attempt at this recorded a class called "h" — whereas `type` is a plain
+    // string that survives minification.
+    const e = error as {
+      name?: string;
+      type?: string;
+      message?: string;
+      stack?: string;
+      cause?: { err?: { name?: string; message?: string; stack?: string }; provider?: string };
+    };
+    const inner = e?.cause?.err;
+    const provider = e?.cause?.provider;
 
     await prisma.authError.create({
       data: {
-        kind: [e?.name, cause?.name].filter(Boolean).join(" <- ") || "Unknown",
-        message: [e?.message, cause?.message].filter(Boolean).join(" — ").slice(0, 4000),
-        stack: e?.stack?.slice(0, 4000) ?? null,
+        kind: [e?.type ?? e?.name, inner?.name, provider && `via ${provider}`]
+          .filter(Boolean)
+          .join(" <- ") || "Unknown",
+        message:
+          [e?.message, inner?.message].filter(Boolean).join(" — ").slice(0, 4000) ||
+          "(no message)",
+        // The inner stack points at what actually failed; the outer one only
+        // shows Auth.js catching it.
+        stack: (inner?.stack ?? e?.stack)?.slice(0, 4000) ?? null,
       },
     });
 

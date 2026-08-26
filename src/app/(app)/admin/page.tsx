@@ -179,6 +179,11 @@ export default async function AdminPage({
                 <p className="mt-1 font-mono text-xs break-words text-muted">
                   {e.message}
                 </p>
+                {e.stack && (
+                  <pre className="mt-1 max-h-40 overflow-auto rounded bg-background p-2 font-mono text-[10px] leading-relaxed text-muted">
+                    {e.stack}
+                  </pre>
+                )}
                 <p className="mt-1 text-xs text-muted">
                   {e.createdAt.toLocaleString()}
                 </p>
