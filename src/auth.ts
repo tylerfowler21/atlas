@@ -148,8 +148,46 @@ if (devLoginEnabled) {
   );
 }
 
+/// The columns our Account table actually has.
+///
+/// Auth.js spreads a provider's entire token response into the account it hands
+/// the adapter, and @auth/prisma-adapter passes that straight to
+/// `account.create`. Anything the provider returns that is not a column makes
+/// Prisma throw — and Auth.js reports the failure as "There is a problem with
+/// the server configuration", which points at the credentials rather than at
+/// an extra field.
+///
+/// Apple returns `expires_in` alongside the `expires_at` Auth.js derives from
+/// it, so linking an Apple account failed every time. Filtering by column name
+/// rather than deleting that one field means the next provider with an extra
+/// key does not reproduce this.
+const ACCOUNT_COLUMNS = new Set([
+  "userId",
+  "type",
+  "provider",
+  "providerAccountId",
+  "refresh_token",
+  "access_token",
+  "expires_at",
+  "token_type",
+  "scope",
+  "id_token",
+  "session_state",
+]);
+
+function adapterWithAccountFilter() {
+  const adapter = PrismaAdapter(prisma);
+  adapter.linkAccount = (account) =>
+    prisma.account.create({
+      data: Object.fromEntries(
+        Object.entries(account).filter(([key]) => ACCOUNT_COLUMNS.has(key)),
+      ) as Parameters<typeof prisma.account.create>[0]["data"],
+    }) as never;
+  return adapter;
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: adapterWithAccountFilter(),
   // JWT sessions rather than database sessions: no database round trip on
   // every request (which matters once this is on serverless), and the
   // credentials provider above only works under this strategy.

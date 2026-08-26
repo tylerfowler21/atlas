@@ -27,6 +27,7 @@ async function verifyApple() {
 /// Presence, never values. Reading whether a variable is set is a diagnostic;
 /// printing what it contains would put credentials on a web page.
 const SETTINGS = [
+  { name: "AUTH_SECRET", enables: "all sign-in" },
   { name: "APPLE_TEAM_ID", enables: "Apple Maps and app sign-in" },
   { name: "MAPKIT_KEY_ID", enables: "Apple Maps" },
   { name: "MAPKIT_PRIVATE_KEY", enables: "Apple Maps" },
