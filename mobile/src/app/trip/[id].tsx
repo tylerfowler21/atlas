@@ -6,13 +6,15 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { api, type ItineraryItem, type Trip } from "@/lib/api";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import TripEditor from "@/components/TripEditor";
+import { API_URL, api, type ItineraryItem, type Trip } from "@/lib/api";
 import { stopIcon } from "@/lib/taxonomy";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
@@ -50,6 +52,8 @@ export default function TripScreen() {
   const { data, error, loading, reload } = useApi<TripResponse>(`/api/trips/${id}`);
   const palette = usePalette();
 
+  const router = useRouter();
+  const [settings, setSettings] = useState(false);
   const [adding, setAdding] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,6 +84,23 @@ export default function TripScreen() {
     },
     [draft, id, reload],
   );
+
+  /// A share link is a secret URL: anyone holding it can read the itinerary
+  /// without an account, which is the point. Created on demand, and handed
+  /// straight to the system share sheet so it can go wherever it is needed.
+  const share = useCallback(async () => {
+    try {
+      // The endpoint returns a path, not a URL — it has no opinion about which
+      // host is serving it — so the address is assembled here.
+      const { share: link } = await api<{ share: { path: string } }>(
+        `/api/trips/${id}/share`,
+        { method: "POST" },
+      );
+      await Share.share({ message: `${API_URL}${link.path}` });
+    } catch (e) {
+      Alert.alert("Could not make a link", e instanceof Error ? e.message : "Try again");
+    }
+  }, [id]);
 
   const rename = useCallback(
     async (item: ItineraryItem, title: string) => {
@@ -139,7 +160,28 @@ export default function TripScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: data.trip.title }} />
+      <Stack.Screen
+        options={{
+          title: data.trip.title,
+          headerRight: () => (
+            <Pressable onPress={() => setSettings(true)} hitSlop={10}>
+              <Text style={{ color: palette.accentText, fontSize: 15 }}>Edit</Text>
+            </Pressable>
+          ),
+        }}
+      />
+
+      {settings && (
+        <TripEditor
+          trip={data.trip}
+          onClose={() => setSettings(false)}
+          onSaved={(tripId) => {
+            // An empty id means it was deleted; there is nothing to go back to.
+            if (tripId) reload();
+            else router.back();
+          }}
+        />
+      )}
       <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
         {Array.from({ length: days }, (_, day) => {
           const stops = data.items.filter((i) => i.dayIndex === day);
@@ -205,6 +247,12 @@ export default function TripScreen() {
             </View>
           );
         })}
+        <Pressable onPress={share} style={styles.share}>
+          <Text style={{ color: palette.accentText, fontSize: 14 }}>
+            Share a read-only link
+          </Text>
+        </Pressable>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -229,4 +277,5 @@ const styles = StyleSheet.create({
   glyph: { fontSize: 18 },
   stopTitle: { flex: 1, fontSize: 15, paddingVertical: 2 },
   add: { paddingVertical: 10, paddingHorizontal: 4, marginTop: 4 },
+  share: { alignItems: "center", paddingVertical: 18, marginTop: 12 },
 });

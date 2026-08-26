@@ -1,11 +1,16 @@
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { api } from "@/lib/api";
 import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
@@ -23,6 +28,29 @@ function dates(trip: FeedTrip) {
 export default function FeedScreen() {
   const { data, error, loading, reload } = useApi<{ trips: FeedTrip[] }>("/api/feed");
   const palette = usePalette();
+  const router = useRouter();
+  const [copying, setCopying] = useState<string | null>(null);
+
+  /// Copying takes someone else's itinerary and makes it yours to change,
+  /// which is what the feed is for. It opens straight into the copy: landing
+  /// back on the feed leaves you wondering whether it worked.
+  const copy = useCallback(
+    async (tripId: string, title: string) => {
+      setCopying(tripId);
+      try {
+        const { tripId: mine } = await api<{ tripId: string }>(
+          `/api/trips/${tripId}/copy`,
+          { method: "POST" },
+        );
+        router.push({ pathname: "/trip/[id]", params: { id: mine } });
+      } catch (e) {
+        Alert.alert(`Could not copy "${title}"`, e instanceof Error ? e.message : "Try again");
+      } finally {
+        setCopying(null);
+      }
+    },
+    [router],
+  );
 
   if (loading && !data) {
     return (
@@ -63,6 +91,19 @@ export default function FeedScreen() {
                     .filter(Boolean)
                     .join(" · ")}
                 </Text>
+                <Pressable
+                  onPress={() => copy(item.id, item.title)}
+                  disabled={copying === item.id}
+                  style={[styles.copy, { borderColor: palette.border }]}
+                >
+                  {copying === item.id ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <Text style={{ color: palette.accentText, fontSize: 13, fontWeight: "600" }}>
+                      Copy into my trips
+                    </Text>
+                  )}
+                </Pressable>
               </View>
             </View>
           );
@@ -91,4 +132,12 @@ const styles = StyleSheet.create({
   author: { fontSize: 12 },
   title: { fontSize: 16, fontWeight: "600", marginTop: 2 },
   meta: { fontSize: 13, marginTop: 4 },
+  copy: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
 });

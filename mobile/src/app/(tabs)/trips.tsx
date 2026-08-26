@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +10,7 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import { usePalette } from "@/lib/use-palette";
+import TripEditor from "@/components/TripEditor";
 import type { Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 
@@ -28,6 +30,7 @@ function dateRange(trip: Trip) {
 export default function TripsScreen() {
   const { data, error, loading, reload } = useApi<{ trips: Trip[] }>("/api/trips");
   const palette = usePalette();
+  const [creating, setCreating] = useState(false);
 
   if (loading && !data) {
     return (
@@ -39,6 +42,23 @@ export default function TripsScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
+      {creating && (
+        <TripEditor
+          trip={null}
+          onClose={() => setCreating(false)}
+          onSaved={() => reload()}
+        />
+      )}
+
+      <Pressable
+        onPress={() => setCreating(true)}
+        style={[styles.new, { backgroundColor: palette.accent }]}
+      >
+        <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+          + New trip
+        </Text>
+      </Pressable>
+
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data?.trips ?? []}
@@ -76,6 +96,7 @@ const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: "#ef4444", padding: 16 },
   empty: { textAlign: "center", padding: 32 },
+  new: { margin: 12, borderRadius: 10, alignItems: "center", paddingVertical: 12 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   stripe: { width: 4, height: 34, borderRadius: 2 },
   rowBody: { flex: 1 },
