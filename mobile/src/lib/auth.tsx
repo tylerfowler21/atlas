@@ -63,6 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
+    // Checked before Apple is invoked: otherwise someone completes Face ID,
+    // waits, and gets a generic failure — when the app simply had nowhere to
+    // send the result.
+    if (!API_URL) {
+      throw new Error(
+        "This build has no API address (EXPO_PUBLIC_API_URL). Under `expo start` it comes from mobile/.env.",
+      );
+    }
+
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
