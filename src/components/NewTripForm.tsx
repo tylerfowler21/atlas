@@ -3,7 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const COLORS = ["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2"];
+const COLORS = [
+  "#0D2B45", // deep navy
+  "#4DB6AC", // teal
+  "#4A6B8A", // slate
+  "#E07A5F", // coral
+  "#D9A441", // amber
+  "#7A946B", // sage
+];
 
 export default function NewTripForm() {
   const router = useRouter();

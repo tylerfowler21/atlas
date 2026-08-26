@@ -68,7 +68,7 @@ const tripFields = {
 export const tripCreateSchema = z.object(tripFields).extend({
   color: trimmed(9)
     .regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex colour")
-    .default("#2563eb"),
+    .default("#0D2B45"),
 });
 
 export const tripUpdateSchema = z.object(tripFields).partial().extend({

@@ -1,22 +1,34 @@
 @import "tailwindcss";
 
+/* Coastal: deep navy, teal, sea glass, warm sand, slate.
+   The sand is the page and white is the card, so content sits on top of the
+   background rather than dissolving into it. */
 :root {
-  --background: #fbfaf8;
+  --background: #f2e6db;
   --surface: #ffffff;
-  --foreground: #18181b;
-  --muted: #6b7280;
-  --border: rgba(24, 24, 27, 0.1);
-  --accent: #2563eb;
+  --foreground: #0d2b45;
+  --muted: #4a6b8a;
+  --border: rgba(13, 43, 69, 0.14);
+  --accent: #0d2b45;
+  /* Text drawn on top of --accent. A separate token because the accent is the
+     dark navy in light mode and the teal in dark mode, and one fixed colour
+     cannot stay legible on both. */
+  --accent-contrast: #ffffff;
+  --sea-glass: #a8d5e2;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0d12;
-    --surface: #14171f;
-    --foreground: #ededf0;
-    --muted: #9ca3af;
-    --border: rgba(255, 255, 255, 0.12);
-    --accent: #60a5fa;
+    --background: #071a29;
+    --surface: #0d2b45;
+    --foreground: #eaf2f7;
+    --muted: #a8c2d4;
+    --border: rgba(168, 213, 226, 0.16);
+    /* Navy is the page here, so the teal becomes the accent — with navy text
+       on it, which is far more readable than white would be. */
+    --accent: #4db6ac;
+    --accent-contrast: #062033;
+    --sea-glass: #a8d5e2;
   }
 }
 
@@ -27,6 +39,7 @@
   --color-muted: var(--muted);
   --color-line: var(--border);
   --color-accent: var(--accent);
+  --color-sea-glass: var(--sea-glass);
 }
 
 html,
@@ -137,7 +150,7 @@ body {
 
   .btn-primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-contrast);
   }
 
   .btn-primary:hover {

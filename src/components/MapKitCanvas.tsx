@@ -94,7 +94,7 @@ function pinElement(pin: MapPin) {
 export default function MapKitCanvas({
   pins,
   route,
-  routeColor = "#2563eb",
+  routeColor = "#0D2B45",
   legs,
   selectedId,
   onSelect,
@@ -205,24 +205,26 @@ export default function MapKitCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onUnavailable]);
 
-  /// Follow the page's theme rather than the system's, so the map matches the
-  /// rest of the interface when someone has overridden it.
+  /// Match the map to the interface theme.
+  ///
+  /// The stylesheet themes purely off prefers-color-scheme — there is no dark
+  /// class on the document to read — so this asks the same media query the CSS
+  /// does, and follows it when the system setting changes.
   useEffect(() => {
     if (!map) return;
+
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = () => {
       const live = instance.current;
       if (live !== map) return;
-      live.colorScheme = document.documentElement.classList.contains("dark")
+      live.colorScheme = query.matches
         ? mapkit.Map.ColorSchemes.Dark
         : mapkit.Map.ColorSchemes.Light;
     };
+
     apply();
-    const observer = new MutationObserver(apply);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
   }, [map]);
 
   /// Pins, including which one is selected.

@@ -77,5 +77,5 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: "500" },
   meta: { fontSize: 13, color: "#71717a", marginTop: 2 },
   textDark: { color: "#fff" },
-  badge: { fontSize: 11, color: "#2563eb", fontWeight: "600" },
+  badge: { fontSize: 11, color: "#4DB6AC", fontWeight: "600" },
 });

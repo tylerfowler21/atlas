@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 12 },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: "#f4f4f5" },
-  chipOn: { backgroundColor: "#2563eb" },
+  chipOn: { backgroundColor: "#0D2B45" },
   chipText: { fontSize: 13, color: "#3f3f46" },
   chipTextOn: { color: "#fff", fontWeight: "600" },
   error: { color: "#ef4444", paddingHorizontal: 16, paddingBottom: 8 },
