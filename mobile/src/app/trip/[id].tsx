@@ -153,7 +153,9 @@ export default function TripScreen() {
     >
       <Stack.Screen
         options={{
+          headerShown: true,
           title: data.trip.title,
+          headerBackTitle: "Trips",
           headerRight: () => (
             <Pressable onPress={() => setSettings(true)} hitSlop={10}>
               <Text style={{ color: palette.accentText, fontSize: 15 }}>Edit</Text>
