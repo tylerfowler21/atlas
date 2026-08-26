@@ -23,6 +23,30 @@ function privateKeyPem() {
   return (process.env.MAPKIT_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
 }
 
+/// The origin a token should be restricted to.
+///
+/// Not taken from the request URL: behind a proxy that can be the deployment's
+/// own hostname rather than the domain in the browser's address bar, and MapKit
+/// requires an exact match — it refuses the token, the map falls back to the
+/// free basemap, and nothing says why.
+///
+/// Not taken from the Host header either, which the caller controls: a request
+/// claiming someone else's host would be handed a token scoped to their site,
+/// spending this account's quota. The platform's own idea of the production
+/// domain is authoritative and cannot be set by a visitor.
+export function mapkitOrigin(requestOrigin: string | null): string | null {
+  const configured =
+    process.env.AUTH_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : null);
+
+  const origin = configured ?? requestOrigin;
+  // Apple rejects a token claiming http://localhost outright, and a
+  // development server is already only reachable by its developer.
+  return origin?.startsWith("https://") ? origin.replace(/\/$/, "") : null;
+}
+
 export async function mapkitToken(origin: string | null): Promise<string> {
   const teamId = process.env.APPLE_TEAM_ID;
   const keyId = process.env.MAPKIT_KEY_ID;
@@ -30,12 +54,7 @@ export async function mapkitToken(origin: string | null): Promise<string> {
 
   // Restricts the token to pages served from this origin, so one lifted from
   // the network tab cannot power somebody else's site against our quota.
-  //
-  // Only for real origins: Apple rejects a token claiming http://localhost
-  // outright, which would make the map impossible to develop against. Nothing
-  // is lost by omitting it there — a development token is already scoped to a
-  // server only the developer can reach.
-  const restrictable = origin?.startsWith("https://") ? origin : null;
+  const restrictable = mapkitOrigin(origin);
 
   const token = new SignJWT(restrictable ? { origin: restrictable } : {})
     .setProtectedHeader({ alg: "ES256", kid: keyId, typ: "JWT" })

@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 import { checkAppleCredentials } from "@/lib/apple-check";
 import { inspectAppleSecret } from "@/lib/apple-secret-inspect";
-import { mapkitConfigured } from "@/lib/mapkit";
+import { mapkitConfigured, mapkitOrigin } from "@/lib/mapkit";
 
 export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
@@ -62,7 +62,7 @@ export default async function AdminPage({
   // to the free basemap without saying why — so this is the one value that
   // explains an Apple Maps that quietly is not Apple Maps.
   const requestHost = (await headers()).get("host");
-  const mapkitOrigin = requestHost ? `https://${requestHost}` : null;
+  const tokenOrigin = mapkitOrigin(requestHost ? `https://${requestHost}` : null);
 
   const authErrors = await prisma.authError.findMany({
     orderBy: { createdAt: "desc" },
@@ -212,7 +212,9 @@ export default async function AdminPage({
         </li>
         <li className="flex gap-3 px-3 py-1.5">
           <span className="text-muted">token origin claim</span>
-          <span className="ml-auto font-mono break-all">{mapkitOrigin ?? "—"}</span>
+          <span className="ml-auto font-mono break-all">
+            {tokenOrigin ?? "none (unrestricted)"}
+          </span>
         </li>
         <li className="px-3 py-1.5 text-muted">
           The origin must match the address in the browser&apos;s bar exactly. If
