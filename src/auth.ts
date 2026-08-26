@@ -53,6 +53,35 @@ export function appleSecretDaysLeft(): number | null {
   return Math.round((expiry.getTime() - Date.now()) / 86_400_000);
 }
 
+/// What Apple actually puts in the id_token, plus the `user` object it merges
+/// in on first consent. Everything is optional because Apple treats all of it
+/// as optional.
+type AppleProfile = {
+  sub: string;
+  email?: string | null;
+  user?: { name?: { firstName?: string; lastName?: string } };
+};
+
+/// Replaces Apple's built-in profile callback, which reads
+/// `profile.user.name.firstName` without checking that `name` is there. Apple
+/// sends the `user` object only on someone's first authorisation, and omits
+/// the name when they decline to share it — so that reads a property of
+/// undefined, throws, and Auth.js reports it as "There is a problem with the
+/// server configuration", which sends you looking at your credentials rather
+/// than at a null check.
+export function appleProfile(profile: AppleProfile) {
+  const parts = [profile.user?.name?.firstName, profile.user?.name?.lastName];
+  const name = parts.filter(Boolean).join(" ");
+  return {
+    id: profile.sub,
+    // Falling back to the email keeps a name on screen; null after that is
+    // fine, since the profile page already handles a nameless account.
+    name: name || profile.email || null,
+    email: profile.email ?? null,
+    image: null,
+  };
+}
+
 const providers: NextAuthConfig["providers"] = [];
 
 if (googleConfigured) {
@@ -81,6 +110,7 @@ if (appleConfigured) {
     Apple({
       clientId: process.env.AUTH_APPLE_ID,
       clientSecret: process.env.AUTH_APPLE_SECRET,
+      profile: appleProfile,
       // Someone who already signed in with Google and then taps "Continue with
       // Apple" is one person, not two. Linking on email alone is only safe
       // because both providers verify the address before asserting it, and
@@ -126,6 +156,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   providers,
   pages: { signIn: "/signin" },
+  /// Auth.js reports almost every server-side failure as "Configuration",
+  /// which names the wrong suspect. Tagging the real error makes it findable
+  /// in the deployment logs instead of guessable.
+  logger: {
+    error(error) {
+      console.error("[auth] sign-in failed:", error);
+    },
+  },
   callbacks: {
     jwt({ token, user }) {
       // `user` is only present on the request that signs in.
