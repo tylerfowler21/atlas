@@ -25,6 +25,21 @@ const MapKitCanvas = dynamic(() => import("@/components/MapKitCanvas"), {
 /// the answer cannot change without a navigation.
 let appleAvailable: Promise<boolean> | null = null;
 
+/// Says why a page gave up on Apple Maps.
+///
+/// Only used for failures that happen after a token was issued, which means
+/// there is a session and this request will be accepted. A refused token
+/// request is recorded by the server that refused it — reporting that from
+/// here could not work, since the report would be refused for the same reason.
+function reportFallback(reason: string) {
+  void fetch("/api/map-fallback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 function checkApple(): Promise<boolean> {
   appleAvailable ??= fetch("/api/mapkit-token", { cache: "no-store" })
     .then((r) => r.ok)
@@ -57,14 +72,7 @@ export default function MapCanvas(props: MapCanvasProps) {
   const fallBack = useCallback((reason: string) => {
     appleAvailable = Promise.resolve(false);
     setApple(false);
-    // Reported so a map that quietly is not Apple Maps can be explained
-    // without asking the person looking at it to open a console.
-    void fetch("/api/map-fallback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason }),
-      keepalive: true,
-    }).catch(() => {});
+    reportFallback(reason);
   }, []);
 
   // Holds the same space the real map will take, so the page does not jump.
