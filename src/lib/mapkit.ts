@@ -28,11 +28,16 @@ export async function mapkitToken(origin: string | null): Promise<string> {
   const keyId = process.env.MAPKIT_KEY_ID;
   if (!teamId || !keyId) throw new Error("MapKit is not configured");
 
-  const token = new SignJWT({
-    // Restricts the token to pages served from this origin, so one lifted from
-    // the network tab cannot power somebody else's site against our quota.
-    ...(origin ? { origin } : {}),
-  })
+  // Restricts the token to pages served from this origin, so one lifted from
+  // the network tab cannot power somebody else's site against our quota.
+  //
+  // Only for real origins: Apple rejects a token claiming http://localhost
+  // outright, which would make the map impossible to develop against. Nothing
+  // is lost by omitting it there — a development token is already scoped to a
+  // server only the developer can reach.
+  const restrictable = origin?.startsWith("https://") ? origin : null;
+
+  const token = new SignJWT(restrictable ? { origin: restrictable } : {})
     .setProtectedHeader({ alg: "ES256", kid: keyId, typ: "JWT" })
     .setIssuer(teamId)
     .setIssuedAt()

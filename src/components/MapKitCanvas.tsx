@@ -138,6 +138,11 @@ export default function MapKitCanvas({
       }
       if (cancelled || !container.current) return;
 
+      // React can tear this component down and rebuild it immediately — in
+      // development it always does — and MapKit leaves its DOM behind. Left
+      // alone, the second map is built on top of the first one's wreckage.
+      container.current.replaceChildren();
+
       created = new kit.Map(container.current, {
         showsCompass: kit.FeatureVisibility.Adaptive,
         showsScale: kit.FeatureVisibility.Adaptive,
@@ -184,7 +189,16 @@ export default function MapKitCanvas({
       cancelled = true;
       cleanupClick?.();
       instance.current = null;
-      created?.destroy();
+      // Clears the state too, so no effect can run against a dead map while
+      // the replacement is still being built.
+      setMap(null);
+      // Tearing down a third-party imperative map is best-effort: MapKit
+      // throws from inside destroy() if any of its own teardown has already
+      // happened, and there is nothing useful to do about it. Letting that
+      // escape turns a tidy-up detail into a crashed page.
+      try {
+        created?.destroy();
+      } catch {}
     };
     // Opening position is read once, on purpose: re-running this would rebuild
     // the whole map under someone who has panned away.
@@ -197,7 +211,7 @@ export default function MapKitCanvas({
     if (!map) return;
     const apply = () => {
       const live = instance.current;
-      if (!live) return;
+      if (live !== map) return;
       live.colorScheme = document.documentElement.classList.contains("dark")
         ? mapkit.Map.ColorSchemes.Dark
         : mapkit.Map.ColorSchemes.Light;
@@ -236,7 +250,15 @@ export default function MapKitCanvas({
 
     map.addAnnotations(annotations);
     return () => {
-      map.removeAnnotations(annotations);
+      // Identity, not truthiness. React destroys the map in an earlier
+      // cleanup, and in development it then immediately builds a second one —
+      // so by the time this runs `instance.current` can be a *different*,
+      // living map while `map` here is the destroyed one. Calling into that
+      // throws, which is precisely the bug this replaced.
+      if (instance.current !== map) return;
+      try {
+        map.removeAnnotations(annotations);
+      } catch {}
     };
   }, [map, pins, selectedId]);
 
@@ -276,7 +298,10 @@ export default function MapKitCanvas({
     if (overlays.length === 0) return;
     map.addOverlays(overlays);
     return () => {
-      map.removeOverlays(overlays);
+      if (instance.current !== map) return;
+      try {
+        map.removeOverlays(overlays);
+      } catch {}
     };
   }, [map, route, routeColor, legs]);
 
@@ -296,5 +321,8 @@ export default function MapKitCanvas({
     );
   }, [map, focus]);
 
-  return <div ref={container} className={className} />;
+  // Same default as the MapLibre implementation. Without it the container has
+  // no height, and MapKit renders a map 896 pixels wide and zero tall — which
+  // looks exactly like a map that failed to load.
+  return <div ref={container} className={className ?? "h-full w-full"} />;
 }

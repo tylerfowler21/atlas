@@ -59,7 +59,9 @@ export default function MapCanvas(props: MapCanvasProps) {
     setApple(false);
   }, []);
 
-  if (apple === undefined) return <div className={props.className} />;
+  // Holds the same space the real map will take, so the page does not jump.
+  if (apple === undefined)
+    return <div className={props.className ?? "h-full w-full"} />;
   return apple ? (
     <MapKitCanvas {...props} onUnavailable={fallBack} />
   ) : (
