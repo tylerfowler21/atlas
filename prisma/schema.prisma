@@ -78,6 +78,10 @@ model User {
   trips          Trip[]
   memories       Memory[]
   photos         Photo[]
+  blocking       Block[]            @relation("blocker")
+  blockedBy      Block[]            @relation("blocked")
+  reportsMade    Report[]           @relation("reporter")
+  reportsAbout   Report[]           @relation("reported")
   collaborations TripCollaborator[]
   /// People this user follows
   following      Follow[]           @relation("follower")
@@ -112,6 +116,46 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+/// One person deciding they do not want anything to do with another.
+///
+/// Blocking is mutual in effect even though it is one-sided in intent: neither
+/// can see the other's profile or published trips, and any follows in either
+/// direction are removed when it is created.
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+/// Someone flagging content for the person who runs Atlas to look at.
+///
+/// The reporter is optional so a signed-out visitor looking at a published
+/// trip can still report it, and nothing about a report is visible to the
+/// person being reported.
+model Report {
+  id           String    @id @default(cuid())
+  reporterId   String?
+  targetUserId String?
+  tripId       String?
+  /// A short reason chosen from a list, not free text
+  reason       String
+  note         String?
+  createdAt    DateTime  @default(now())
+  reviewedAt   DateTime?
+
+  reporter   User? @relation("reporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  targetUser User? @relation("reported", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([reviewedAt, createdAt])
 }
 
 /// A one-way follow. No approval: only trips the owner has explicitly

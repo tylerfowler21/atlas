@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/user";
 import { feedTripInclude, toFeedTrip } from "@/lib/social";
 import TripCard from "@/components/TripCard";
 import FindPeople from "@/components/FindPeople";
+import { hiddenUserIds } from "@/lib/moderation";
 
 export const metadata: Metadata = { title: "Feed — Atlas" };
 export const dynamic = "force-dynamic";
@@ -16,7 +17,8 @@ export default async function FeedPage() {
     where: { followerId: user.id },
     select: { followingId: true },
   });
-  const ids = following.map((f) => f.followingId);
+  const hidden = new Set(await hiddenUserIds(user.id));
+  const ids = following.map((f) => f.followingId).filter((id) => !hidden.has(id));
 
   const trips =
     ids.length === 0

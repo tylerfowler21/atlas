@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
+import Link from "next/link";
 import ProfileSettings from "@/components/ProfileSettings";
+import DeleteAccount from "@/components/DeleteAccount";
 
 export const metadata: Metadata = { title: "Profile — Atlas" };
 export const dynamic = "force-dynamic";
@@ -13,7 +15,10 @@ export default async function SettingsPage() {
     select: {
       username: true,
       bio: true,
-      _count: { select: { followers: true, following: true, trips: true } },
+      email: true,
+      _count: {
+        select: { followers: true, following: true, trips: true, places: true, memories: true },
+      },
     },
   });
 
@@ -42,6 +47,21 @@ export default async function SettingsPage() {
           <span className="font-semibold tabular-nums">{me._count.trips}</span>{" "}
           <span className="text-muted">trips</span>
         </span>
+      </div>
+
+      <div className="mt-8 space-y-3 border-t border-line pt-4">
+        <Link href="/privacy" className="block text-xs text-accent hover:underline">
+          What Atlas stores and who can see it →
+        </Link>
+        <DeleteAccount
+          username={me.username}
+          email={me.email}
+          counts={{
+            places: me._count.places,
+            trips: me._count.trips,
+            memories: me._count.memories,
+          }}
+        />
       </div>
     </div>
   );

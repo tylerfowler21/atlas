@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CATEGORY_IDS, STATUS_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
+import { REPORT_REASON_IDS } from "@/lib/report-reasons";
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const optionalText = (max: number) =>
@@ -186,3 +187,14 @@ export const memoryCreateSchema = z.object({
 });
 
 export const memoryUpdateSchema = memoryCreateSchema.partial();
+
+export const reportSchema = z.object({
+  reason: z.enum(REPORT_REASON_IDS),
+  note: optionalText(1000),
+  username: optionalText(40),
+  tripId: optionalText(40),
+});
+
+export const blockSchema = z.object({
+  username: z.string().trim().toLowerCase().min(1, "Which person?"),
+});

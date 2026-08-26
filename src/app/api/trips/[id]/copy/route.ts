@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { notify } from "@/lib/notifications";
+import { isBlockedBetween } from "@/lib/moderation";
 
 const SAME_PLACE_DEGREES = 0.0005;
 
@@ -33,6 +34,9 @@ export async function POST(
   }
   if (source.userId === user.id) {
     return NextResponse.json({ error: "That's already your trip" }, { status: 400 });
+  }
+  if (await isBlockedBetween(user.id, source.userId)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const created = await prisma.$transaction(async (tx) => {

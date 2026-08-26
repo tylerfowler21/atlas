@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import FollowButton from "@/components/FollowButton";
+import { hiddenUserIds } from "@/lib/moderation";
 
 export const metadata: Metadata = { title: "People — Atlas" };
 export const dynamic = "force-dynamic";
@@ -19,10 +20,12 @@ export default async function PeoplePage({
   // Only people who have chosen a username are listed. Picking one is what
   // creates a public profile in the first place, so this makes existing public
   // profiles findable rather than exposing anyone who hasn't opted in.
+  const hidden = await hiddenUserIds(user.id);
+
   const people = await prisma.user.findMany({
     where: {
       username: { not: null },
-      id: { not: user.id },
+      id: { notIn: [user.id, ...hidden] },
       ...(query
         ? {
             OR: [

@@ -17,7 +17,16 @@ function ago(date: Date) {
 export default async function AdminPage() {
   await requireAdmin();
 
-  const [users, shares, totals] = await Promise.all([
+  const [reports, users, shares, totals] = await Promise.all([
+    prisma.report.findMany({
+      where: { reviewedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: {
+        targetUser: { select: { username: true, email: true } },
+        reporter: { select: { username: true, email: true } },
+      },
+    }),
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -74,6 +83,47 @@ export default async function AdminPage() {
           {users.length - active === 1 ? "person has" : "people have"} signed in
           and added nothing yet — usually the most useful thing on this page.
         </p>
+      )}
+
+      {reports.length > 0 && (
+        <>
+          <h2 className="mt-8 mb-2 text-sm font-medium text-red-500">
+            {reports.length} unreviewed {reports.length === 1 ? "report" : "reports"}
+          </h2>
+          <ul className="card divide-y divide-line overflow-hidden border-red-500/40">
+            {reports.map((r) => (
+              <li key={r.id} className="px-3 py-2.5">
+                <p className="text-sm">
+                  <span className="font-medium">{r.reason}</span>
+                  {r.targetUser && (
+                    <>
+                      {" — "}
+                      {r.targetUser.username
+                        ? `@${r.targetUser.username}`
+                        : r.targetUser.email}
+                    </>
+                  )}
+                  {r.tripId && !r.targetUser && <> — a published trip</>}
+                </p>
+                {r.note && <p className="mt-0.5 text-xs text-muted">{r.note}</p>}
+                <p className="mt-0.5 text-xs text-muted">
+                  {ago(r.createdAt)} ·{" "}
+                  {r.reporter
+                    ? `reported by ${r.reporter.username ?? r.reporter.email}`
+                    : "reported anonymously"}
+                  {r.tripId && (
+                    <>
+                      {" · "}
+                      <Link href={`/t/${r.tripId}`} className="text-accent hover:underline">
+                        view the trip
+                      </Link>
+                    </>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <h2 className="mt-8 mb-2 text-sm font-medium">Accounts, newest first</h2>

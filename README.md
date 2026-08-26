@@ -283,6 +283,29 @@ uploads report that storage isn't configured.
 An entry needs either words or a photo, not both — some things are remembered
 by looking rather than reading.
 
+## Deleting, blocking, reporting
+
+Three things any app with accounts and user-generated content needs, and which
+Apple requires before it will accept one.
+
+**Deleting an account** at `/settings` removes the row, everything cascading
+from it, and the photo files themselves — files first, then the row, so a
+failure part way through leaves an account that can be deleted again rather
+than an orphaned pile of storage. It asks you to type your username, because
+the friction is the point.
+
+**Blocking** cuts both ways whoever did it: neither sees the other's profile or
+published trips, follows in both directions are severed, and following or
+copying is refused. Hidden things 404 rather than explaining themselves, so a
+block cannot be used to confirm someone still exists. It is invisible to
+everyone else — a blocked profile is still public to strangers.
+
+**Reporting** works signed out, because a published trip is readable signed
+out. Reports land on `/admin`, nothing is echoed back to the reporter, and the
+person reported is not told.
+
+`/privacy` sits outside the `(app)` group so it is readable without an account.
+
 ## Notifications
 
 In-app only, at `/notifications`, with an unread count on the nav bell. There

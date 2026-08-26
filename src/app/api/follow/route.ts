@@ -4,6 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, followSchema } from "@/lib/validation";
 import { notify } from "@/lib/notifications";
+import { isBlockedBetween } from "@/lib/moderation";
 
 async function resolveTarget(username: string) {
   return prisma.user.findUnique({ where: { username }, select: { id: true } });
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
   if (!target) return NextResponse.json({ error: "No such person" }, { status: 404 });
   if (target.id === user.id) {
     return NextResponse.json({ error: "You can't follow yourself" }, { status: 400 });
+  }
+  if (await isBlockedBetween(user.id, target.id)) {
+    return NextResponse.json({ error: "No such person" }, { status: 404 });
   }
 
   // Idempotent: following twice is the same as following once.

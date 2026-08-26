@@ -6,6 +6,8 @@ import { loadPublishedTrip } from "@/lib/social";
 import type { PublicTripDTO } from "@/lib/types";
 import SharedTrip from "@/components/SharedTrip";
 import CopyTripButton from "@/components/CopyTripButton";
+import ReportOrBlock from "@/components/ReportOrBlock";
+import { isBlockedBetween } from "@/lib/moderation";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,8 @@ export default async function PublishedTripPage({
   const viewer = await getCurrentUser();
   const { trip, items } = found;
 
+  if (await isBlockedBetween(viewer?.id ?? null, trip.userId)) notFound();
+
   const publicTrip: PublicTripDTO = {
     title: trip.title,
     destination: trip.destination,
@@ -60,11 +64,20 @@ export default async function PublishedTripPage({
           </p>
           <h1 className="truncate text-sm font-semibold">{trip.title}</h1>
         </div>
-        <CopyTripButton
-          tripId={trip.id}
-          signedIn={Boolean(viewer)}
-          isOwn={viewer?.id === trip.userId}
-        />
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <CopyTripButton
+            tripId={trip.id}
+            signedIn={Boolean(viewer)}
+            isOwn={viewer?.id === trip.userId}
+          />
+          {viewer?.id !== trip.userId && (
+            <ReportOrBlock
+              tripId={trip.id}
+              username={trip.user.username}
+              signedIn={Boolean(viewer)}
+            />
+          )}
+        </div>
       </header>
 
       <div className="min-h-0 flex-1">

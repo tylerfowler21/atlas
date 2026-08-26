@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/user";
 import { feedTripInclude, toFeedTrip } from "@/lib/social";
 import FollowButton from "@/components/FollowButton";
+import ReportOrBlock from "@/components/ReportOrBlock";
+import { isBlockedBetween } from "@/lib/moderation";
 import TripCard from "@/components/TripCard";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,10 @@ export default async function ProfilePage({
   if (!profile) notFound();
 
   const viewer = await getCurrentUser();
+
+  // A blocked pair should not be able to confirm the other still exists, so
+  // this is a 404 rather than a message.
+  if (await isBlockedBetween(viewer?.id ?? null, profile.id)) notFound();
 
   // Only published trips, ever. A profile cannot leak a private one.
   const [trips, follow] = await Promise.all([
@@ -105,6 +111,15 @@ export default async function ProfilePage({
           />
         )}
       </div>
+
+      {!isSelf && profile.username && (
+        <div className="mt-4">
+          <ReportOrBlock
+            username={profile.username}
+            signedIn={Boolean(viewer)}
+          />
+        </div>
+      )}
 
       <h2 className="mt-8 mb-2 text-sm font-medium">
         {trips.length} published {trips.length === 1 ? "trip" : "trips"}

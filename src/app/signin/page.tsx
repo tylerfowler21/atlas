@@ -93,6 +93,11 @@ export default async function SignInPage({
         <p className="text-center text-xs text-muted">
           Shared itineraries stay readable without an account.
         </p>
+        <p className="text-center text-xs text-muted">
+          <a href="/privacy" className="hover:underline">
+            What Atlas stores and who can see it
+          </a>
+        </p>
       </div>
     </div>
   );
