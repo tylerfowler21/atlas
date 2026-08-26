@@ -76,6 +76,40 @@ export type Place = {
   notes: string | null;
 };
 
+export type Memory = {
+  id: string;
+  title: string | null;
+  body: string;
+  happenedOn: string | null;
+  createdAt: string;
+  place: { id: string; name: string; city: string | null } | null;
+  trip: { id: string; title: string } | null;
+  photos: { id: string }[];
+};
+
+export type FeedTrip = {
+  id: string;
+  title: string;
+  destination: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  color: string;
+  publishedAt: string;
+  stopCount: number;
+  author: { username: string | null; name: string | null; image: string | null };
+};
+
+export type Person = {
+  id: string;
+  name: string | null;
+  username: string | null;
+  image: string | null;
+  bio: string | null;
+  followers: number;
+  publishedTrips: number;
+  following: boolean;
+};
+
 export type Trip = {
   id: string;
   title: string;
