@@ -73,7 +73,7 @@ if (appleConfigured) {
   const expiry = appleSecretExpiry();
   if (expiry && expiry.getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000) {
     console.warn(
-      `[auth] Apple client secret expires ${expiry.toISOString()}. Regenerate it with \`npx auth add apple\` and update AUTH_APPLE_SECRET, or Apple sign-in will start failing.`,
+      `[auth] Apple client secret expires ${expiry.toISOString()}. Regenerate it with \`npm run apple:secret\` and update AUTH_APPLE_SECRET, or Apple sign-in will start failing.`,
     );
   }
 

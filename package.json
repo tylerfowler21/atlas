@@ -15,7 +15,8 @@
     "db:migrate": "prisma migrate deploy",
     "postinstall": "prisma generate",
     "preflight": "tsx scripts/preflight.ts",
-    "db:users": "tsx scripts/list-users.ts"
+    "db:users": "tsx scripts/list-users.ts",
+    "apple:secret": "tsx scripts/apple-secret.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

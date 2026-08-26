@@ -141,7 +141,7 @@ export default async function AdminPage() {
             <strong>{appleExpiry.toLocaleDateString()}</strong> — in{" "}
             {appleExpiresInDays} {appleExpiresInDays === 1 ? "day" : "days"}.
             Apple signs these for six months at most. Regenerate with{" "}
-            <code>npx auth add apple</code> and update{" "}
+            <code>npm run apple:secret</code> and update{" "}
             <code>AUTH_APPLE_SECRET</code>; when it lapses, every Apple sign-in
             fails at once.
           </p>
