@@ -32,6 +32,7 @@ export type PlaceDraft = {
   status?: string;
   emoji?: string | null;
   notes?: string | null;
+  rating?: number | null;
   lat: number;
   lng: number;
   address?: string | null;
@@ -60,6 +61,7 @@ export default function PlaceEditor({
   const [status, setStatus] = useState(draft?.status ?? "wishlist");
   const [notes, setNotes] = useState(draft?.notes ?? "");
   const [emoji, setEmoji] = useState(draft?.emoji ?? "");
+  const [rating, setRating] = useState<number | null>(draft?.rating ?? null);
   const [busy, setBusy] = useState(false);
 
   if (!draft) return null;
@@ -79,6 +81,10 @@ export default function PlaceEditor({
         status,
         emoji: emoji.trim() || null,
         notes: notes.trim() || null,
+        // Cleared for somewhere you have not been. A rating on a wishlist entry
+        // is a rating of somewhere you have not seen — the website drops it for
+        // the same reason.
+        rating: status === "wishlist" ? null : rating,
         lat: draft!.lat,
         lng: draft!.lng,
         address: draft!.address ?? null,
@@ -178,6 +184,38 @@ export default function PlaceEditor({
             })}
           </View>
 
+          {status !== "wishlist" && (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>
+                Rating — tap the same star again to clear it
+              </Text>
+              <View style={styles.stars}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Pressable
+                    key={n}
+                    onPress={() => setRating(rating === n ? null : n)}
+                    hitSlop={6}
+                    accessibilityLabel={`Rate ${n} out of 5`}
+                  >
+                    <Text
+                      style={[
+                        styles.star,
+                        { color: rating && n <= rating ? "#D9A441" : palette.border },
+                      ]}
+                    >
+                      ★
+                    </Text>
+                  </Pressable>
+                ))}
+                {rating !== null && (
+                  <Pressable onPress={() => setRating(null)} hitSlop={6} style={styles.clear}>
+                    <Text style={{ color: palette.muted, fontSize: 13 }}>Clear</Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          )}
+
           <Text style={[styles.label, { color: palette.muted }]}>Category</Text>
           <View style={styles.chips}>
             {CATEGORIES.map((c) => {
@@ -255,6 +293,7 @@ export function placeToDraft(place: Place): PlaceDraft {
     status: place.status,
     emoji: place.emoji,
     notes: place.notes,
+    rating: place.rating,
     lat: place.lat,
     lng: place.lng,
     address: place.address,
@@ -281,6 +320,9 @@ const styles = StyleSheet.create({
   notes: { minHeight: 90, textAlignVertical: "top" },
   where: { fontSize: 13, marginTop: 6 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  stars: { flexDirection: "row", alignItems: "center", gap: 8 },
+  star: { fontSize: 30 },
+  clear: { marginLeft: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   directions: { marginTop: 28, borderWidth: 1, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
   remove: { marginTop: 12, alignItems: "center", paddingVertical: 12 },

@@ -178,7 +178,10 @@ export default function PlaceDetail({
         </div>
       )}
 
-      {draft.status === "visited" && (
+      {/* Anywhere you have actually been, which includes somewhere you
+          lived. Saving keeps a rating for both — showing the control for
+          only one of them left a rating you could see and not change. */}
+      {draft.status !== "wishlist" && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted">Rating</span>
