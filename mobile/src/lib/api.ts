@@ -63,6 +63,28 @@ export async function api<T>(
   return response.json() as Promise<T>;
 }
 
+/// Uploads a file. Kept apart from `api` because the body is multipart and the
+/// Content-Type header must be set by the runtime, not by us — it carries a
+/// boundary marker that has to match the body exactly.
+export async function upload<T>(path: string, form: FormData): Promise<T> {
+  if (!API_URL) throw new ApiError(0, "EXPO_PUBLIC_API_URL is not set for this build");
+  const token = await storedToken();
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!response.ok) {
+    let message = `Upload failed (${response.status})`;
+    try {
+      const body = await response.json();
+      if (typeof body?.error === "string") message = body.error;
+    } catch {}
+    throw new ApiError(response.status, message);
+  }
+  return response.json() as Promise<T>;
+}
+
 export type Place = {
   id: string;
   name: string;
@@ -157,6 +179,8 @@ type ItemPlace = {
   city: string | null;
   emoji: string | null;
   category: string;
+  lat: number;
+  lng: number;
 };
 
 export type Trip = {

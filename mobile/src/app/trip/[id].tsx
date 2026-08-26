@@ -14,6 +14,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
+import TripMap, { openDirections } from "@/components/TripMap";
 import { stopIcon, travelMode } from "@/lib/taxonomy";
 import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
@@ -180,6 +181,8 @@ export default function TripScreen() {
         />
       )}
       <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
+        <TripMap items={data.items} color={data.trip.color} />
+
         {Array.from({ length: days }, (_, day) => {
           const stops = data.items.filter((i) => i.dayIndex === day);
           return (
@@ -230,6 +233,16 @@ export default function TripScreen() {
                     </Pressable>
 
                     <View style={styles.controls}>
+                      {entry.place && (
+                        <Pressable
+                          onPress={() =>
+                            openDirections(entry.place!.lat, entry.place!.lng, entry.title)
+                          }
+                          hitSlop={8}
+                        >
+                          <Text style={{ fontSize: 15 }}>🧭</Text>
+                        </Pressable>
+                      )}
                       <Pressable
                         onPress={() => move(entry, -1)}
                         disabled={index === 0}

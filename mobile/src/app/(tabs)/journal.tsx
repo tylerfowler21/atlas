@@ -1,12 +1,15 @@
+import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import type { Memory } from "@/lib/api";
+import type { Memory, Place, Trip } from "@/lib/api";
+import MemoryEditor from "@/components/MemoryEditor";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -23,7 +26,11 @@ function when(memory: Memory) {
 
 export default function JournalScreen() {
   const { data, error, loading, reload } = useApi<{ memories: Memory[] }>("/api/memories");
+  const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
+  const { data: tripData } = useApi<{ trips: Trip[] }>("/api/trips");
   const palette = usePalette();
+  const [editing, setEditing] = useState<Memory | null>(null);
+  const [writing, setWriting] = useState(false);
 
   if (loading && !data) {
     return (
@@ -35,6 +42,27 @@ export default function JournalScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
+      <MemoryEditor
+        memory={editing}
+        open={writing || editing !== null}
+        places={placeData?.places ?? []}
+        trips={tripData?.trips ?? []}
+        onClose={() => {
+          setWriting(false);
+          setEditing(null);
+        }}
+        onSaved={reload}
+      />
+
+      <Pressable
+        onPress={() => setWriting(true)}
+        style={[styles.new, { backgroundColor: palette.accent }]}
+      >
+        <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+          + Write something
+        </Text>
+      </Pressable>
+
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data?.memories ?? []}
@@ -46,7 +74,10 @@ export default function JournalScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <View style={[styles.entry, { borderBottomColor: palette.border }]}>
+          <Pressable
+            onPress={() => setEditing(item)}
+            style={[styles.entry, { borderBottomColor: palette.border }]}
+          >
             <Text style={[styles.date, { color: palette.muted }]}>
               {when(item)}
               {item.place ? ` · ${item.place.name}` : ""}
@@ -63,7 +94,7 @@ export default function JournalScreen() {
                 {item.photos.length} photo{item.photos.length === 1 ? "" : "s"}
               </Text>
             )}
-          </View>
+          </Pressable>
         )}
       />
     </View>
@@ -75,6 +106,7 @@ const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: "#E07A5F", padding: 16 },
   empty: { textAlign: "center", padding: 32, lineHeight: 20 },
+  new: { margin: 12, borderRadius: 10, alignItems: "center", paddingVertical: 12 },
   entry: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   date: { fontSize: 12 },
   title: { fontSize: 16, fontWeight: "600", marginTop: 4 },
