@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
+import { checkAppleCredentials } from "@/lib/apple-check";
 
 export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
@@ -13,6 +15,13 @@ function ago(date: Date) {
   const hours = Math.round(mins / 60);
   if (hours < 48) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
+}
+
+/// Uses whatever host this deployment is being served on, so the check is
+/// correct on a preview URL and on a custom domain without being told.
+async function verifyApple() {
+  const host = (await headers()).get("host");
+  return checkAppleCredentials(`https://${host}/api/auth/callback/apple`);
 }
 
 /// Presence, never values. Reading whether a variable is set is a diagnostic;
@@ -29,10 +38,19 @@ const SETTINGS = [
   { name: "BLOB_READ_WRITE_TOKEN", enables: "photo uploads" },
 ].map((setting) => ({ ...setting, set: Boolean(process.env[setting.name]) }));
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ verify?: string }>;
+}) {
+  // Behind a query parameter rather than automatic: it calls Apple, and this
+  // page should not depend on their servers being reachable to render.
+  const { verify } = await searchParams;
   const appleExpiry = appleSecretExpiry();
   const appleExpiresInDays = appleSecretDaysLeft() ?? 0;
   await requireAdmin();
+
+  const appleCheck = verify === "apple" ? await verifyApple() : null;
 
   const [reports, users, shares, totals] = await Promise.all([
     prisma.report.findMany({
@@ -144,6 +162,22 @@ export default async function AdminPage() {
       )}
 
       <h2 className="mt-8 mb-2 text-sm font-medium">Configuration</h2>
+      {appleCheck ? (
+        <p
+          className={`card mb-2 px-3 py-2 text-xs ${
+            appleCheck.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"
+          }`}
+        >
+          <strong>{appleCheck.ok ? "Apple sign-in works." : "Apple sign-in is broken."}</strong>{" "}
+          {appleCheck.detail}
+        </p>
+      ) : (
+        <p className="mb-2 text-xs">
+          <Link href="/admin?verify=apple" className="text-accent hover:underline">
+            Ask Apple whether this deployment&apos;s sign-in credentials work →
+          </Link>
+        </p>
+      )}
       <p className="mb-2 text-xs text-muted">
         Whether each setting is present on this deployment. Names only — no
         values are read or shown. A variable added in Vercel does not reach a
