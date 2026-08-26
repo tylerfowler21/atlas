@@ -20,7 +20,8 @@
     "check:mirror": "tsx scripts/check-mirror.ts",
     "sync:mirror": "tsx scripts/sync-mirror.ts",
     "build:icons": "tsx scripts/build-icons.ts",
-    "build:nav-icons": "tsx scripts/build-nav-icons.ts"
+    "build:nav-icons": "tsx scripts/build-nav-icons.ts",
+    "build:native-icons": "tsx scripts/build-native-icons.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

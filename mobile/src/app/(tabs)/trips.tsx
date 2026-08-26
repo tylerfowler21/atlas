@@ -5,8 +5,8 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from "react-native";
+import { usePalette } from "@/lib/use-palette";
 import type { Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 
@@ -25,7 +25,7 @@ function dateRange(trip: Trip) {
 
 export default function TripsScreen() {
   const { data, error, loading, reload } = useApi<{ trips: Trip[] }>("/api/trips");
-  const dark = useColorScheme() === "dark";
+  const palette = usePalette();
 
   if (loading && !data) {
     return (
@@ -36,27 +36,29 @@ export default function TripsScreen() {
   }
 
   return (
-    <View style={[styles.fill, dark && styles.fillDark]}>
+    <View style={[styles.fill, { backgroundColor: palette.background }]}>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data?.trips ?? []}
         keyExtractor={(t) => t.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={<Text style={styles.empty}>No trips yet.</Text>}
+        ListEmptyComponent={<Text style={[styles.empty, { color: palette.muted }]}>No trips yet.</Text>}
         renderItem={({ item }) => {
           const when = dateRange(item);
           return (
             <View style={styles.row}>
               <View style={[styles.stripe, { backgroundColor: item.color }]} />
               <View style={styles.rowBody}>
-                <Text style={[styles.title, dark && styles.textDark]} numberOfLines={1}>
+                <Text style={[styles.title, { color: palette.ink }]} numberOfLines={1}>
                   {item.title}
                 </Text>
-                <Text style={styles.meta} numberOfLines={1}>
+                <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
                   {[item.destination, when].filter(Boolean).join(" · ") || "No dates yet"}
                 </Text>
               </View>
-              {item.publishedAt && <Text style={styles.badge}>Published</Text>}
+              {item.publishedAt && (
+                <Text style={[styles.badge, { color: palette.accentText }]}>Published</Text>
+              )}
             </View>
           );
         }}
@@ -66,16 +68,14 @@ export default function TripsScreen() {
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: "#fff" },
-  fillDark: { backgroundColor: "#000" },
+  fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: "#ef4444", padding: 16 },
-  empty: { textAlign: "center", color: "#a1a1aa", padding: 32 },
+  empty: { textAlign: "center", padding: 32 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   stripe: { width: 4, height: 34, borderRadius: 2 },
   rowBody: { flex: 1 },
   title: { fontSize: 15, fontWeight: "500" },
-  meta: { fontSize: 13, color: "#71717a", marginTop: 2 },
-  textDark: { color: "#fff" },
-  badge: { fontSize: 11, color: "#14B8A6", fontWeight: "600" },
+  meta: { fontSize: 13, marginTop: 2 },
+  badge: { fontSize: 11, fontWeight: "600" },
 });

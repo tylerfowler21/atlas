@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { usePalette } from "@/lib/use-palette";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import type { Place } from "@/lib/api";
@@ -30,14 +31,16 @@ function regionFor(places: Place[]): Region | undefined {
   };
 }
 
+/// Status rings, matching the website's pins so a place looks the same in both.
 const RING = {
-  visited: "#10b981",
-  lived: "#f59e0b",
-  wishlist: "#ef4444",
+  visited: "#14B8A6",
+  lived: "#D9A441",
+  wishlist: "#E07A5F",
 } as const;
 
 export default function MapScreen() {
   const { data, error, loading } = useApi<{ places: Place[] }>("/api/places");
+  const palette = usePalette();
   // MapView reads initialRegion once, when it mounts, and ignores it after —
   // so recomputing this cannot drag the map out from under someone who has
   // panned away.
@@ -73,7 +76,10 @@ export default function MapScreen() {
             <View
               style={[
                 styles.pin,
-                { borderColor: RING[place.status as keyof typeof RING] ?? RING.wishlist },
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: RING[place.status as keyof typeof RING] ?? RING.wishlist,
+                },
               ]}
             >
               <Text style={styles.pinGlyph}>{placeIcon(place)}</Text>
@@ -102,7 +108,6 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2.5,
-    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",

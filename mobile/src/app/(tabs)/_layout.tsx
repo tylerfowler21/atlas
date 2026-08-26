@@ -1,23 +1,49 @@
 import { Tabs } from "expo-router";
-import { Text, useColorScheme, type ColorValue } from "react-native";
-
-/// Emoji rather than SF Symbols: the tab bar then matches the pins and the
-/// category chips, which are emoji everywhere else in the app.
-function icon(glyph: string) {
-  return function TabIcon({ color }: { color: ColorValue }) {
-    return <Text style={{ fontSize: 22, color, opacity: 0.9 }}>{glyph}</Text>;
-  };
-}
+import { MapIcon, PlacesIcon, TripsIcon } from "@/components/nav-icons";
+import { usePalette } from "@/lib/use-palette";
 
 export default function TabsLayout() {
-  // Navy on a light tab bar, teal on a dark one — the navy would vanish
-  // against it, and the teal is washed out on white.
-  const dark = useColorScheme() === "dark";
+  const palette = usePalette();
+
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: dark ? "#14B8A6" : "#0F2D4A" }}>
-      <Tabs.Screen name="index" options={{ title: "Map", tabBarIcon: icon("🗺️") }} />
-      <Tabs.Screen name="places" options={{ title: "Places", tabBarIcon: icon("📍") }} />
-      <Tabs.Screen name="trips" options={{ title: "Trips", tabBarIcon: icon("🧳") }} />
+    <Tabs
+      screenOptions={{
+        // Deep Ocean is the navigation colour in light, sea glass in dark —
+        // the teal is a call-to-action colour and too pale to mark a tab.
+        tabBarActiveTintColor: palette.accentText,
+        tabBarInactiveTintColor: palette.muted,
+        tabBarStyle: {
+          backgroundColor: palette.surface,
+          borderTopColor: palette.border,
+        },
+        headerStyle: { backgroundColor: palette.surface },
+        headerTitleStyle: { color: palette.ink },
+        headerTintColor: palette.ink,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Map",
+          // The icon takes the tab's own colour, so it tints along with the
+          // label instead of staying the same picture whether active or not.
+          tabBarIcon: ({ color }) => <MapIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="places"
+        options={{
+          title: "Places",
+          tabBarIcon: ({ color }) => <PlacesIcon color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="trips"
+        options={{
+          title: "Trips",
+          tabBarIcon: ({ color }) => <TripsIcon color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

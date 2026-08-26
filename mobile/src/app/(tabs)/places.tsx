@@ -7,8 +7,8 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from "react-native";
+import { usePalette } from "@/lib/use-palette";
 import type { Place } from "@/lib/api";
 import { placeIcon } from "@/lib/taxonomy";
 import { useApi } from "@/lib/use-api";
@@ -23,7 +23,7 @@ const FILTERS = [
 export default function PlacesScreen() {
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const [filter, setFilter] = useState<string>("all");
-  const dark = useColorScheme() === "dark";
+  const palette = usePalette();
 
   const places = useMemo(() => {
     const all = data?.places ?? [];
@@ -39,15 +39,24 @@ export default function PlacesScreen() {
   }
 
   return (
-    <View style={[styles.fill, dark && styles.fillDark]}>
+    <View style={[styles.fill, { backgroundColor: palette.background }]}>
       <View style={styles.filters}>
         {FILTERS.map((f) => (
           <Pressable
             key={f.id}
             onPress={() => setFilter(f.id)}
-            style={[styles.chip, filter === f.id && styles.chipOn]}
+            style={[
+              styles.chip,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+              filter === f.id && { backgroundColor: palette.accent, borderColor: palette.accent },
+            ]}
           >
-            <Text style={[styles.chipText, filter === f.id && styles.chipTextOn]}>
+            <Text
+              style={[
+                { fontSize: 13, color: palette.muted },
+                filter === f.id && { color: palette.onAccent, fontWeight: "600" },
+              ]}
+            >
               {f.label}
             </Text>
           </Pressable>
@@ -69,10 +78,10 @@ export default function PlacesScreen() {
           <View style={styles.row}>
             <Text style={styles.rowGlyph}>{placeIcon(item)}</Text>
             <View style={styles.rowBody}>
-              <Text style={[styles.rowName, dark && styles.textDark]} numberOfLines={1}>
+              <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
                 {item.name}
               </Text>
-              <Text style={styles.rowWhere} numberOfLines={1}>
+              <Text style={[styles.rowWhere, { color: palette.muted }]} numberOfLines={1}>
                 {[item.city, item.country].filter(Boolean).join(", ") || "—"}
               </Text>
             </View>
@@ -86,21 +95,16 @@ export default function PlacesScreen() {
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: "#fff" },
-  fillDark: { backgroundColor: "#000" },
+  fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 12 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: "#f4f4f5" },
-  chipOn: { backgroundColor: "#0F2D4A" },
-  chipText: { fontSize: 13, color: "#3f3f46" },
-  chipTextOn: { color: "#fff", fontWeight: "600" },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   error: { color: "#ef4444", paddingHorizontal: 16, paddingBottom: 8 },
-  empty: { textAlign: "center", color: "#a1a1aa", padding: 32 },
+  empty: { textAlign: "center", padding: 32 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   rowGlyph: { fontSize: 20 },
   rowBody: { flex: 1 },
   rowName: { fontSize: 15, fontWeight: "500" },
-  rowWhere: { fontSize: 13, color: "#71717a", marginTop: 2 },
-  textDark: { color: "#fff" },
+  rowWhere: { fontSize: 13, marginTop: 2 },
   tick: { fontSize: 14 },
 });
