@@ -5,6 +5,29 @@ import { getCurrentUser } from "@/lib/user";
 import { firstIssue, profileSchema } from "@/lib/validation";
 import { removePhoto } from "@/lib/photos";
 
+/// Who the caller is. The iOS app calls this on launch to find out whether the
+/// token in its keychain still means anything — it may have expired, or the
+/// account may have been deleted from the website since.
+export async function GET() {
+  const current = await getCurrentUser();
+  if (!current) return unauthorized();
+
+  const user = await prisma.user.findUnique({
+    where: { id: current.id },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      image: true,
+      onboardedAt: true,
+    },
+  });
+  if (!user) return unauthorized();
+
+  const { onboardedAt, ...rest } = user;
+  return NextResponse.json({ user: { ...rest, onboarded: Boolean(onboardedAt) } });
+}
+
 export async function PATCH(request: Request) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();

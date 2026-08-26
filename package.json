@@ -16,7 +16,9 @@
     "postinstall": "prisma generate",
     "preflight": "tsx scripts/preflight.ts",
     "db:users": "tsx scripts/list-users.ts",
-    "apple:secret": "tsx scripts/apple-secret.ts"
+    "apple:secret": "tsx scripts/apple-secret.ts",
+    "check:mirror": "tsx scripts/check-mirror.ts",
+    "sync:mirror": "tsx scripts/sync-mirror.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
