@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { mapkitConfigured, mapkitOrigin } from "@/lib/mapkit";
+import { prisma } from "@/lib/prisma";
 
 /// Which commit is actually running.
 ///
@@ -17,6 +18,14 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const host = (await headers()).get("host");
 
+  const lastFallback = await prisma.authError
+    .findFirst({
+      where: { kind: "MapKitFallback" },
+      orderBy: { createdAt: "desc" },
+      select: { message: true, createdAt: true },
+    })
+    .catch(() => null);
+
   return NextResponse.json(
     {
       commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7),
@@ -31,6 +40,10 @@ export async function GET() {
         appleConfigured: mapkitConfigured,
         tokenOrigin: mapkitOrigin(host ? `https://${host}` : null),
         requestHost: host,
+        // MapKit's own words for why a page last gave up on Apple Maps.
+        lastFallback: lastFallback
+          ? { reason: lastFallback.message, at: lastFallback.createdAt }
+          : null,
       },
     },
     { headers: { "Cache-Control": "no-store" } },

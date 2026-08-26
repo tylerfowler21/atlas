@@ -5,9 +5,11 @@ import type { MapCanvasProps, MapPin } from "@/components/map-types";
 
 type Props = MapCanvasProps & {
   /// Called when Apple Maps cannot be used after all — the script is blocked,
-  /// or the token is rejected because the key was revoked or expired. Without
-  /// this the viewer is left staring at an empty rectangle.
-  onUnavailable: () => void;
+  /// or the token is rejected. Carries MapKit's own reason, which is the only
+  /// place the distinction between "Unauthorized" and "Too Many Requests"
+  /// exists; without it a quota problem and a credentials problem look
+  /// identical from outside.
+  onUnavailable: (reason: string) => void;
 };
 
 /// Apple Maps. Same props as the MapLibre implementation, so the two are
@@ -27,15 +29,23 @@ function loadMapKit(): Promise<typeof mapkit> {
       // MapKit that is about to fail — and the caller would build a map that
       // never draws. "configuration-change" is the signal that it really came
       // up; "error" is a rejected or expired key.
-      mapkit.addEventListener("configuration-change", () => resolve(mapkit));
-      mapkit.addEventListener("error", () =>
-        reject(new Error("mapkit rejected the token")),
+      mapkit.addEventListener("configuration-change", (event) => {
+        // "Initialized" and "Refreshed" are both success; anything else that
+        // arrives on this event is not.
+        if (event.status === "Initialized" || event.status === "Refreshed") {
+          resolve(mapkit);
+        } else {
+          reject(new Error(`mapkit: ${event.status}`));
+        }
+      });
+      mapkit.addEventListener("error", (event) =>
+        reject(new Error(`mapkit: ${event.status ?? "error"}`)),
       );
 
       // And if neither ever arrives — a proxy swallowing the request, an
       // already-initialised mapkit after a hot reload — fall back rather than
       // leave an empty rectangle on screen forever.
-      setTimeout(() => reject(new Error("mapkit did not initialise")), 10_000);
+      setTimeout(() => reject(new Error("mapkit: no response in 10s")), 10_000);
 
       mapkit.init({
         authorizationCallback: (done) => {
@@ -129,11 +139,13 @@ export default function MapKitCanvas({
       let kit: typeof mapkit;
       try {
         kit = await loadMapKit();
-      } catch {
+      } catch (e) {
         // A failed init is permanent for this page, so let the next attempt
         // start clean rather than reusing the rejected promise.
         mapkitReady = null;
-        if (!cancelled) onUnavailable();
+        if (!cancelled) {
+          onUnavailable(e instanceof Error ? e.message : "mapkit: unknown failure");
+        }
         return;
       }
       if (cancelled || !container.current) return;

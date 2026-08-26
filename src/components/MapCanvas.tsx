@@ -54,9 +54,17 @@ export default function MapCanvas(props: MapCanvasProps) {
   /// Apple Maps can still fail after the token check passes — a revoked key,
   /// a blocked script. Falling back then is the difference between a map that
   /// looks different and no map at all.
-  const fallBack = useCallback(() => {
+  const fallBack = useCallback((reason: string) => {
     appleAvailable = Promise.resolve(false);
     setApple(false);
+    // Reported so a map that quietly is not Apple Maps can be explained
+    // without asking the person looking at it to open a console.
+    void fetch("/api/map-fallback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+      keepalive: true,
+    }).catch(() => {});
   }, []);
 
   // Holds the same space the real map will take, so the page does not jump.
