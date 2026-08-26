@@ -9,13 +9,13 @@ import {
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
-import { API_URL, api, type ItineraryItem, type Trip } from "@/lib/api";
-import { stopIcon } from "@/lib/taxonomy";
+import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
+import { stopIcon, travelMode } from "@/lib/taxonomy";
+import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -50,48 +50,24 @@ function dayCount(trip: Trip, items: ItineraryItem[]) {
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error, loading, reload } = useApi<TripResponse>(`/api/trips/${id}`);
+  const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
 
   const router = useRouter();
   const [settings, setSettings] = useState(false);
-  const [adding, setAdding] = useState<number | null>(null);
-  const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [item, setItem] = useState<ItemDraft | null>(null);
 
   const days = useMemo(
     () => (data ? dayCount(data.trip, data.items) : 0),
     [data],
   );
 
-  const addStop = useCallback(
-    async (dayIndex: number) => {
-      const title = draft.trim();
-      if (!title) return;
-      setBusy(true);
-      try {
-        await api(`/api/trips/${id}/items`, {
-          method: "POST",
-          body: JSON.stringify({ title, dayIndex, kind: "stop" }),
-        });
-        setDraft("");
-        setAdding(null);
-        reload();
-      } catch (e) {
-        Alert.alert("Could not add that", e instanceof Error ? e.message : "Try again");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [draft, id, reload],
-  );
-
-  /// A share link is a secret URL: anyone holding it can read the itinerary
-  /// without an account, which is the point. Created on demand, and handed
-  /// straight to the system share sheet so it can go wherever it is needed.
+  /// A share link is a secret URL: anyone holding it reads the itinerary
+  /// without an account, which is the point. The endpoint returns a path
+  /// rather than a URL — it has no opinion about which host serves it — so the
+  /// address is assembled here.
   const share = useCallback(async () => {
     try {
-      // The endpoint returns a path, not a URL — it has no opinion about which
-      // host is serving it — so the address is assembled here.
       const { share: link } = await api<{ share: { path: string } }>(
         `/api/trips/${id}/share`,
         { method: "POST" },
@@ -102,33 +78,47 @@ export default function TripScreen() {
     }
   }, [id]);
 
-  const rename = useCallback(
-    async (item: ItineraryItem, title: string) => {
-      const next = title.trim();
-      if (!next || next === item.title) return;
+  /// Moving something within its day. The API assigns positions in order, so
+  /// swapping two is a matter of trading them — no renumbering, and no chance
+  /// of two entries claiming the same slot.
+  const move = useCallback(
+    async (entry: ItineraryItem, direction: -1 | 1) => {
+      const sameDay = (data?.items ?? [])
+        .filter((i) => i.dayIndex === entry.dayIndex)
+        .sort((a, b) => a.position - b.position);
+      const at = sameDay.findIndex((i) => i.id === entry.id);
+      const swap = sameDay[at + direction];
+      if (!swap) return;
+
       try {
-        await api(`/api/items/${item.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ title: next }),
-        });
+        await Promise.all([
+          api(`/api/items/${entry.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ position: swap.position }),
+          }),
+          api(`/api/items/${swap.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ position: entry.position }),
+          }),
+        ]);
         reload();
       } catch (e) {
-        Alert.alert("Could not rename that", e instanceof Error ? e.message : "Try again");
+        Alert.alert("Could not move that", e instanceof Error ? e.message : "Try again");
       }
     },
-    [reload],
+    [data, reload],
   );
 
   const remove = useCallback(
-    (item: ItineraryItem) => {
-      Alert.alert(item.title, "Remove this from the trip?", [
+    (entry: ItineraryItem) => {
+      Alert.alert(entry.title, "Remove this from the trip?", [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
             try {
-              await api(`/api/items/${item.id}`, { method: "DELETE" });
+              await api(`/api/items/${entry.id}`, { method: "DELETE" });
               reload();
             } catch (e) {
               Alert.alert("Could not remove that", e instanceof Error ? e.message : "Try again");
@@ -171,6 +161,13 @@ export default function TripScreen() {
         }}
       />
 
+      <ItemEditor
+        draft={item}
+        places={placeData?.places ?? []}
+        onClose={() => setItem(null)}
+        onSaved={reload}
+      />
+
       {settings && (
         <TripEditor
           trip={data.trip}
@@ -191,62 +188,101 @@ export default function TripScreen() {
                 {dayLabel(data.trip, day)}
               </Text>
 
-              {stops.map((item) => (
-                <View
-                  key={item.id}
-                  style={[
-                    styles.stop,
-                    { backgroundColor: palette.surface, borderColor: palette.border },
-                  ]}
-                >
-                  <Text style={styles.glyph}>{stopIcon(item)}</Text>
-                  <TextInput
-                    defaultValue={item.title}
-                    onEndEditing={(e) => rename(item, e.nativeEvent.text)}
-                    style={[styles.stopTitle, { color: palette.ink }]}
-                    returnKeyType="done"
-                  />
-                  <Pressable onPress={() => remove(item)} hitSlop={10}>
-                    <Text style={{ color: palette.muted, fontSize: 18 }}>×</Text>
-                  </Pressable>
-                </View>
-              ))}
+              {stops.map((entry, index) => {
+                const leg = entry.kind === "travel";
+                const mode = leg ? travelMode(entry.mode) : null;
+                return (
+                  <View
+                    key={entry.id}
+                    style={[
+                      styles.stop,
+                      { backgroundColor: palette.surface, borderColor: palette.border },
+                      // A journey is drawn differently from a stop: the day
+                      // reads as a sequence, and the thing that moves you
+                      // between places should not look like another place.
+                      leg && { borderStyle: "dashed", borderColor: palette.accent },
+                    ]}
+                  >
+                    <Pressable
+                      style={styles.stopMain}
+                      onPress={() => setItem({ mode: "edit", item: entry })}
+                    >
+                      <Text style={styles.glyph}>
+                        {entry.emoji || mode?.icon || stopIcon(entry)}
+                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>
+                          {entry.title}
+                        </Text>
+                        {(entry.startTime || entry.notes) && (
+                          <Text style={[styles.stopMeta, { color: palette.muted }]} numberOfLines={1}>
+                            {[
+                              entry.startTime && entry.endTime
+                                ? `${entry.startTime}–${entry.endTime}`
+                                : entry.startTime,
+                              entry.notes,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
 
-              {adding === day ? (
-                <View
-                  style={[
-                    styles.stop,
-                    { backgroundColor: palette.surface, borderColor: palette.accent },
-                  ]}
-                >
-                  <TextInput
-                    value={draft}
-                    onChangeText={setDraft}
-                    placeholder="What are you doing?"
-                    placeholderTextColor={palette.muted}
-                    autoFocus
-                    onSubmitEditing={() => addStop(day)}
-                    returnKeyType="done"
-                    style={[styles.stopTitle, { color: palette.ink }]}
-                  />
-                  <Pressable onPress={() => addStop(day)} disabled={busy} hitSlop={10}>
-                    <Text style={{ color: palette.accentText, fontWeight: "600" }}>Add</Text>
-                  </Pressable>
-                </View>
-              ) : (
+                    <View style={styles.controls}>
+                      <Pressable
+                        onPress={() => move(entry, -1)}
+                        disabled={index === 0}
+                        hitSlop={8}
+                      >
+                        <Text style={{ color: index === 0 ? palette.border : palette.muted, fontSize: 16 }}>
+                          ↑
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => move(entry, 1)}
+                        disabled={index === stops.length - 1}
+                        hitSlop={8}
+                      >
+                        <Text
+                          style={{
+                            color: index === stops.length - 1 ? palette.border : palette.muted,
+                            fontSize: 16,
+                          }}
+                        >
+                          ↓
+                        </Text>
+                      </Pressable>
+                      <Pressable onPress={() => remove(entry)} hitSlop={8}>
+                        <Text style={{ color: palette.muted, fontSize: 18 }}>×</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+
+              <View style={styles.addRow}>
                 <Pressable
-                  onPress={() => {
-                    setDraft("");
-                    setAdding(day);
-                  }}
+                  onPress={() =>
+                    setItem({ mode: "create", tripId: id, dayIndex: day, kind: "stop" })
+                  }
                   style={styles.add}
                 >
-                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add something</Text>
+                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a stop</Text>
                 </Pressable>
-              )}
+                <Pressable
+                  onPress={() =>
+                    setItem({ mode: "create", tripId: id, dayIndex: day, kind: "travel" })
+                  }
+                  style={styles.add}
+                >
+                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a journey</Text>
+                </Pressable>
+              </View>
             </View>
           );
         })}
+
         <Pressable onPress={share} style={styles.share}>
           <Text style={{ color: palette.accentText, fontSize: 14 }}>
             Share a read-only link
@@ -275,7 +311,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   glyph: { fontSize: 18 },
-  stopTitle: { flex: 1, fontSize: 15, paddingVertical: 2 },
+  stopMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  stopTitle: { fontSize: 15 },
+  stopMeta: { fontSize: 12, marginTop: 2 },
+  controls: { flexDirection: "row", alignItems: "center", gap: 14, paddingLeft: 10 },
+  addRow: { flexDirection: "row", gap: 16 },
   add: { paddingVertical: 10, paddingHorizontal: 4, marginTop: 4 },
   share: { alignItems: "center", paddingVertical: 18, marginTop: 12 },
 });
