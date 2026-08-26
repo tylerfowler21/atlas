@@ -53,6 +53,11 @@ export default async function AdminPage({
 
   const appleCheck = verify === "apple" ? await verifyApple() : null;
 
+  const authErrors = await prisma.authError.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+
   const [reports, users, shares, totals] = await Promise.all([
     prisma.report.findMany({
       where: { reviewedAt: null },
@@ -155,6 +160,27 @@ export default async function AdminPage({
                       </Link>
                     </>
                   )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {authErrors.length > 0 && (
+        <>
+          <h2 className="mt-8 mb-2 text-sm font-medium text-red-500">
+            Recent sign-in failures
+          </h2>
+          <ul className="card divide-y divide-line">
+            {authErrors.map((e) => (
+              <li key={e.id} className="px-3 py-2">
+                <p className="text-xs font-medium">{e.kind}</p>
+                <p className="mt-1 font-mono text-xs break-words text-muted">
+                  {e.message}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {e.createdAt.toLocaleString()}
                 </p>
               </li>
             ))}

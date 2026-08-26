@@ -186,6 +186,37 @@ function adapterWithAccountFilter() {
   return adapter;
 }
 
+/// Keeps the last few sign-in failures where they can be read without access
+/// to the host's logs. Best-effort by construction: a diagnostic that can
+/// itself throw would replace the error being diagnosed with its own.
+async function recordAuthError(error: unknown) {
+  try {
+    const e = error as { name?: string; message?: string; stack?: string; cause?: unknown };
+    // Auth.js wraps the real failure in its own error, so the cause is usually
+    // the interesting half.
+    const cause = e?.cause as { name?: string; message?: string } | undefined;
+
+    await prisma.authError.create({
+      data: {
+        kind: [e?.name, cause?.name].filter(Boolean).join(" <- ") || "Unknown",
+        message: [e?.message, cause?.message].filter(Boolean).join(" — ").slice(0, 4000),
+        stack: e?.stack?.slice(0, 4000) ?? null,
+      },
+    });
+
+    const stale = await prisma.authError.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: 10,
+      select: { id: true },
+    });
+    if (stale.length) {
+      await prisma.authError.deleteMany({ where: { id: { in: stale.map((r) => r.id) } } });
+    }
+  } catch {
+    // Nothing useful to do; the console line above is still written.
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: adapterWithAccountFilter(),
   // JWT sessions rather than database sessions: no database round trip on
@@ -200,6 +231,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   logger: {
     error(error) {
       console.error("[auth] sign-in failed:", error);
+      void recordAuthError(error);
     },
   },
   callbacks: {

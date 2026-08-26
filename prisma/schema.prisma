@@ -382,3 +382,24 @@ model ItineraryItem {
   @@index([placeId])
   @@index([toPlaceId])
 }
+
+/// The last few sign-in failures, kept so they can be read without dashboard
+/// access to the host's logs.
+///
+/// Auth.js reports almost every server-side failure to the browser as
+/// "Configuration", which names the wrong suspect and hides the real one. The
+/// actual error exists only in the runtime log, which is exactly where it is
+/// hardest to get at when a deployment is misbehaving.
+///
+/// Nothing here is user data: it is our own exception text. Rows are trimmed
+/// to the most recent handful, since this is a diagnostic and not a record.
+model AuthError {
+  id        String   @id @default(cuid())
+  /// The error's class name, e.g. PrismaClientValidationError
+  kind      String
+  message   String
+  stack     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
