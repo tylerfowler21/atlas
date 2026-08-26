@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
+import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 
 export const metadata: Metadata = { title: "Who's using Atlas" };
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ function ago(date: Date) {
 }
 
 export default async function AdminPage() {
+  const appleExpiry = appleSecretExpiry();
+  const appleExpiresInDays = appleSecretDaysLeft() ?? 0;
   await requireAdmin();
 
   const [reports, users, shares, totals] = await Promise.all([
@@ -123,6 +126,25 @@ export default async function AdminPage() {
               </li>
             ))}
           </ul>
+        </>
+      )}
+
+      {appleExpiry && (
+        <>
+          <h2 className="mt-8 mb-2 text-sm font-medium">Apple sign-in</h2>
+          <p
+            className={`card px-3 py-2 text-xs ${
+              appleExpiresInDays < 14 ? "text-red-500" : "text-muted"
+            }`}
+          >
+            The Apple client secret expires{" "}
+            <strong>{appleExpiry.toLocaleDateString()}</strong> — in{" "}
+            {appleExpiresInDays} {appleExpiresInDays === 1 ? "day" : "days"}.
+            Apple signs these for six months at most. Regenerate with{" "}
+            <code>npx auth add apple</code> and update{" "}
+            <code>AUTH_APPLE_SECRET</code>; when it lapses, every Apple sign-in
+            fails at once.
+          </p>
         </>
       )}
 
