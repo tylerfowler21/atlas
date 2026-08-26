@@ -15,6 +15,20 @@ function ago(date: Date) {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+/// Presence, never values. Reading whether a variable is set is a diagnostic;
+/// printing what it contains would put credentials on a web page.
+const SETTINGS = [
+  { name: "APPLE_TEAM_ID", enables: "Apple Maps and app sign-in" },
+  { name: "MAPKIT_KEY_ID", enables: "Apple Maps" },
+  { name: "MAPKIT_PRIVATE_KEY", enables: "Apple Maps" },
+  { name: "AUTH_APPLE_ID", enables: "Continue with Apple" },
+  { name: "AUTH_APPLE_SECRET", enables: "Continue with Apple" },
+  { name: "APPLE_BUNDLE_ID", enables: "iOS app sign-in" },
+  { name: "AUTH_GOOGLE_ID", enables: "Continue with Google" },
+  { name: "AUTH_GOOGLE_SECRET", enables: "Continue with Google" },
+  { name: "BLOB_READ_WRITE_TOKEN", enables: "photo uploads" },
+].map((setting) => ({ ...setting, set: Boolean(process.env[setting.name]) }));
+
 export default async function AdminPage() {
   const appleExpiry = appleSecretExpiry();
   const appleExpiresInDays = appleSecretDaysLeft() ?? 0;
@@ -128,6 +142,30 @@ export default async function AdminPage() {
           </ul>
         </>
       )}
+
+      <h2 className="mt-8 mb-2 text-sm font-medium">Configuration</h2>
+      <p className="mb-2 text-xs text-muted">
+        Whether each setting is present on this deployment. Names only — no
+        values are read or shown. A variable added in Vercel does not reach a
+        deployment that was already running, so anything unexpected here is
+        usually a missing redeploy or a variable saved to Preview but not
+        Production.
+      </p>
+      <ul className="card divide-y divide-line text-sm">
+        {SETTINGS.map((setting) => (
+          <li key={setting.name} className="flex items-baseline gap-3 px-3 py-2">
+            <code className="text-xs">{setting.name}</code>
+            <span className="text-xs text-muted">{setting.enables}</span>
+            <span
+              className={`ml-auto text-xs font-medium ${
+                setting.set ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"
+              }`}
+            >
+              {setting.set ? "set" : "missing"}
+            </span>
+          </li>
+        ))}
+      </ul>
 
       {appleExpiry && (
         <>
