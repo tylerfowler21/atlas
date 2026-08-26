@@ -27,3 +27,6 @@ roava-export.json
 
 # Brand source art. Large, and the generated assets in public/ are what ship.
 brand/*.pdf
+
+# A stray `create-expo-app roava` scaffold. The real app is in mobile/.
+/roava/
