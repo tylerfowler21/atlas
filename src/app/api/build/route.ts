@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { mapkitConfigured, mapkitOrigin } from "@/lib/mapkit";
 
 /// Which commit is actually running.
 ///
@@ -12,12 +14,24 @@ import { NextResponse } from "next/server";
 /// without dashboard access.
 export const dynamic = "force-dynamic";
 
-export function GET() {
+export async function GET() {
+  const host = (await headers()).get("host");
+
   return NextResponse.json(
     {
       commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "local").slice(0, 7),
       branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
       environment: process.env.VERCEL_ENV ?? "development",
+      // The site's own domain and whether Apple Maps is switched on. Neither is
+      // a secret — the first is in the address bar and the second is visible
+      // from which basemap the page draws — and having them here means a map
+      // that falls back can be diagnosed with one request instead of a walk
+      // through the admin pages.
+      map: {
+        appleConfigured: mapkitConfigured,
+        tokenOrigin: mapkitOrigin(host ? `https://${host}` : null),
+        requestHost: host,
+      },
     },
     { headers: { "Cache-Control": "no-store" } },
   );
