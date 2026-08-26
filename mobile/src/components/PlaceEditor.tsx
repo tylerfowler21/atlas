@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { api, type Place } from "@/lib/api";
+import { openDirections } from "@/components/TripMap";
 import { CATEGORIES } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
 
@@ -222,6 +223,19 @@ export default function PlaceEditor({
             ]}
           />
 
+          {/* Only for somewhere already saved: directions to a pin you have
+              not yet decided to keep are not what anyone wants. */}
+          {editing && (
+            <Pressable
+              onPress={() => openDirections(draft!.lat, draft!.lng, draft!.name)}
+              style={[styles.directions, { borderColor: palette.border, backgroundColor: palette.surface }]}
+            >
+              <Text style={{ color: palette.accentText, fontWeight: "600" }}>
+                🧭  Directions
+              </Text>
+            </Pressable>
+          )}
+
           {editing && (
             <Pressable onPress={remove} style={styles.remove}>
               <Text style={{ color: "#E07A5F", fontWeight: "500" }}>Remove this place</Text>
@@ -268,5 +282,6 @@ const styles = StyleSheet.create({
   where: { fontSize: 13, marginTop: 6 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
-  remove: { marginTop: 28, alignItems: "center", paddingVertical: 12 },
+  directions: { marginTop: 28, borderWidth: 1, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
+  remove: { marginTop: 12, alignItems: "center", paddingVertical: 12 },
 });
