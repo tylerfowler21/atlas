@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import {
-  BeenIcon,
   FeedIcon,
   JournalIcon,
   MapIcon,
@@ -11,10 +10,13 @@ import {
 } from "@/components/nav-icons";
 import { usePalette } from "@/lib/use-palette";
 
-/// Seven destinations, and iOS shows five before collapsing the rest into
-/// "More" on its own — the same pressure the website resolves with a bottom bar
-/// and an overflow sheet. The order here is what you reach for while
-/// travelling, so the four that matter most stay visible.
+/// Six destinations. There were seven, and "Been" was the one to go: its list
+/// was the places list filtered, and its counts now sit above that list where
+/// they describe something. The map it stood for is the Map tab with a status
+/// filter, which is what "everywhere I have been" always was.
+///
+/// iOS shows five before collapsing the rest into "More", so the order here is
+/// what you reach for while travelling.
 export default function TabsLayout() {
   const palette = usePalette();
 
@@ -41,10 +43,6 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="trips"
         options={{ title: "Trips", tabBarIcon: ({ color }) => <TripsIcon color={color} /> }}
-      />
-      <Tabs.Screen
-        name="been"
-        options={{ title: "Been", tabBarIcon: ({ color }) => <BeenIcon color={color} /> }}
       />
       <Tabs.Screen
         name="journal"

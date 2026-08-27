@@ -54,6 +54,9 @@ export default function MapScreen() {
 
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const [query, setQuery] = useState("");
+  /// Status filtering lives here now the Been tab is gone: the map of
+  /// everywhere you have been is the same map with everything else hidden.
+  const [status, setStatus] = useState<string>("all");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -95,7 +98,8 @@ export default function MapScreen() {
     );
   }
 
-  const places = data?.places ?? [];
+  const all = data?.places ?? [];
+  const places = status === "all" ? all : all.filter((p) => p.status === status);
 
   return (
     <View style={styles.fill}>
@@ -146,6 +150,32 @@ export default function MapScreen() {
           style={{ flex: 1, fontSize: 15, color: palette.ink }}
         />
         {searching && <ActivityIndicator />}
+      </View>
+
+      <View style={styles.statusRow}>
+        {[
+          { id: "all", label: "All" },
+          { id: "wishlist", label: "Want to go" },
+          { id: "visited", label: "Been" },
+          { id: "lived", label: "Lived" },
+        ].map((s) => {
+          const on = status === s.id;
+          return (
+            <Pressable
+              key={s.id}
+              onPress={() => setStatus(s.id)}
+              style={[
+                styles.statusChip,
+                { backgroundColor: palette.surface, borderColor: palette.border },
+                on && { backgroundColor: palette.accent, borderColor: palette.accent },
+              ]}
+            >
+              <Text style={{ fontSize: 12, color: on ? palette.onAccent : palette.muted }}>
+                {s.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {results.length > 0 && (
@@ -224,9 +254,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  results: {
+  statusRow: {
     position: "absolute",
     top: 62,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  statusChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5 },
+  results: {
+    position: "absolute",
+    top: 104,
     left: 12,
     right: 12,
     maxHeight: 260,
