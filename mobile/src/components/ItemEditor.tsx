@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,7 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, type ItineraryItem, type Place } from "@/lib/api";
+import { api, type ItineraryItem, type Place, type SearchResult } from "@/lib/api";
 import { CATEGORIES, TRAVEL_MODES } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
 
@@ -109,6 +110,65 @@ export default function ItemEditor({
   const [placeId, setPlaceId] = useState(existing?.placeId ?? null);
   const [toPlaceId, setToPlaceId] = useState(existing?.toPlaceId ?? null);
   const [busy, setBusy] = useState(false);
+
+  /// Searching the world, then saving what you pick.
+  ///
+  /// The pickers below only ever offered places already saved, so planning a
+  /// stop somewhere new meant leaving for the map, saving it, and coming back.
+  /// This is what the website does: find it, save it, attach it, in one go.
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  /// Places created here, so they appear in the pickers without refetching.
+  const [added, setAdded] = useState<Place[]>([]);
+
+  const options = [...added, ...places];
+
+  async function searchWorld() {
+    const q = query.trim();
+    if (q.length < 3) return;
+    Keyboard.dismiss();
+    setSearching(true);
+    try {
+      const found = await api<{ results: SearchResult[] }>(
+        `/api/geocode?q=${encodeURIComponent(q)}`,
+      );
+      setResults(found.results);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  /// Saved as somewhere you want to go: it is on an itinerary, which is a plan
+  /// rather than a record. Marking it visited is a thing you do afterwards.
+  async function saveAndAttach(result: SearchResult, target: "from" | "to") {
+    try {
+      const { place } = await api<{ place: Place }>("/api/places", {
+        method: "POST",
+        body: JSON.stringify({
+          name: result.name,
+          lat: result.lat,
+          lng: result.lng,
+          category: result.category,
+          status: "wishlist",
+          address: result.address,
+          city: result.city,
+          country: result.country,
+          countryCode: result.countryCode,
+        }),
+      });
+      setAdded((current) => [place, ...current]);
+      if (target === "to") setToPlaceId(place.id);
+      else setPlaceId(place.id);
+      if (!title.trim()) setTitle(result.name);
+      setResults([]);
+      setQuery("");
+    } catch (e) {
+      Alert.alert("Could not save that place", e instanceof Error ? e.message : "Try again");
+    }
+  }
 
   if (!draft) return null;
   const travel = kind === "travel";
@@ -249,9 +309,53 @@ export default function ItemEditor({
             )}
           </View>
 
+          <Text style={[styles.label, { color: palette.muted }]}>
+            Search anywhere — saves it and attaches it
+          </Text>
+          <View style={styles.searchRow}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={searchWorld}
+              returnKeyType="search"
+              placeholder="Paris, Sagrada Família…"
+              placeholderTextColor={palette.muted}
+              style={[styles.input, { flex: 1 }, field]}
+            />
+            {searching && <ActivityIndicator />}
+          </View>
+
+          {results.map((r) => (
+            <View
+              key={r.id}
+              style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
+            >
+              <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                {r.name}
+              </Text>
+              <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                {r.context}
+              </Text>
+              <View style={styles.resultActions}>
+                <Pressable onPress={() => saveAndAttach(r, "from")} hitSlop={6}>
+                  <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
+                    {travel ? "Leaving from here" : "Use this place"}
+                  </Text>
+                </Pressable>
+                {travel && (
+                  <Pressable onPress={() => saveAndAttach(r, "to")} hitSlop={6}>
+                    <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
+                      Arriving here
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          ))}
+
           <PlacePicker
             label={travel ? "Leaving from" : "Which saved place?"}
-            places={places}
+            places={options}
             selected={placeId}
             onSelect={setPlaceId}
             palette={palette}
@@ -259,7 +363,7 @@ export default function ItemEditor({
           {travel && (
             <PlacePicker
               label="Arriving at"
-              places={places}
+              places={options}
               selected={toPlaceId}
               onSelect={setToPlaceId}
               palette={palette}
@@ -335,5 +439,8 @@ const styles = StyleSheet.create({
   notes: { minHeight: 80, textAlignVertical: "top" },
   times: { flexDirection: "row", gap: 12 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingRight: 8 },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  result: { borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 8 },
+  resultActions: { flexDirection: "row", gap: 20, marginTop: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, maxWidth: 200 },
 });
