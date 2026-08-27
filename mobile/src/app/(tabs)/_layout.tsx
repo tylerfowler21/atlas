@@ -4,19 +4,19 @@ import {
   JournalIcon,
   MapIcon,
   PeopleIcon,
-  PlacesIcon,
   TripsIcon,
   YourProfileIcon,
 } from "@/components/nav-icons";
 import { usePalette } from "@/lib/use-palette";
 
-/// Six destinations. There were seven, and "Been" was the one to go: its list
-/// was the places list filtered, and its counts now sit above that list where
-/// they describe something. The map it stood for is the Map tab with a status
-/// filter, which is what "everywhere I have been" always was.
+/// Five destinations, down from eight, and nothing hidden behind "More".
 ///
-/// iOS shows five before collapsing the rest into "More", so the order here is
-/// what you reach for while travelling.
+/// Been went first: its list was the places list filtered, and its counts
+/// describe that list rather than needing a screen. Places followed, because
+/// once the map had the same status filters, a separate tab was the same
+/// places under the same filters without the map behind them. Both now live on
+/// Map — the list pulls up over it, which is what the website does at this
+/// width.
 export default function TabsLayout() {
   const palette = usePalette();
 
@@ -47,10 +47,6 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="journal"
         options={{ title: "Journal", tabBarIcon: ({ color }) => <JournalIcon color={color} /> }}
-      />
-      <Tabs.Screen
-        name="places"
-        options={{ title: "Places", tabBarIcon: ({ color }) => <PlacesIcon color={color} /> }}
       />
       <Tabs.Screen
         name="feed"

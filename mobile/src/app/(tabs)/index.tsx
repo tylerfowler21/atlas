@@ -4,8 +4,10 @@ import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEd
 import { api, type Place, type SearchResult } from "@/lib/api";
 import {
   ActivityIndicator,
+  FlatList,
   Keyboard,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +16,7 @@ import {
 } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import { placeIcon } from "@/lib/taxonomy";
+import { year } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
 
 /// Enough of a margin that pins are not welded to the edge of the screen.
@@ -57,6 +60,13 @@ export default function MapScreen() {
   /// Status filtering lives here now the Been tab is gone: the map of
   /// everywhere you have been is the same map with everything else hidden.
   const [status, setStatus] = useState<string>("all");
+  /// The places list, which used to be its own tab. A panel rather than a
+  /// separate screen: it is the same places under the same filters, and the
+  /// map is the thing you want behind it.
+  ///
+  /// Tapped open and shut rather than dragged. A drag needs a threshold, and a
+  /// threshold is something to get wrong; the bar says what it does.
+  const [listOpen, setListOpen] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -83,6 +93,31 @@ export default function MapScreen() {
   // panned away.
   const initial = useMemo(() => regionFor(data?.places ?? []), [data]);
 
+  /// Derived above the loading and error branches: hooks must run in the same
+  /// order on every render, and an early return between them changes that.
+  const all = useMemo(() => data?.places ?? [], [data]);
+
+  const places = useMemo(() => {
+    const chosen = status === "all" ? all : all.filter((p) => p.status === status);
+    if (status !== "lived") return chosen;
+    // Lived-in places read as chapters: earliest first, undated last.
+    return [...chosen].sort((a, b) => {
+      if (!a.livedFrom) return b.livedFrom ? 1 : 0;
+      if (!b.livedFrom) return -1;
+      return new Date(a.livedFrom).getTime() - new Date(b.livedFrom).getTime();
+    });
+  }, [all, status]);
+
+  const counts = useMemo(() => {
+    const been = all.filter((p) => p.status === "visited" || p.status === "lived");
+    return {
+      total: places.length,
+      been: been.length,
+      cities: new Set(been.map((p) => p.city).filter(Boolean)).size,
+      countries: new Set(been.map((p) => p.country).filter(Boolean)).size,
+    };
+  }, [all, places]);
+
   if (loading && !data) {
     return (
       <View style={styles.centre}>
@@ -98,8 +133,6 @@ export default function MapScreen() {
     );
   }
 
-  const all = data?.places ?? [];
-  const places = status === "all" ? all : all.filter((p) => p.status === status);
 
   return (
     <View style={styles.fill}>
@@ -213,7 +246,65 @@ export default function MapScreen() {
         </ScrollView>
       )}
 
-      {places.length === 0 && results.length === 0 && (
+      <View
+        style={[
+          styles.sheet,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+          listOpen && styles.sheetOpen,
+        ]}
+      >
+        <Pressable onPress={() => setListOpen((open) => !open)} style={styles.handle}>
+          <View style={[styles.grabber, { backgroundColor: palette.border }]} />
+          <Text style={{ color: palette.muted, fontSize: 13 }}>
+            {counts.total} {counts.total === 1 ? "place" : "places"}
+            {status !== "all" ? " shown" : ""} ·{" "}
+            <Text style={{ color: palette.ink }}>{counts.been} been</Text> ·{" "}
+            {counts.cities} cities · {counts.countries} countries
+          </Text>
+          <Text style={{ color: palette.accentText, fontSize: 12, marginTop: 2 }}>
+            {listOpen ? "Hide list" : "Show list"}
+          </Text>
+        </Pressable>
+
+        {listOpen && (
+          <FlatList
+            data={places}
+            keyExtractor={(p) => p.id}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+            ListEmptyComponent={
+              <Text style={[styles.listEmpty, { color: palette.muted }]}>
+                Nothing here yet.
+              </Text>
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => setDraft(placeToDraft(item))}
+                style={[styles.row, { borderBottomColor: palette.border }]}
+              >
+                <Text style={styles.rowGlyph}>{placeIcon(item)}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.rowWhere, { color: palette.muted }]} numberOfLines={1}>
+                    {[item.city, item.country].filter(Boolean).join(", ") || "—"}
+                  </Text>
+                </View>
+                {item.status === "visited" && <Text style={{ fontSize: 13 }}>✅</Text>}
+                {item.status === "lived" && (
+                  <Text style={{ color: palette.muted, fontSize: 12 }}>
+                    {item.livedFrom
+                      ? `${year(item.livedFrom)}–${item.livedTo ? year(item.livedTo) : "now"}`
+                      : "🏠"}
+                  </Text>
+                )}
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+
+      {places.length === 0 && results.length === 0 && !listOpen && (
         <View style={styles.empty} pointerEvents="none">
           <Text style={styles.emptyText}>
             Search above, or press and hold anywhere on the map to drop a pin.
@@ -274,7 +365,32 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   result: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
-  empty: { position: "absolute", left: 24, right: 24, bottom: 48 },
+  sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: 1,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: 72,
+  },
+  sheetOpen: { maxHeight: "62%" },
+  handle: { alignItems: "center", paddingTop: 8, paddingBottom: 10 },
+  grabber: { width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  rowGlyph: { fontSize: 20 },
+  rowName: { fontSize: 15, fontWeight: "500" },
+  rowWhere: { fontSize: 13, marginTop: 2 },
+  listEmpty: { textAlign: "center", padding: 24 },
+  empty: { position: "absolute", left: 24, right: 24, bottom: 96 },
   emptyText: {
     backgroundColor: "rgba(0,0,0,0.7)",
     color: "#fff",
