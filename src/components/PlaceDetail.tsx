@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import CategoryPicker from "@/components/CategoryPicker";
 import EmojiField from "@/components/EmojiField";
@@ -30,6 +31,37 @@ export default function PlaceDetail({
   const [error, setError] = useState<string | null>(null);
   const [addedTo, setAddedTo] = useState<string | null>(null);
   const [tripId, setTripId] = useState("");
+
+  /// The trips this place is already on.
+  ///
+  /// Fetched when the panel opens rather than shipped with every place: most
+  /// places are never opened, and this is item-level data the map does not
+  /// otherwise need.
+  /// Tagged with the place it describes rather than cleared when the place
+  /// changes: clearing means a setState in the effect body, and the answer for
+  /// the previous place must not be shown against this one meanwhile.
+  const [fetched, setFetched] = useState<{
+    placeId: string;
+    trips: { id: string; title: string; color: string; dayIndex: number; times: number }[];
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/places/${place.id}/trips`);
+        const body = res.ok ? await res.json() : { trips: [] };
+        if (!cancelled) setFetched({ placeId: place.id, trips: body.trips ?? [] });
+      } catch {
+        if (!cancelled) setFetched({ placeId: place.id, trips: [] });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [place.id]);
+
+  const onTrips = fetched?.placeId === place.id ? fetched.trips : [];
   const [dayIndex, setDayIndex] = useState(0);
 
   // Selecting a different pin resets this editor: the parent gives it a
@@ -116,13 +148,17 @@ export default function PlaceDetail({
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
         </div>
+        {/* A labelled button, not a bare glyph. On a phone this panel
+            covers the map, and a thin grey ✕ at the edge is the only way
+            back — which is not a way back that anyone finds. */}
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
-          className="rounded-md px-2 py-1 text-muted hover:bg-foreground/5"
+          aria-label="Close and return to the map"
+          className="flex shrink-0 items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs text-muted hover:bg-foreground/5"
         >
-          ✕
+          <span aria-hidden>✕</span>
+          Close
         </button>
       </div>
 
@@ -267,8 +303,32 @@ export default function PlaceDetail({
 
       {trips.length > 0 && (
         <div className="space-y-2 border-t border-line pt-3">
+          {onTrips.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted">Already on</p>
+              <ul className="space-y-1">
+                {onTrips.map((t) => (
+                  <li key={t.id} className="flex items-center gap-2 text-xs">
+                    <span
+                      aria-hidden
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: t.color }}
+                    />
+                    <Link href={`/trips/${t.id}`} className="truncate hover:underline">
+                      {t.title}
+                    </Link>
+                    <span className="shrink-0 text-muted">
+                      day {t.dayIndex + 1}
+                      {t.times > 1 ? ` · ${t.times} times` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <label className="block text-xs text-muted" htmlFor="add-to-trip">
-            Add to a trip
+            {onTrips.length > 0 ? "Add to another trip" : "Add to a trip"}
           </label>
           <select
             id="add-to-trip"

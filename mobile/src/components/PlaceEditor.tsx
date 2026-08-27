@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -268,8 +269,12 @@ export default function PlaceEditor({
               onPress={() => openDirections(draft!.lat, draft!.lng, draft!.name)}
               style={[styles.directions, { borderColor: palette.border, backgroundColor: palette.surface }]}
             >
+              <Image
+                source={require("../../assets/images/directions.png")}
+                style={styles.directionsIcon}
+              />
               <Text style={{ color: palette.accentText, fontWeight: "600" }}>
-                🧭  Directions
+                Directions
               </Text>
             </Pressable>
           )}
@@ -324,6 +329,16 @@ const styles = StyleSheet.create({
   star: { fontSize: 30 },
   clear: { marginLeft: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
-  directions: { marginTop: 28, borderWidth: 1, borderRadius: 10, alignItems: "center", paddingVertical: 13 },
+  directions: {
+    marginTop: 28,
+    borderWidth: 1,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+  },
+  directionsIcon: { width: 22, height: 22 },
   remove: { marginTop: 12, alignItems: "center", paddingVertical: 12 },
 });

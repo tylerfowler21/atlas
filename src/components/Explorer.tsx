@@ -480,7 +480,17 @@ export default function Explorer({
             setDraft(null);
             setSelectedId(id);
           }}
-          onMapClick={dropMode ? dropPin : undefined}
+          // Tapping the map is also how you put the panel away. On a phone it
+          // covers the map entirely, so the thing you are trying to get back to
+          // is the most natural thing to tap — and there was nothing behind
+          // that gesture before.
+          onMapClick={
+            dropMode
+              ? dropPin
+              : selectedId
+                ? () => setSelectedId(null)
+                : undefined
+          }
         />
         {dropMode && (
           <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
