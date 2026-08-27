@@ -39,6 +39,8 @@ const SETTINGS = [
   { name: "AUTH_GOOGLE_ID", enables: "Continue with Google" },
   { name: "AUTH_GOOGLE_SECRET", enables: "Continue with Google" },
   { name: "BLOB_READ_WRITE_TOKEN", enables: "photo uploads" },
+  { name: "RESEND_API_KEY", enables: "invitation emails" },
+  { name: "MAIL_FROM", enables: "invitation emails" },
 ].map((setting) => ({ ...setting, set: Boolean(process.env[setting.name]) }));
 
 export default async function AdminPage({

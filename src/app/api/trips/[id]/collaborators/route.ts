@@ -4,6 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { collaboratorInviteSchema, firstIssue } from "@/lib/validation";
+import { invitationEmail, sendMail } from "@/lib/mail";
 
 function serialize(c: {
   email: string;
@@ -88,7 +89,34 @@ export async function POST(
     include: { user: { select: { name: true, image: true } } },
   });
 
-  return NextResponse.json({ collaborator: serialize(collaborator) }, { status: 201 });
+  // Told about it, if we can. Deliberately after the row exists and never
+  // able to undo it: the collaborator record is what grants access, and the
+  // email only says so. A provider having a bad afternoon should not cost
+  // somebody their invitation.
+  const trip = await prisma.trip.findUnique({
+    where: { id },
+    select: { title: true },
+  });
+
+  const origin = new URL(request.url).origin;
+  const { subject, text, html } = invitationEmail({
+    inviterName: user.name ?? user.email ?? "Someone",
+    tripTitle: trip?.title ?? "a trip",
+    url: `${origin}/trips/${id}`,
+  });
+
+  const delivery = await sendMail({ to: email, subject, text, html });
+
+  return NextResponse.json(
+    {
+      collaborator: serialize(collaborator),
+      // Reported so the interface can say "invited, but the email did not go"
+      // rather than implying something arrived that did not.
+      emailed: delivery.sent,
+      emailError: delivery.sent ? null : delivery.reason,
+    },
+    { status: 201 },
+  );
 }
 
 export async function DELETE(

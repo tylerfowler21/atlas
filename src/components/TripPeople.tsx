@@ -57,6 +57,10 @@ export default function TripPeople({
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /// Said out loud when an invitation is recorded but the email did not go.
+  /// The person still has access — silence here would let the owner assume
+  /// something landed in an inbox when nothing did.
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || people !== null) return;
@@ -79,6 +83,7 @@ export default function TripPeople({
   async function invite() {
     setBusy(true);
     setError(null);
+    setNotice(null);
 
     const res = await fetch(`/api/trips/${tripId}/collaborators`, {
       method: "POST",
@@ -96,6 +101,11 @@ export default function TripPeople({
       ...(prev ?? []).filter((p) => p.email !== body.collaborator.email),
       body.collaborator,
     ]);
+    setNotice(
+      body.emailed
+        ? `Invitation sent to ${body.collaborator.email}.`
+        : `${body.collaborator.email} has access, but the email didn't send — tell them yourself and send them this trip's link.`,
+    );
     setEmail("");
   }
 
@@ -252,6 +262,7 @@ export default function TripPeople({
       )}
 
       {error && <p className="text-xs text-red-500">{error}</p>}
+      {notice && <p className="text-xs text-muted">{notice}</p>}
     </div>
   );
 }
