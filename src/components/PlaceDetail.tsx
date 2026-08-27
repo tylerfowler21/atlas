@@ -136,7 +136,12 @@ export default function PlaceDetail({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-2">
+      {/* Stuck to the top of the scrolling panel. Opening a place from the
+          map leaves the panel scrolled part way down, which put this header —
+          and the only way out — above the visible area. Opening the same place
+          from the list happened to start at the top, which is why one route
+          appeared to work and the other did not. */}
+      <div className="sticky top-0 z-10 -mx-4 flex items-start justify-between gap-2 border-b border-line bg-surface px-4 pt-1 pb-2 lg:mx-0 lg:border-0 lg:px-0">
         <div className="min-w-0">
           <p className="text-xs text-muted">
             {flagEmoji(place.countryCode)}{" "}

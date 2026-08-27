@@ -60,6 +60,8 @@ export default function Explorer({
   // The list is useful, but this is a map — being able to get it out of the
   // way matters most on a phone, where it otherwise fills the screen.
   const [listOpen, setListOpen] = useState(true);
+  /// The scrolling panel itself, so opening a place can return it to the top.
+  const sheetRef = useRef<HTMLDivElement>(null);
   // How far the sheet has been dragged from its resting position, in pixels.
   // Non-zero only while a finger is down, so the sheet follows the thumb
   // instead of only responding to a tap on something that looks draggable.
@@ -193,6 +195,7 @@ export default function Explorer({
       {/* On a phone this is a sheet sitting over a full-screen map; from lg up
           it is an ordinary sidebar beside it. One component, two shapes. */}
       <aside
+        ref={sheetRef}
         style={drag ? { transform: `translateY(${drag}px)` } : undefined}
         className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-96 lg:max-h-none lg:translate-y-0 lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
           drag ? "" : "transition-[max-height,transform] duration-200"
@@ -479,6 +482,11 @@ export default function Explorer({
             if (id === DRAFT_PIN_ID) return;
             setDraft(null);
             setSelectedId(id);
+            // Opening from the map has to open the panel too, and start it at
+            // the top: it may be scrolled from whatever was being read before,
+            // and a place opened half way down reads as a different screen.
+            setListOpen(true);
+            sheetRef.current?.scrollTo({ top: 0 });
           }}
           // Tapping the map is also how you put the panel away. On a phone it
           // covers the map entirely, so the thing you are trying to get back to
