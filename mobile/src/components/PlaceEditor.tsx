@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { api, type Place } from "@/lib/api";
 import { openDirections } from "@/components/TripMap";
 import { CATEGORIES } from "@/lib/taxonomy";
@@ -58,6 +59,7 @@ export default function PlaceEditor({
   onSaved: () => void;
 }) {
   const palette = usePalette();
+  const router = useRouter();
   const [name, setName] = useState(draft?.name ?? "");
   const [category, setCategory] = useState(draft?.category ?? "other");
   const [status, setStatus] = useState(draft?.status ?? "wishlist");
@@ -65,6 +67,39 @@ export default function PlaceEditor({
   const [emoji, setEmoji] = useState(draft?.emoji ?? "");
   const [rating, setRating] = useState<number | null>(draft?.rating ?? null);
   const [busy, setBusy] = useState(false);
+
+  /// The trips this place is already on.
+  ///
+  /// Tagged with the place it describes rather than cleared when the place
+  /// changes: clearing means a setState in the effect body, and last place's
+  /// answer must not be shown against this one meanwhile.
+  const [fetched, setFetched] = useState<{
+    placeId: string;
+    trips: { id: string; title: string; color: string; dayIndex: number; times: number }[];
+  } | null>(null);
+
+  const placeId = draft?.id;
+
+  useEffect(() => {
+    if (!placeId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const body = await api<{
+          trips: { id: string; title: string; color: string; dayIndex: number; times: number }[];
+        }>(`/api/places/${placeId}/trips`);
+        if (!cancelled) setFetched({ placeId, trips: body.trips });
+      } catch {
+        if (!cancelled) setFetched({ placeId, trips: [] });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [placeId]);
+
+  const onTrips =
+    fetched && placeId && fetched.placeId === placeId ? fetched.trips : [];
 
   if (!draft) return null;
   const editing = Boolean(draft.id);
@@ -264,6 +299,31 @@ export default function PlaceEditor({
             ]}
           />
 
+          {onTrips.length > 0 && (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>Already on</Text>
+              {onTrips.map((t) => (
+                <Pressable
+                  key={t.id}
+                  onPress={() => {
+                    onClose();
+                    router.push({ pathname: "/trip/[id]", params: { id: t.id } });
+                  }}
+                  style={[styles.onTrip, { borderColor: palette.border, backgroundColor: palette.surface }]}
+                >
+                  <View style={[styles.tripDot, { backgroundColor: t.color }]} />
+                  <Text style={{ color: palette.ink, flex: 1 }} numberOfLines={1}>
+                    {t.title}
+                  </Text>
+                  <Text style={{ color: palette.muted, fontSize: 12 }}>
+                    day {t.dayIndex + 1}
+                    {t.times > 1 ? ` · ${t.times}×` : ""}
+                  </Text>
+                </Pressable>
+              ))}
+            </>
+          )}
+
           {/* Only for somewhere already saved: directions to a pin you have
               not yet decided to keep are not what anyone wants. */}
           {editing && (
@@ -342,5 +402,16 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   directionsIcon: { width: 22, height: 22 },
+  onTrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  tripDot: { width: 10, height: 10, borderRadius: 5 },
   remove: { marginTop: 12, alignItems: "center", paddingVertical: 12 },
 });
