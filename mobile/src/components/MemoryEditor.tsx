@@ -13,7 +13,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import { API_URL, api, upload, type Memory, type Place, type Trip } from "@/lib/api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -78,6 +77,21 @@ export default function MemoryEditor({
   /// A photo needs an entry to belong to, so writing one first is not a
   /// convenience — it is the only order the API allows.
   async function addPhoto() {
+    // Loaded when it is used, not when this screen is imported. It is a native
+    // module, so a build made before it was added does not contain it — and a
+    // top-level import would throw on startup, taking the whole app down over
+    // a button nobody had pressed.
+    let ImagePicker: typeof import("expo-image-picker");
+    try {
+      ImagePicker = await import("expo-image-picker");
+    } catch {
+      Alert.alert(
+        "Photos need a newer build",
+        "Attaching photos was added after the version installed on this phone. Everything else works; a new build enables it.",
+      );
+      return;
+    }
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Photos are not shared", "Allow photo access in Settings to attach one.");
