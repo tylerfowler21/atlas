@@ -14,15 +14,12 @@ import { api } from "@/lib/api";
 import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
+import { formatDay } from "@/lib/dates";
 
 function dates(trip: FeedTrip) {
-  const start = trip.startDate ? new Date(trip.startDate) : null;
-  const end = trip.endDate ? new Date(trip.endDate) : null;
-  const long: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-  if (start && end) {
-    return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short" })} – ${end.toLocaleDateString(undefined, long)}`;
-  }
-  return start ? start.toLocaleDateString(undefined, long) : null;
+  if (!trip.startDate) return null;
+  if (!trip.endDate) return formatDay(trip.startDate);
+  return `${formatDay(trip.startDate, { year: undefined })} – ${formatDay(trip.endDate)}`;
 }
 
 export default function FeedScreen() {

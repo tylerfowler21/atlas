@@ -12,6 +12,7 @@ import type { Place } from "@/lib/api";
 import { placeIcon } from "@/lib/taxonomy";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
+import { year } from "@/lib/dates";
 
 /// Everywhere you have been, and how much of it there is.
 ///
@@ -30,7 +31,17 @@ export default function BeenScreen() {
     const been = all.filter((p) => p.status === "visited" || p.status === "lived");
     return {
       been,
-      lived: all.filter((p) => p.status === "lived"),
+      // Earliest first, so the list reads as a sequence of chapters rather
+      // than the order things were typed in. Anywhere with no start date sorts
+      // last: it cannot be placed in the sequence, and putting it first would
+      // push down everything that can.
+      lived: all
+        .filter((p) => p.status === "lived")
+        .sort((a, b) => {
+          if (!a.livedFrom) return b.livedFrom ? 1 : 0;
+          if (!b.livedFrom) return -1;
+          return new Date(a.livedFrom).getTime() - new Date(b.livedFrom).getTime();
+        }),
       cities: new Set(been.map((p) => p.city).filter(Boolean)),
       countries: new Set(been.map((p) => p.country).filter(Boolean)),
     };
@@ -108,7 +119,13 @@ export default function BeenScreen() {
                 {[item.city, item.country].filter(Boolean).join(", ") || "—"}
               </Text>
             </View>
-            {item.status === "lived" && <Text style={styles.tick}>🏠</Text>}
+            {item.status === "lived" && (
+              <Text style={[styles.when, { color: palette.muted }]}>
+                {item.livedFrom
+                  ? `${year(item.livedFrom)}–${item.livedTo ? year(item.livedTo) : "now"}`
+                  : "🏠"}
+              </Text>
+            )}
           </View>
         )}
       />
@@ -138,4 +155,5 @@ const styles = StyleSheet.create({
   rowName: { fontSize: 15, fontWeight: "500" },
   rowWhere: { fontSize: 13, marginTop: 2 },
   tick: { fontSize: 14 },
+  when: { fontSize: 12 },
 });

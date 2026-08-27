@@ -99,6 +99,9 @@ export type Place = {
   countryCode: string | null;
   notes: string | null;
   rating: number | null;
+  /// Only meaningful for "lived": when you moved there, and when you left.
+  livedFrom: string | null;
+  livedTo: string | null;
 };
 
 /// A place found by the geocoder, before anyone saves it.

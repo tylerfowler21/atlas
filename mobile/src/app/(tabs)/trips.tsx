@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import { usePalette } from "@/lib/use-palette";
+import { formatDay } from "@/lib/dates";
 import TripEditor from "@/components/TripEditor";
 import type { Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
@@ -17,14 +18,9 @@ import { useApi } from "@/lib/use-api";
 /// "12–19 May 2025", or a single date, or nothing at all — trips are allowed
 /// to have no dates, and a stray dash for a missing one looks like a bug.
 function dateRange(trip: Trip) {
-  const start = trip.startDate ? new Date(trip.startDate) : null;
-  const end = trip.endDate ? new Date(trip.endDate) : null;
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-  if (start && end) {
-    return `${start.toLocaleDateString(undefined, { day: "numeric", month: "short" })} – ${end.toLocaleDateString(undefined, opts)}`;
-  }
-  if (start) return start.toLocaleDateString(undefined, opts);
-  return null;
+  if (!trip.startDate) return null;
+  if (!trip.endDate) return formatDay(trip.startDate);
+  return `${formatDay(trip.startDate, { year: undefined })} – ${formatDay(trip.endDate)}`;
 }
 
 export default function TripsScreen() {

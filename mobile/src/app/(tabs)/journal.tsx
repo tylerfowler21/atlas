@@ -10,14 +10,17 @@ import {
 } from "react-native";
 import type { Memory, Place, Trip } from "@/lib/api";
 import MemoryEditor from "@/components/MemoryEditor";
+import { formatDay } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
 /// When it happened, which is rarely when it was written — so the date shown
 /// is the one the writer chose, falling back to when it was saved.
 function when(memory: Memory) {
-  const date = memory.happenedOn ?? memory.createdAt;
-  return new Date(date).toLocaleDateString(undefined, {
+  // happenedOn is a day and formats in UTC; createdAt is a real moment and
+  // should read in the reader's own timezone.
+  if (memory.happenedOn) return formatDay(memory.happenedOn);
+  return new Date(memory.createdAt).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",

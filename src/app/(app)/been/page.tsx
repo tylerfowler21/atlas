@@ -63,7 +63,20 @@ export default async function BeenPage({
 
   const rankedCountries = [...countries.values()].sort((a, b) => b.count - a.count);
   const rankedCities = [...cityCounts.values()].sort((a, b) => b.count - a.count);
-  const lived = visited.filter((p) => p.status === "lived");
+  // Chronological, earliest first: somewhere you lived is a chapter, and the
+  // list reads as a life rather than as an order of data entry. The wider query
+  // sorts by visitedAt, which lived places rarely have, so they were falling
+  // back to whenever they happened to be added.
+  //
+  // Somewhere with no start date sorts last: it is unplaceable in a sequence,
+  // and burying it at the top would push everything datable down.
+  const lived = visited
+    .filter((p) => p.status === "lived")
+    .sort((a, b) => {
+      if (!a.livedFrom) return b.livedFrom ? 1 : 0;
+      if (!b.livedFrom) return -1;
+      return new Date(a.livedFrom).getTime() - new Date(b.livedFrom).getTime();
+    });
 
   // Each tile is a view of the same data rather than a number you can only read.
   const tiles: { view: View; label: string; value: number }[] = [

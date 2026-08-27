@@ -16,6 +16,7 @@ import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { stopIcon, travelMode } from "@/lib/taxonomy";
+import { dayAfter, formatDay } from "@/lib/dates";
 import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
@@ -27,12 +28,9 @@ type TripResponse = { trip: Trip; role: string; items: ItineraryItem[] };
 /// anyone has decided when it happens.
 function dayLabel(trip: Trip, index: number) {
   if (!trip.startDate) return `Day ${index + 1}`;
-  const date = new Date(trip.startDate);
-  date.setDate(date.getDate() + index);
-  return date.toLocaleDateString(undefined, {
+  return formatDay(dayAfter(trip.startDate, index).toISOString(), {
     weekday: "short",
-    day: "numeric",
-    month: "short",
+    year: undefined,
   });
 }
 
