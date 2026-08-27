@@ -18,6 +18,7 @@ import {
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
+import { DirectionsIcon } from "@/components/nav-icons";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
 
@@ -566,6 +567,27 @@ export default function TripPlanner({
                       >
                         Remove
                       </button>
+                      {/* On the row itself, not only inside an expanded stop.
+                          Directions are what you want while standing in the
+                          street, and having to open a stop first to reach them
+                          is one tap too many at exactly the wrong moment. */}
+                      {item.place && (
+                        <a
+                          href={directionsUrl({
+                            lat: item.place.lat,
+                            lng: item.place.lng,
+                            name: item.place.name,
+                          })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Directions to ${item.place.name}`}
+                          title={`Directions to ${item.place.name}`}
+                          className="ml-auto rounded px-1.5 py-0.5 hover:bg-foreground/5"
+                        >
+                          <DirectionsIcon className="h-4 w-4" />
+                        </a>
+                      )}
                     </div>
 
                     {emojiFor === item.id && (
@@ -665,9 +687,10 @@ export default function TripPlanner({
                               })}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-accent-text hover:underline"
+                              className="inline-flex items-center gap-1 text-xs text-accent-text hover:underline"
                             >
-                              Directions →
+                              <DirectionsIcon className="h-4 w-4 shrink-0" />
+                              Directions
                             </a>
                             {/* Routing from the stop before it is the question you
                                 actually have while standing at one. */}

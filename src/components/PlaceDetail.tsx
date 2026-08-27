@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DirectionsIcon } from "@/components/nav-icons";
 import CategoryPicker from "@/components/CategoryPicker";
 import EmojiField from "@/components/EmojiField";
 import Memories from "@/components/Memories";
@@ -131,9 +132,10 @@ export default function PlaceDetail({
         href={directionsUrl({ lat: place.lat, lng: place.lng, name: place.name })}
         target="_blank"
         rel="noopener noreferrer"
-        className="btn btn-ghost w-full justify-center"
+        className="btn btn-ghost w-full justify-center gap-2"
       >
-        Directions in Apple Maps →
+        <DirectionsIcon className="h-4 w-4 shrink-0" />
+        Directions
       </a>
 
       <div className="flex flex-wrap gap-1.5">

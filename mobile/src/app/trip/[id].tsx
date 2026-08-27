@@ -15,6 +15,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripMap, { openDirections } from "@/components/TripMap";
+import { DirectionsIcon } from "@/components/nav-icons";
 import { stopIcon, travelMode } from "@/lib/taxonomy";
 import { dayAfter, formatDay } from "@/lib/dates";
 import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
@@ -278,8 +279,9 @@ export default function TripScreen() {
                             openDirections(entry.place!.lat, entry.place!.lng, entry.title)
                           }
                           hitSlop={8}
+                          accessibilityLabel={`Directions to ${entry.title}`}
                         >
-                          <Text style={{ fontSize: 15 }}>🧭</Text>
+                          <DirectionsIcon size={20} color={palette.muted} />
                         </Pressable>
                       )}
                       <Pressable

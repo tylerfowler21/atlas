@@ -23,6 +23,21 @@ export function BeenIcon({ className }: IconProps) {
   );
 }
 
+export function DirectionsIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      className={className ?? DEFAULT}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M8 16 22 10v34l-14 6V16Z" fill="#F4EDE1" stroke="currentColor" strokeWidth="3"/><path d="M22 10v34" stroke="currentColor" strokeWidth="3"/><path d="M56 12v22" stroke="currentColor" strokeWidth="3"/><path d="M27 30c-6 0-11 5-11 11 0 8 11 19 11 19s11-11 11-19c0-6-5-11-11-11Z" fill="#14B8A6" stroke="currentColor" strokeWidth="3"/><circle cx="27" cy="41" r="4" fill="#F4EDE1" stroke="currentColor" strokeWidth="2"/><circle cx="49" cy="45" r="12" fill="currentColor"/><path d="M44 50 54 40M46 40h8v8" stroke="#F4EDE1" strokeWidth="3"/>
+    </svg>
+  );
+}
+
 export function FeedIcon({ className }: IconProps) {
   return (
     <svg

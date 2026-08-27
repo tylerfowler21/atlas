@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DirectionsIcon } from "@/components/nav-icons";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import { category as categoryOf, stopIcon, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
@@ -178,9 +179,10 @@ export default function SharedTrip({
                         })}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-1 ml-10 inline-block text-xs text-accent-text hover:underline"
+                        className="mt-1 ml-10 inline-flex items-center gap-1 text-xs text-accent-text hover:underline"
                       >
-                        Directions →
+                        <DirectionsIcon className="h-4 w-4 shrink-0" />
+                        Directions
                       </a>
                     )}
                   </li>
