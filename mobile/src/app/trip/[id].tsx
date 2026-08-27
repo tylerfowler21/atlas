@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Image,
   ScrollView,
   Share,
   StyleSheet,
@@ -15,7 +16,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripMap, { openDirections } from "@/components/TripMap";
-import { DirectionsIcon } from "@/components/nav-icons";
 import { stopIcon, travelMode } from "@/lib/taxonomy";
 import { dayAfter, formatDay } from "@/lib/dates";
 import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
@@ -281,7 +281,14 @@ export default function TripScreen() {
                           hitSlop={8}
                           accessibilityLabel={`Directions to ${entry.title}`}
                         >
-                          <DirectionsIcon size={20} color={palette.muted} />
+                          {/* The supplied artwork, not a redrawn one — so it
+                              keeps its own colours rather than following the
+                              row's. 22px because the corner badge is a smudge
+                              much below that. */}
+                          <Image
+                            source={require("../../../assets/images/directions.png")}
+                            style={styles.directions}
+                          />
                         </Pressable>
                       )}
                       <Pressable
@@ -374,4 +381,5 @@ const styles = StyleSheet.create({
   addRow: { flexDirection: "row", gap: 16 },
   add: { paddingVertical: 10, paddingHorizontal: 4, marginTop: 4 },
   share: { alignItems: "center", paddingVertical: 18, marginTop: 12 },
+  directions: { width: 22, height: 22 },
 });

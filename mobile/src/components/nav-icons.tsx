@@ -20,14 +20,6 @@ export function BeenIcon({ size = 24, color = INK }: IconProps) {
   );
 }
 
-export function DirectionsIcon({ size = 24, color = INK }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Path d="M8 16 22 10v34l-14 6V16Z" fill="#F4EDE1" stroke={color} strokeWidth="3"/><Path d="M22 10v34" stroke={color} strokeWidth="3"/><Path d="M56 12v22" stroke={color} strokeWidth="3"/><Path d="M27 30c-6 0-11 5-11 11 0 8 11 19 11 19s11-11 11-19c0-6-5-11-11-11Z" fill="#14B8A6" stroke={color} strokeWidth="3"/><Circle cx="27" cy="41" r="4" fill="#F4EDE1" stroke={color} strokeWidth="2"/><Circle cx="49" cy="45" r="12" fill={color}/><Path d="M44 50 54 40M46 40h8v8" stroke="#F4EDE1" strokeWidth="3"/>
-    </Svg>
-  );
-}
-
 export function FeedIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">

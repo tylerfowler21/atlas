@@ -18,7 +18,7 @@ import {
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
-import { DirectionsIcon } from "@/components/nav-icons";
+import DirectionsIcon from "@/components/DirectionsIcon";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
 
@@ -585,7 +585,7 @@ export default function TripPlanner({
                           title={`Directions to ${item.place.name}`}
                           className="ml-auto rounded px-1.5 py-0.5 hover:bg-foreground/5"
                         >
-                          <DirectionsIcon className="h-4 w-4" />
+                          <DirectionsIcon />
                         </a>
                       )}
                     </div>
@@ -689,7 +689,7 @@ export default function TripPlanner({
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-xs text-accent-text hover:underline"
                             >
-                              <DirectionsIcon className="h-4 w-4 shrink-0" />
+                              <DirectionsIcon />
                               Directions
                             </a>
                             {/* Routing from the stop before it is the question you

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DirectionsIcon } from "@/components/nav-icons";
+import DirectionsIcon from "@/components/DirectionsIcon";
 import CategoryPicker from "@/components/CategoryPicker";
 import EmojiField from "@/components/EmojiField";
 import Memories from "@/components/Memories";
@@ -134,7 +134,7 @@ export default function PlaceDetail({
         rel="noopener noreferrer"
         className="btn btn-ghost w-full justify-center gap-2"
       >
-        <DirectionsIcon className="h-4 w-4 shrink-0" />
+        <DirectionsIcon />
         Directions
       </a>
 
