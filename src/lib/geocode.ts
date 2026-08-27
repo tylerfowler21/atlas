@@ -40,18 +40,31 @@ export async function geocode(
   query: string,
   region?: string | null,
 ): Promise<SearchResult[]> {
-  // Region is appended for the lookup as well as used for filtering: it helps
-  // both engines rank, and only then narrows what comes back.
-  const hinted = region ? `${query}, ${region}` : query;
+  // The region is asked for as well as the bare query, never instead of it.
+  //
+  // Appending it to the query alone means searching for "London, Lisbon,
+  // Portugal" the moment somebody looks outside the trip's destination — a
+  // phrase no gazetteer knows, which took a search for London from ten results
+  // to two. The hint helps when the answer is nearby and must not be able to
+  // hide the answer when it is not.
+  const queries = region ? [`${query}, ${region}`, query] : [query];
 
-  const [photon, nominatim] = await Promise.all([
-    photonSearch(hinted).catch(() => [] as SearchResult[]),
-    fromNominatim(hinted).catch(() => [] as SearchResult[]),
-  ]);
+  const found = await Promise.all(
+    queries.flatMap((q) => [
+      photonSearch(q).catch(() => [] as SearchResult[]),
+      fromNominatim(q).catch(() => [] as SearchResult[]),
+    ]),
+  );
 
-  // Nominatim first: when both know a place, its address detail is better.
+  // Hinted results first so the trip's own region still ranks above the rest,
+  // then Nominatim before Photon: when both know a place, its address is
+  // better.
+  const ordered = region
+    ? [found[1], found[0], found[3], found[2]]
+    : [found[1], found[0]];
+
   const merged: SearchResult[] = [];
-  for (const result of [...nominatim, ...photon]) {
+  for (const result of ordered.flat()) {
     if (merged.some((existing) => near(existing, result))) continue;
     if (merged.some((existing) => dedupeKey(existing) === dedupeKey(result))) continue;
     merged.push(result);
@@ -59,16 +72,36 @@ export async function geocode(
 
   if (!region) return merged.slice(0, 10);
 
-  // Somewhere in the named country beats anywhere else — but only drop the
-  // rest when there is something to prefer, or a typo'd country would leave
-  // you with nothing at all.
-  const wanted = region.trim().toLowerCase();
-  const inRegion = merged.filter(
-    (r) =>
-      r.country?.toLowerCase() === wanted ||
-      r.countryCode?.toLowerCase() === wanted ||
-      r.context.toLowerCase().includes(wanted),
-  );
+  /// Somewhere in the trip's region comes first, and nothing is thrown away.
+  ///
+  /// Ranking on how exactly a name matched was tried and abandoned: every
+  /// weighting that put "London" the city above a tree called "London plane"
+  /// in Lisbon also put a "Time Out Market" in New York above "Time Out Market
+  /// Lisboa", and the reverse. The two pull opposite ways, and guessing which
+  /// one someone meant from the string alone is not a thing this can know.
+  ///
+  /// So the region decides the order, as it always did, and the fix for the
+  /// original complaint is above: both queries are asked, so the answer is
+  /// always in the list even when the region does not favour it.
+  const parts = region
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 1);
 
-  return (inRegion.length > 0 ? inRegion : merged).slice(0, 10);
+  const inRegion = (r: SearchResult) => {
+    const country = r.country?.toLowerCase() ?? "";
+    const code = r.countryCode?.toLowerCase() ?? "";
+    const context = r.context.toLowerCase();
+    return parts.some(
+      (part) => country === part || code === part || context.includes(part),
+    );
+  };
+
+  return [...merged]
+    .map((r, i) => ({ r, i }))
+    // Index keeps it stable, so within each group the engines' own order holds.
+    .sort((a, b) => Number(inRegion(b.r)) - Number(inRegion(a.r)) || a.i - b.i)
+    .map(({ r }) => r)
+    .slice(0, 10);
 }
