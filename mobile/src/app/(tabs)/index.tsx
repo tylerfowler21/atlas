@@ -339,6 +339,12 @@ export default function MapScreen() {
 
             {(view === "cities" || view === "countries") && !within ? (
               <FlatList
+                // Distinct from the places list below. Both sit in the same
+                // slot, so without separate identities React reuses one list
+                // across the switch and keeps its scroll offset — you tap a
+                // country you scrolled down to, and its places open already
+                // scrolled past the end, which looks like nothing is there.
+                key="groups"
                 data={view === "cities" ? groups.cities : groups.countries}
                 keyExtractor={(g) => g.name}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
@@ -364,6 +370,7 @@ export default function MapScreen() {
               />
             ) : (
               <FlatList
+                key={`places-${view}-${within ?? "all"}`}
                 data={listed}
                 keyExtractor={(p) => p.id}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
