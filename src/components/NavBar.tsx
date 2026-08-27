@@ -4,13 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BeenIcon,
-  FeedIcon,
   JournalIcon,
   MapIcon,
   NotificationsIcon,
   PeopleIcon,
-  PlacesIcon,
   SignOutIcon,
   TripsIcon,
   WhosUsingRoavaIcon,
@@ -24,18 +21,16 @@ import { useState } from "react";
 /// same picture everywhere.
 export const LINKS = [
   { href: "/", label: "Map", Icon: MapIcon },
-  { href: "/places", label: "Places", Icon: PlacesIcon },
   { href: "/trips", label: "Trips", Icon: TripsIcon },
-  { href: "/been", label: "Been", Icon: BeenIcon },
   { href: "/journal", label: "Journal", Icon: JournalIcon },
-  { href: "/feed", label: "Feed", Icon: FeedIcon },
-  { href: "/people", label: "People", Icon: PeopleIcon },
+  { href: "/discover", label: "Discover", Icon: PeopleIcon },
 ];
 
-/// Seven destinations do not fit across a phone, so on small screens four of
-/// them get a thumb-reachable bottom bar and the rest live behind "More".
-/// Chosen by what you open while travelling rather than by importance.
-export const PRIMARY = ["/", "/trips", "/been", "/journal"];
+/// All four fit across a phone now, so nothing hides behind "More". There were
+/// seven: Places was the map's own list without the map, Been was that list
+/// filtered — both live on the map, which carries the filters — and Feed and
+/// People are two views of other travellers.
+export const PRIMARY = ["/", "/trips", "/journal", "/discover"];
 
 export function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);

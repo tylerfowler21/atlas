@@ -28,7 +28,7 @@ export default function FindPeople() {
       <button type="submit" className="btn btn-ghost shrink-0">
         Go
       </button>
-      <Link href="/people" className="btn btn-ghost shrink-0">
+      <Link href="/discover?view=people" className="btn btn-ghost shrink-0">
         Browse everyone
       </Link>
     </form>

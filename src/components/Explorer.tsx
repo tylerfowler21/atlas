@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
@@ -31,7 +32,20 @@ export default function Explorer({
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [dropMode, setDropMode] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | "wishlist" | "visited">("all");
+  const searchParams = useSearchParams();
+
+  /// Read from the address so ?status=visited is a link to "everywhere I have
+  /// been" — which is what the retired /been page redirects to. It also widens
+  /// to "lived", which the chips already offered and this state did not, so
+  /// picking "Lived there" used to filter to nothing.
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "wishlist" | "visited" | "lived"
+  >(() => {
+    const wanted = searchParams.get("status");
+    return wanted === "wishlist" || wanted === "visited" || wanted === "lived"
+      ? wanted
+      : "all";
+  });
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [fitSeq, setFitSeq] = useState(0);
   const [focus, setFocus] = useState<{ lat: number; lng: number; token: number } | null>(

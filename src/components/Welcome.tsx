@@ -200,7 +200,7 @@ export default function Welcome({
               type="button"
               className="w-full text-xs text-muted hover:underline"
               disabled={busy}
-              onClick={() => finish("/people")}
+              onClick={() => finish("/discover?view=people")}
             >
               See who else is here
             </button>
