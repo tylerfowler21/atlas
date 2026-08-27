@@ -67,6 +67,12 @@ export default function MapScreen() {
   /// Tapped open and shut rather than dragged. A drag needs a threshold, and a
   /// threshold is something to get wrong; the bar says what it does.
   const [listOpen, setListOpen] = useState(false);
+  /// Which of the four counts the list is showing. "cities" and "countries"
+  /// are not filters but groupings — the question behind them is "where have I
+  /// been", and the answer is a list of cities, not of restaurants.
+  const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
+  /// Set by tapping a city or a country, which drills into it.
+  const [within, setWithin] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -108,15 +114,39 @@ export default function MapScreen() {
     });
   }, [all, status]);
 
+  /// Cities and countries with how many places are in each, commonest first.
+  const groups = useMemo(() => {
+    const been = all.filter((p) => p.status === "visited" || p.status === "lived");
+    const tally = (key: "city" | "country") => {
+      const counted = new Map<string, number>();
+      for (const p of been) {
+        const value = p[key];
+        if (!value) continue;
+        counted.set(value, (counted.get(value) ?? 0) + 1);
+      }
+      return [...counted.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    };
+    return { cities: tally("city"), countries: tally("country") };
+  }, [all]);
+
   const counts = useMemo(() => {
     const been = all.filter((p) => p.status === "visited" || p.status === "lived");
     return {
-      total: places.length,
+      total: all.length,
       been: been.length,
-      cities: new Set(been.map((p) => p.city).filter(Boolean)).size,
-      countries: new Set(been.map((p) => p.country).filter(Boolean)).size,
+      cities: groups.cities.length,
+      countries: groups.countries.length,
     };
-  }, [all, places]);
+  }, [all, groups]);
+
+  /// What the list actually shows, once the view and any drill-down are applied.
+  const listed = useMemo(() => {
+    const base = view === "all" ? places : places.filter((p) => p.status !== "wishlist");
+    if (!within) return base;
+    return base.filter((p) => p.city === within || p.country === within);
+  }, [places, view, within]);
 
   if (loading && !data) {
     return (
@@ -256,51 +286,119 @@ export default function MapScreen() {
         <Pressable onPress={() => setListOpen((open) => !open)} style={styles.handle}>
           <View style={[styles.grabber, { backgroundColor: palette.border }]} />
           <Text style={{ color: palette.muted, fontSize: 13 }}>
-            {counts.total} {counts.total === 1 ? "place" : "places"}
-            {status !== "all" ? " shown" : ""} ·{" "}
-            <Text style={{ color: palette.ink }}>{counts.been} been</Text> ·{" "}
-            {counts.cities} cities · {counts.countries} countries
-          </Text>
-          <Text style={{ color: palette.accentText, fontSize: 12, marginTop: 2 }}>
             {listOpen ? "Hide list" : "Show list"}
           </Text>
         </Pressable>
 
         {listOpen && (
-          <FlatList
-            data={places}
-            keyExtractor={(p) => p.id}
-            refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-            ListEmptyComponent={
-              <Text style={[styles.listEmpty, { color: palette.muted }]}>
-                Nothing here yet.
-              </Text>
-            }
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => setDraft(placeToDraft(item))}
-                style={[styles.row, { borderBottomColor: palette.border }]}
-              >
-                <Text style={styles.rowGlyph}>{placeIcon(item)}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={[styles.rowWhere, { color: palette.muted }]} numberOfLines={1}>
-                    {[item.city, item.country].filter(Boolean).join(", ") || "—"}
-                  </Text>
-                </View>
-                {item.status === "visited" && <Text style={{ fontSize: 13 }}>✅</Text>}
-                {item.status === "lived" && (
-                  <Text style={{ color: palette.muted, fontSize: 12 }}>
-                    {item.livedFrom
-                      ? `${year(item.livedFrom)}–${item.livedTo ? year(item.livedTo) : "now"}`
-                      : "🏠"}
-                  </Text>
-                )}
+          <>
+            {/* The counts are the way into the list, not a caption above it.
+                Places and Been filter it; Cities and Countries regroup it,
+                because "3 countries" is answered by naming them. */}
+            <View style={styles.tiles}>
+              {(
+                [
+                  ["all", counts.total, "Places"],
+                  ["been", counts.been, "Been"],
+                  ["cities", counts.cities, "Cities"],
+                  ["countries", counts.countries, "Countries"],
+                ] as const
+              ).map(([id, n, label]) => {
+                const on = view === id;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => {
+                      setView(id);
+                      setWithin(null);
+                    }}
+                    style={[
+                      styles.tile,
+                      { backgroundColor: palette.background, borderColor: palette.border },
+                      on && { borderColor: palette.accent },
+                    ]}
+                  >
+                    <Text style={[styles.tileNumber, { color: palette.ink }]}>{n}</Text>
+                    <Text
+                      style={{ fontSize: 11, color: on ? palette.accentText : palette.muted }}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {within && (
+              <Pressable onPress={() => setWithin(null)} style={styles.back}>
+                <Text style={{ color: palette.accentText, fontSize: 13 }}>
+                  ← Everything in {within}
+                </Text>
               </Pressable>
             )}
-          />
+
+            {(view === "cities" || view === "countries") && !within ? (
+              <FlatList
+                data={view === "cities" ? groups.cities : groups.countries}
+                keyExtractor={(g) => g.name}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+                ListEmptyComponent={
+                  <Text style={[styles.listEmpty, { color: palette.muted }]}>
+                    Mark somewhere as been there and it appears here.
+                  </Text>
+                }
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => setWithin(item.name)}
+                    style={[styles.row, { borderBottomColor: palette.border }]}
+                  >
+                    <Text style={styles.rowGlyph}>{view === "cities" ? "🏙️" : "🌍"}</Text>
+                    <Text style={[styles.rowName, { flex: 1, color: palette.ink }]} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={{ color: palette.muted, fontSize: 13 }}>
+                      {item.count} {item.count === 1 ? "place" : "places"}
+                    </Text>
+                  </Pressable>
+                )}
+              />
+            ) : (
+              <FlatList
+                data={listed}
+                keyExtractor={(p) => p.id}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+                ListEmptyComponent={
+                  <Text style={[styles.listEmpty, { color: palette.muted }]}>
+                    Nothing here yet.
+                  </Text>
+                }
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => setDraft(placeToDraft(item))}
+                    style={[styles.row, { borderBottomColor: palette.border }]}
+                  >
+                    <Text style={styles.rowGlyph}>{placeIcon(item)}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={[styles.rowWhere, { color: palette.muted }]} numberOfLines={1}>
+                        {[item.city, item.country].filter(Boolean).join(", ") || "—"}
+                      </Text>
+                    </View>
+                    {item.status === "visited" && <Text style={{ fontSize: 13 }}>✅</Text>}
+                    {item.status === "lived" && (
+                      <Text style={{ color: palette.muted, fontSize: 12 }}>
+                        {item.livedFrom
+                          ? `${year(item.livedFrom)}–${item.livedTo ? year(item.livedTo) : "now"}`
+                          : "🏠"}
+                      </Text>
+                    )}
+                  </Pressable>
+                )}
+              />
+            )}
+          </>
         )}
       </View>
 
@@ -375,8 +473,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
     maxHeight: 72,
   },
-  sheetOpen: { maxHeight: "62%" },
+  sheetOpen: { maxHeight: "70%" },
   handle: { alignItems: "center", paddingTop: 8, paddingBottom: 10 },
+  tiles: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingBottom: 10 },
+  tile: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  tileNumber: { fontSize: 18, fontWeight: "600" },
+  back: { paddingHorizontal: 14, paddingBottom: 8 },
   grabber: { width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
   row: {
     flexDirection: "row",
