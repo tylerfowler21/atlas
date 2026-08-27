@@ -17,7 +17,7 @@ import { REPORT_REASONS } from "@/lib/report-reasons";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
-export default function PeopleScreen() {
+export default function PeopleList() {
   const [query, setQuery] = useState("");
   const path = query.trim() ? `/api/people?q=${encodeURIComponent(query.trim())}` : "/api/people";
   const { data, error, loading, reload } = useApi<{ people: Person[] }>(path);

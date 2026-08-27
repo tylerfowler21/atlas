@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import {
-  FeedIcon,
   JournalIcon,
   MapIcon,
   PeopleIcon,
@@ -10,6 +9,9 @@ import {
 import { usePalette } from "@/lib/use-palette";
 
 /// Five destinations, down from eight, and nothing hidden behind "More".
+///
+/// Feed and People became one: People exists mostly to fill the Feed, since
+/// following someone is what gives the Feed anything to show.
 ///
 /// Been went first: its list was the places list filtered, and its counts
 /// describe that list rather than needing a screen. Places followed, because
@@ -49,12 +51,8 @@ export default function TabsLayout() {
         options={{ title: "Journal", tabBarIcon: ({ color }) => <JournalIcon color={color} /> }}
       />
       <Tabs.Screen
-        name="feed"
-        options={{ title: "Feed", tabBarIcon: ({ color }) => <FeedIcon color={color} /> }}
-      />
-      <Tabs.Screen
-        name="people"
-        options={{ title: "People", tabBarIcon: ({ color }) => <PeopleIcon color={color} /> }}
+        name="discover"
+        options={{ title: "Discover", tabBarIcon: ({ color }) => <PeopleIcon color={color} /> }}
       />
       <Tabs.Screen
         name="account"

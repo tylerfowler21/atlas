@@ -22,7 +22,7 @@ function dates(trip: FeedTrip) {
   return `${formatDay(trip.startDate, { year: undefined })} – ${formatDay(trip.endDate)}`;
 }
 
-export default function FeedScreen() {
+export default function FeedList() {
   const { data, error, loading, reload } = useApi<{ trips: FeedTrip[] }>("/api/feed");
   const palette = usePalette();
   const router = useRouter();
