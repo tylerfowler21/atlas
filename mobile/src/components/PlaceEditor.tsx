@@ -16,6 +16,7 @@ import {
 import { api, type Place } from "@/lib/api";
 import { openDirections } from "@/components/TripMap";
 import { CATEGORIES } from "@/lib/taxonomy";
+import { placeName } from "@/lib/place-name";
 import { usePalette } from "@/lib/use-palette";
 
 /// The three things a place can be, in the order people move through them.
@@ -69,11 +70,10 @@ export default function PlaceEditor({
   const editing = Boolean(draft.id);
 
   async function save() {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      Alert.alert("Give it a name");
-      return;
-    }
+    // No name needed. A pin dropped on a city is that city, and being asked to
+    // type its name in order to change an emoji is a form standing between
+    // someone and a two-second edit.
+    const trimmed = placeName({ name, city: draft!.city, country: draft!.country });
     setBusy(true);
     try {
       const body = {
@@ -154,6 +154,8 @@ export default function PlaceEditor({
           <TextInput
             value={name}
             onChangeText={setName}
+            placeholder={placeName({ name: null, city: draft.city, country: draft.country })}
+            placeholderTextColor={palette.muted}
             style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.ink }]}
           />
 

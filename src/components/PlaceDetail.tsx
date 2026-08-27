@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { placeName } from "@/lib/place-name";
 import { useEffect, useState } from "react";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import CategoryPicker from "@/components/CategoryPicker";
@@ -150,6 +151,7 @@ export default function PlaceDetail({
           <input
             className="input mt-1 font-medium"
             value={draft.name}
+            placeholder={placeName({ name: null, city: place.city, country: place.country })}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
         </div>
@@ -282,10 +284,17 @@ export default function PlaceDetail({
         <button
           type="button"
           className="btn btn-primary"
-          disabled={busy || !dirty || draft.name.trim().length === 0}
+          // Not gated on a name. Somewhere with none is called after the city
+          // it is in, so an empty field is a thing to fill in for you rather
+          // than a reason to refuse the save.
+          disabled={busy || !dirty}
           onClick={() =>
             patch({
-              name: draft.name.trim(),
+              name: placeName({
+                name: draft.name,
+                city: place.city,
+                country: place.country,
+              }),
               category: draft.category,
               emoji: draft.emoji,
               status: draft.status,

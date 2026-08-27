@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { placeName } from "@/lib/place-name";
 import CategoryPicker from "@/components/CategoryPicker";
 import { STATUSES } from "@/lib/taxonomy";
 import StarRating from "@/components/StarRating";
@@ -33,7 +34,7 @@ export default function PlaceForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: name.trim(),
+        name: placeName({ name, city: draft.city, country: draft.country }),
         category,
         status,
         lat: draft.lat,
