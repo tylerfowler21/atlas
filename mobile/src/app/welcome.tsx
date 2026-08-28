@@ -23,11 +23,21 @@ import { usePalette } from "@/lib/use-palette";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { category as categoryOf } from "@/lib/taxonomy";
+import {
+  BeenIcon,
+  MapIcon,
+  PlacesIcon,
+  TripsIcon,
+  YourProfileIcon,
+} from "@/components/nav-icons";
 
+/// Each card carries the icon of the tab where that thing actually happens, so
+/// the tour teaches the navigation while it explains the features — and matches
+/// the website card for card.
 const TOUR = [
-  { icon: "📍", title: "Save places", body: "Anywhere you want to go, or have been." },
-  { icon: "🗺️", title: "Plan trips", body: "Day by day, with the map alongside." },
-  { icon: "🌍", title: "Keep a map", body: "Everywhere you've been, counted." },
+  { Icon: MapIcon, title: "Save places", body: "Anywhere you want to go, or have been." },
+  { Icon: TripsIcon, title: "Plan trips", body: "Day by day, with the map alongside." },
+  { Icon: BeenIcon, title: "Keep a map", body: "Everywhere you've been, counted." },
 ];
 
 export default function WelcomeScreen() {
@@ -108,7 +118,7 @@ export default function WelcomeScreen() {
 
           {TOUR.map((t) => (
             <View key={t.title} style={[styles.card, { borderColor: palette.border }]}>
-              <Text style={styles.cardIcon}>{t.icon}</Text>
+              <t.Icon size={22} color={palette.accentText} />
               <View style={styles.cardText}>
                 <Text style={[styles.cardTitle, heading]}>{t.title}</Text>
                 <Text style={[styles.cardBody, body]}>{t.body}</Text>
@@ -122,7 +132,7 @@ export default function WelcomeScreen() {
 
       {step === 1 && (
         <>
-          <Text style={styles.emoji}>👋</Text>
+          <YourProfileIcon size={34} color={palette.accentText} />
           <Text style={[styles.title, heading]}>Pick a username</Text>
           <Text style={[styles.body, body]}>
             It&apos;s how friends find and follow you. Without one you don&apos;t
@@ -156,7 +166,7 @@ export default function WelcomeScreen() {
 
       {step === 2 && (
         <>
-          <Text style={styles.emoji}>📍</Text>
+          <PlacesIcon size={34} color={palette.accentText} />
           <Text style={[styles.title, heading]}>Put something on your map</Text>
           <Text style={[styles.body, body]}>
             Anywhere at all — a city you loved, a restaurant you keep meaning to
@@ -263,7 +273,6 @@ function Ghost({
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 22, gap: 4 },
   mark: { width: 64, height: 64, borderRadius: 14 },
-  emoji: { fontSize: 36 },
   title: { fontSize: 24, fontWeight: "700", marginTop: 12 },
   body: { fontSize: 14, marginTop: 8, lineHeight: 20 },
   card: {
@@ -274,7 +283,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 10,
   },
-  cardIcon: { fontSize: 20 },
   cardText: { flex: 1 },
   cardTitle: { fontSize: 14, fontWeight: "600" },
   cardBody: { fontSize: 12, marginTop: 2 },

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { category as categoryOf } from "@/lib/taxonomy";
+import { PlacesIcon } from "@/components/nav-icons";
 import type { SearchResult } from "@/lib/types";
 
 /// The step where somebody actually saves something.
@@ -63,9 +64,7 @@ export default function WelcomeFirstPlace({
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-4xl" aria-hidden>
-          📍
-        </p>
+        <PlacesIcon className="h-9 w-9 text-accent-text" />
         <h1 className="mt-3 text-2xl font-semibold">Put something on your map</h1>
         <p className="mt-2 text-sm text-muted">
           Anywhere at all — a city you loved, a restaurant you keep meaning to

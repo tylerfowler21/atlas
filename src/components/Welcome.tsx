@@ -4,25 +4,35 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import WelcomeFirstPlace from "@/components/WelcomeFirstPlace";
 import { useState } from "react";
+import {
+  BeenIcon,
+  MapIcon,
+  PeopleIcon,
+  TripsIcon,
+  YourProfileIcon,
+} from "@/components/nav-icons";
 
+/// Each card carries the icon of the tab where that thing actually happens, so
+/// the tour is teaching the navigation at the same time as the features. Emoji
+/// were standing in for an icon set that already exists.
 const TOUR = [
   {
-    icon: "🗺️",
+    Icon: MapIcon,
     title: "Save places you care about",
     body: "Search anywhere in the world, or drop a pin on somewhere the map has never heard of. Give it a category, a note, an emoji — 🥐 on that bakery.",
   },
   {
-    icon: "🧭",
+    Icon: TripsIcon,
     title: "Build a trip, day by day",
     body: "Set the dates and the days appear. Click through them adding what you did, including the trains and ferries between cities.",
   },
   {
-    icon: "🌍",
+    Icon: BeenIcon,
     title: "Keep a map of everywhere you've been",
     body: "Anything marked “Been there” lands on your map, counted by place, city and country.",
   },
   {
-    icon: "📡",
+    Icon: PeopleIcon,
     title: "Share it, or keep it to yourself",
     body: "Everything is private by default. Publish a trip to your profile, or send one secret read-only link — and copy anyone else's trip into your own account.",
   },
@@ -88,9 +98,7 @@ export default function Welcome({
           <ul className="space-y-3">
             {TOUR.map((t) => (
               <li key={t.title} className="card flex gap-3 p-3">
-                <span aria-hidden className="text-xl">
-                  {t.icon}
-                </span>
+                <t.Icon className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
                 <div>
                   <p className="text-sm font-medium">{t.title}</p>
                   <p className="mt-0.5 text-xs text-muted">{t.body}</p>
@@ -112,9 +120,7 @@ export default function Welcome({
       {step === 1 && (
         <div className="space-y-5">
           <div>
-            <p className="text-4xl" aria-hidden>
-              👋
-            </p>
+            <YourProfileIcon className="h-9 w-9 text-accent-text" />
             <h1 className="mt-3 text-2xl font-semibold">Pick a username</h1>
             <p className="mt-2 text-sm text-muted">
               It&apos;s how friends find and follow you, and it gives you a profile
@@ -174,9 +180,7 @@ export default function Welcome({
       {step === 3 && (
         <div className="space-y-5">
           <div>
-            <p className="text-4xl" aria-hidden>
-              ✈️
-            </p>
+            <TripsIcon className="h-9 w-9 text-accent-text" />
             <h1 className="mt-3 text-2xl font-semibold">What next?</h1>
             <p className="mt-2 text-sm text-muted">
               The quickest way to a map that feels like yours is a trip
