@@ -16,8 +16,12 @@ import {
 /// never briefly drawn under the wrong icon while a request is in flight.
 
 type Value = {
-  /// Built-in first, then this person's own.
+  /// What to offer in a picker: built-in first, then this person's own, minus
+  /// anything they have hidden.
   categories: Category[];
+  /// Everything, hidden included. The settings screen needs this; nothing else
+  /// should, because a hidden category is not somewhere new things go.
+  everyCategory: Category[];
   /// The category behind an id, falling back to Other.
   categoryOf: (id: string) => Category;
   /// The same icon helpers as the taxonomy, aware of this person's own
@@ -40,7 +44,11 @@ export default function CategoriesProvider({
 }) {
   const [custom, setCustom] = useState(initial);
 
-  const categories = useMemo(() => allCategories(custom), [custom]);
+  const everyCategory = useMemo(() => allCategories(custom), [custom]);
+  const categories = useMemo(
+    () => everyCategory.filter((c) => !c.hidden),
+    [everyCategory],
+  );
   const categoryOf = useCallback((id: string) => resolve(id, custom), [custom]);
   const placeIconOf = useCallback(
     (place: Parameters<typeof placeIcon>[0]) => placeIcon(place, custom),
@@ -52,8 +60,8 @@ export default function CategoriesProvider({
   );
 
   const value = useMemo(
-    () => ({ categories, categoryOf, placeIconOf, stopIconOf, setCustom }),
-    [categories, categoryOf, placeIconOf, stopIconOf],
+    () => ({ categories, everyCategory, categoryOf, placeIconOf, stopIconOf, setCustom }),
+    [categories, everyCategory, categoryOf, placeIconOf, stopIconOf],
   );
 
   return <CategoriesContext.Provider value={value}>{children}</CategoriesContext.Provider>;
@@ -69,6 +77,7 @@ export function useCategories(): Value {
 const BUILT_IN_ONLY = allCategories();
 const FALLBACK: Value = {
   categories: BUILT_IN_ONLY,
+  everyCategory: BUILT_IN_ONLY,
   categoryOf: (id: string) => resolve(id),
   placeIconOf: (place) => placeIcon(place),
   stopIconOf: (item) => stopIcon(item),

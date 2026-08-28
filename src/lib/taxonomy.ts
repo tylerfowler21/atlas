@@ -37,8 +37,15 @@ export type Category = {
   label: string;
   icon: string;
   color: string;
-  /// True for the ones somebody made, which are the only ones they can edit.
+  /// True for the ones somebody made. Built-in ones can be restyled and hidden
+  /// but not deleted: they are what a place falls back to.
   custom?: boolean;
+  /// Kept out of the pickers. Still resolved, because places already filed
+  /// under it have to render as something.
+  hidden?: boolean;
+  /// A built-in that this person has restyled, so the settings screen can offer
+  /// to put it back.
+  edited?: boolean;
 };
 
 const BUILT_IN_BY_ID = new Map<string, Category>(
@@ -46,8 +53,16 @@ const BUILT_IN_BY_ID = new Map<string, Category>(
 );
 
 /// The full list somebody sees: the built-in ones, then their own.
+///
+/// A caller that has resolved the list already — anything reading it from the
+/// server — passes it through unchanged rather than getting the built-ins
+/// concatenated a second time.
 export function allCategories(extra: Category[] = []): Category[] {
-  return [...(BUILT_IN_CATEGORIES as readonly Category[]), ...extra];
+  const overridden = new Set(extra.map((c) => c.id));
+  return [
+    ...(BUILT_IN_CATEGORIES as readonly Category[]).filter((c) => !overridden.has(c.id)),
+    ...extra,
+  ];
 }
 
 /// The category behind an id, from the built-in ones plus whatever the caller
@@ -58,9 +73,12 @@ export function allCategories(extra: Category[] = []): Category[] {
 /// saved under one that has since been deleted — and a place with a puzzling
 /// icon is better than a page that will not render.
 export function category(id: string, extra: Category[] = []): Category {
+  // The caller's list wins. It carries both the categories somebody made and
+  // their versions of the built-in ones, and a built-in someone has restyled
+  // must not be answered with the original.
   return (
-    BUILT_IN_BY_ID.get(id) ??
     extra.find((c) => c.id === id) ??
+    BUILT_IN_BY_ID.get(id) ??
     BUILT_IN_BY_ID.get("other")!
   );
 }

@@ -84,6 +84,7 @@ model User {
   places         Place[]
   trips          Trip[]
   categories     Category[]
+  categoryEdits  CategoryOverride[]
   memories       Memory[]
   photos         Photo[]
   blocking       Block[]            @relation("blocker")
@@ -439,4 +440,35 @@ model Category {
   /// Two categories with the same name would be indistinguishable in a picker.
   @@unique([userId, label])
   @@index([userId, position])
+}
+
+/// One person's changes to a built-in category.
+///
+/// The ten built-ins stay in code because they are what the geocoder's guesses
+/// map onto and what anything unrecognised falls back to — that has to mean the
+/// same thing for everyone. How they look does not. Somebody who never drinks
+/// should not have Bar in their picker, and somebody who thinks Stay deserves a
+/// tent rather than a bed should be able to say so.
+///
+/// A row exists only where somebody has changed something. No row means the
+/// built-in, unmodified, which is why every field but `hidden` is nullable:
+/// null is "leave this as it was", not "blank".
+model CategoryOverride {
+  id         String   @id @default(cuid())
+  userId     String
+  /// The built-in category's id — one of the words, never a cuid.
+  categoryId String
+  label      String?
+  icon       String?
+  color      String?
+  /// Kept out of the pickers. Places already filed under it still show it:
+  /// hiding is about what you are offered, not about rewriting your history.
+  hidden     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+  @@index([userId])
 }

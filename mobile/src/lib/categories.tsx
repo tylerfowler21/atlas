@@ -12,7 +12,10 @@ import {
 } from "@/lib/taxonomy";
 
 type Value = {
+  /// What to offer in a picker — everything except what has been hidden.
   categories: Category[];
+  /// Everything, hidden included, for the settings screen.
+  everyCategory: Category[];
   categoryOf: (id: string) => Category;
   placeIconOf: (place: Parameters<typeof placeIcon>[0]) => string;
   stopIconOf: (item: Parameters<typeof stopIcon>[0]) => string;
@@ -66,7 +69,11 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
     };
   }, [user]);
 
-  const categories = useMemo(() => allCategories(custom), [custom]);
+  const everyCategory = useMemo(() => allCategories(custom), [custom]);
+  const categories = useMemo(
+    () => everyCategory.filter((c) => !c.hidden),
+    [everyCategory],
+  );
   const categoryOf = useCallback((id: string) => resolve(id, custom), [custom]);
   const placeIconOf = useCallback(
     (place: Parameters<typeof placeIcon>[0]) => placeIcon(place, custom),
@@ -78,8 +85,16 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   );
 
   const value = useMemo(
-    () => ({ categories, categoryOf, placeIconOf, stopIconOf, refresh, setCustom }),
-    [categories, categoryOf, placeIconOf, stopIconOf, refresh],
+    () => ({
+      categories,
+      everyCategory,
+      categoryOf,
+      placeIconOf,
+      stopIconOf,
+      refresh,
+      setCustom,
+    }),
+    [categories, everyCategory, categoryOf, placeIconOf, stopIconOf, refresh],
   );
 
   return <CategoriesContext value={value}>{children}</CategoriesContext>;
@@ -88,6 +103,7 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
 const BUILT_IN_ONLY = allCategories();
 const FALLBACK: Value = {
   categories: BUILT_IN_ONLY,
+  everyCategory: BUILT_IN_ONLY,
   categoryOf: (id: string) => resolve(id),
   placeIconOf: (place) => placeIcon(place),
   stopIconOf: (item) => stopIcon(item),

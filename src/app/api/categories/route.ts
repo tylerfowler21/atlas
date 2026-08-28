@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
-import { isDuplicateName, userCategories } from "@/lib/categories";
+import { isDuplicateName, resolvedCategories } from "@/lib/categories";
 import { unauthorized } from "@/lib/api";
 
 const bodySchema = z.object({
@@ -18,7 +18,7 @@ const bodySchema = z.object({
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
-  return NextResponse.json({ categories: await userCategories(user.id) });
+  return NextResponse.json({ categories: await resolvedCategories(user.id) });
 }
 
 export async function POST(request: Request) {

@@ -7,7 +7,7 @@ import { unreadCount } from "@/lib/notifications";
 import NavBar from "@/components/NavBar";
 import MobileTabBar from "@/components/MobileTabBar";
 import CategoriesProvider from "@/components/CategoriesProvider";
-import { userCategories } from "@/lib/categories";
+import { resolvedCategories } from "@/lib/categories";
 
 /// Everything the signed-in owner sees. The auth check lives here rather than
 /// in each page, so a new page under (app) is private by default; shared
@@ -26,7 +26,7 @@ export default async function AppLayout({
   if (!onboardedAt) redirect("/welcome");
 
   const unread = await unreadCount(user.id);
-  const categories = await userCategories(user.id);
+  const categories = await resolvedCategories(user.id);
 
   async function signOutAction() {
     "use server";

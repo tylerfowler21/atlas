@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCategories } from "@/components/CategoriesProvider";
 import EmojiField from "@/components/EmojiField";
-import { BUILT_IN_CATEGORIES, type Category } from "@/lib/taxonomy";
+import { type Category } from "@/lib/taxonomy";
 
 /// Making your own categories.
 ///
@@ -15,8 +15,14 @@ import { BUILT_IN_CATEGORIES, type Category } from "@/lib/taxonomy";
 const DEFAULT_COLOR = "#14B8A6";
 
 export default function CategorySettings() {
-  const { categories, setCustom } = useCategories();
-  const custom = categories.filter((c) => c.custom);
+  const { everyCategory, setCustom } = useCategories();
+  const custom = everyCategory.filter((c) => c.custom);
+  const builtIn = everyCategory.filter((c) => !c.custom);
+
+  /// Both kinds go through the same PATCH; the server knows which is which.
+  function applyLocal(id: string, patch: Partial<Category>) {
+    setCustom(everyCategory.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
 
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -36,7 +42,7 @@ export default function CategorySettings() {
       return;
     }
     const { category } = (await res.json()) as { category: Category };
-    setCustom([...custom, category]);
+    setCustom([...everyCategory, category]);
     setAdding(false);
   }
 
@@ -50,7 +56,22 @@ export default function CategorySettings() {
       setError(((await res.json()) as { error?: string }).error ?? "Could not save that");
       return;
     }
-    setCustom(custom.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    applyLocal(id, patch);
+  }
+
+  /// Puts a built-in back the way it came — undoing a restyle and unhiding it
+  /// in one go, which is what "default" means to somebody looking at the row.
+  async function reset(c: Category) {
+    const res = await fetch(`/api/categories/${c.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError("Could not reset that category");
+      return;
+    }
+    const fresh = await fetch("/api/categories");
+    if (fresh.ok) {
+      const { categories } = (await fresh.json()) as { categories: Category[] };
+      setCustom(categories);
+    }
   }
 
   async function remove(c: Category) {
@@ -67,7 +88,7 @@ export default function CategorySettings() {
       return;
     }
     const { movedPlaces } = (await res.json()) as { movedPlaces: number };
-    setCustom(custom.filter((x) => x.id !== c.id));
+    setCustom(everyCategory.filter((x) => x.id !== c.id));
     if (movedPlaces > 0) {
       setError(
         `"${c.label}" deleted. ${movedPlaces} ${movedPlaces === 1 ? "place" : "places"} moved to Other.`,
@@ -114,23 +135,18 @@ export default function CategorySettings() {
 
       {error && <p className="mt-2 text-xs text-muted">{error}</p>}
 
-      <details className="mt-5">
-        <summary className="cursor-pointer text-xs text-muted">
-          The built-in categories
-        </summary>
-        <p className="mt-2 text-xs text-muted">
-          These can&apos;t be changed — they&apos;re what a searched place gets
-          guessed into, and where anything falls back to.
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {BUILT_IN_CATEGORIES.map((c) => (
-            <span key={c.id} className="chip" style={{ borderColor: c.color }}>
-              <span aria-hidden>{c.icon}</span>
-              {c.label}
-            </span>
-          ))}
-        </div>
-      </details>
+      <h2 className="mt-8 text-sm font-semibold">The ones that come with Roava</h2>
+      <p className="mt-1 text-xs text-muted">
+        Change how any of them look, or hide the ones you don&apos;t use. Hidden
+        ones stop appearing in pickers and stop collecting new places — anything
+        already filed under one keeps it.
+      </p>
+
+      <ul className="mt-3 space-y-2">
+        {builtIn.map((c) => (
+          <BuiltInRow key={c.id} category={c} onSave={update} onReset={reset} />
+        ))}
+      </ul>
     </div>
   );
 }
@@ -248,5 +264,97 @@ function CategoryFields({
         </button>
       </div>
     </div>
+  );
+}
+
+/// A built-in category, as this person has it.
+///
+/// Different from a custom one in what it can do: the name, emoji and colour
+/// are all editable, but it cannot be deleted — only hidden, or put back the
+/// way it came.
+function BuiltInRow({
+  category,
+  onSave,
+  onReset,
+}: {
+  category: Category;
+  onSave: (id: string, patch: Partial<Category>) => Promise<void>;
+  onReset: (category: Category) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <li className="card p-3">
+        <CategoryFields
+          initial={category}
+          busy={false}
+          submitLabel="Save"
+          onSubmit={async (draft) => {
+            await onSave(category.id, draft);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className={`flex items-center gap-3 rounded-lg border border-line px-3 py-2 ${
+        category.hidden ? "opacity-55" : ""
+      }`}
+    >
+      <span
+        aria-hidden
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm"
+        style={{
+          backgroundColor: `${category.color}22`,
+          border: `2px solid ${category.color}`,
+        }}
+      >
+        {category.icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm">{category.label}</span>
+        {category.hidden && (
+          <span className="block text-xs text-muted">Hidden</span>
+        )}
+      </span>
+
+      <button
+        type="button"
+        className="btn btn-ghost text-xs"
+        onClick={() => setEditing(true)}
+      >
+        Edit
+      </button>
+
+      {category.id === "other" ? (
+        // Other is where anything unrecognised lands, so there has to be one.
+        <span className="text-xs text-muted" title="Everything else falls back to this">
+          Always on
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-ghost text-xs"
+          onClick={() => void onSave(category.id, { hidden: !category.hidden })}
+        >
+          {category.hidden ? "Show" : "Hide"}
+        </button>
+      )}
+
+      {(category.edited || category.hidden) && (
+        <button
+          type="button"
+          className="shrink-0 text-xs text-muted hover:underline"
+          onClick={() => void onReset(category)}
+        >
+          Default
+        </button>
+      )}
+    </li>
   );
 }

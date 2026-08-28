@@ -7,7 +7,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-nativ
 import { api } from "@/lib/api";
 import { useCategories } from "@/lib/categories";
 import { usePalette } from "@/lib/use-palette";
-import { BUILT_IN_CATEGORIES, type Category } from "@/lib/taxonomy";
+import { type Category } from "@/lib/taxonomy";
 
 /// Enough to tell pins apart at a glance, and all from the brand palette so a
 /// map full of custom categories still looks like one map.
@@ -18,8 +18,32 @@ const COLORS = [
 
 export default function CategoryManager() {
   const palette = usePalette();
-  const { categories, setCustom } = useCategories();
-  const custom = categories.filter((c) => c.custom);
+  const { everyCategory, setCustom, refresh } = useCategories();
+  const custom = everyCategory.filter((c) => c.custom);
+  const builtIn = everyCategory.filter((c) => !c.custom);
+
+  /// Hiding, showing and restyling all go through the same PATCH — the server
+  /// records a change against this person rather than editing a shared
+  /// category.
+  async function patchCategory(c: Category, body: Partial<Category>) {
+    try {
+      await api(`/api/categories/${c.id}`, { method: "PATCH", body: JSON.stringify(body) });
+      setCustom(everyCategory.map((x) => (x.id === c.id ? { ...x, ...body } : x)));
+    } catch {
+      Alert.alert("Could not save that change");
+    }
+  }
+
+  /// Puts a built-in back the way it came — un-hiding it and dropping any
+  /// restyle at once, which is what "default" means on the row.
+  async function resetCategory(c: Category) {
+    try {
+      await api(`/api/categories/${c.id}`, { method: "DELETE" });
+      await refresh();
+    } catch {
+      Alert.alert("Could not reset that category");
+    }
+  }
 
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
@@ -43,7 +67,7 @@ export default function CategoryManager() {
         method: "POST",
         body: JSON.stringify({ label: name, icon: icon.trim() || "📌", color }),
       });
-      setCustom([...custom, category]);
+      setCustom([...everyCategory, category]);
       reset();
     } catch (e) {
       Alert.alert(
@@ -67,7 +91,7 @@ export default function CategoryManager() {
           onPress: async () => {
             try {
               await api(`/api/categories/${c.id}`, { method: "DELETE" });
-              setCustom(custom.filter((x) => x.id !== c.id));
+              setCustom(everyCategory.filter((x) => x.id !== c.id));
             } catch {
               Alert.alert("Could not delete that category");
             }
@@ -159,9 +183,50 @@ export default function CategoryManager() {
         </Pressable>
       )}
 
-      <Text style={{ color: palette.muted, fontSize: 11, marginTop: 10 }}>
-        Built in and always available: {BUILT_IN_CATEGORIES.map((c) => c.icon).join(" ")}
+      <Text style={[styles.label, { color: palette.muted }]}>
+        The ones that come with Roava
       </Text>
+      <Text style={{ color: palette.muted, fontSize: 12, marginBottom: 8 }}>
+        Change the emoji, or hide the ones you don&apos;t use. Places already
+        filed under a hidden one keep it.
+      </Text>
+
+      {builtIn.map((c) => (
+        <View
+          key={c.id}
+          style={[styles.row, { borderColor: palette.border }, c.hidden && { opacity: 0.55 }]}
+        >
+          <TextInput
+            value={c.icon}
+            maxLength={4}
+            onChangeText={(icon) => {
+              const next = icon.trim();
+              if (next) void patchCategory(c, { icon: next });
+            }}
+            style={[styles.swatch, { borderColor: c.color, color: palette.ink, fontSize: 15 }]}
+          />
+          <Text style={[styles.rowLabel, { color: palette.ink }]} numberOfLines={1}>
+            {c.label}
+            {c.hidden ? " · hidden" : ""}
+          </Text>
+
+          {c.id === "other" ? (
+            <Text style={{ color: palette.muted, fontSize: 12 }}>Always on</Text>
+          ) : (
+            <Pressable onPress={() => void patchCategory(c, { hidden: !c.hidden })} hitSlop={8}>
+              <Text style={{ color: palette.muted, fontSize: 12 }}>
+                {c.hidden ? "Show" : "Hide"}
+              </Text>
+            </Pressable>
+          )}
+
+          {(c.edited || c.hidden) && (
+            <Pressable onPress={() => void resetCategory(c)} hitSlop={8}>
+              <Text style={{ color: palette.muted, fontSize: 12 }}>Default</Text>
+            </Pressable>
+          )}
+        </View>
+      ))}
     </View>
   );
 }

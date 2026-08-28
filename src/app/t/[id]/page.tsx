@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { userCategories } from "@/lib/categories";
+import { resolvedCategories } from "@/lib/categories";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/user";
@@ -41,7 +41,7 @@ export default async function PublishedTripPage({
 
   // The author's own categories, so their stops keep their icons and colours
   // for anyone reading this.
-  const categories = await userCategories(trip.userId);
+  const categories = await resolvedCategories(trip.userId);
 
   const publicTrip: PublicTripDTO = {
     title: trip.title,

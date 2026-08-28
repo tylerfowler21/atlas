@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ownsCategory } from "@/lib/categories";
+import { landingCategory, ownsCategory } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
@@ -37,6 +37,13 @@ export async function POST(request: Request) {
   // built-in ones and this person's own before it is stored.
   if (parsed.data.category && !(await ownsCategory(user.id, parsed.data.category))) {
     return NextResponse.json({ error: "No such category" }, { status: 400 });
+  }
+
+  // A guess that lands on something this person has hidden goes to Other
+  // instead. Chosen categories are left alone — this only applies on the way
+  // in, where the category came from the geocoder rather than from anybody.
+  if (parsed.data.category) {
+    parsed.data.category = await landingCategory(user.id, parsed.data.category);
   }
 
   const data = parsed.data;
