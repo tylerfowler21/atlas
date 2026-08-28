@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
+import { isDuplicateName } from "@/lib/categories";
 
 const patchSchema = z.object({
   label: z.string().trim().min(1).max(30).optional(),
@@ -42,11 +43,15 @@ export async function PATCH(
       data: parsed.data,
     });
     return NextResponse.json({ category: { ...category, custom: true } });
-  } catch {
-    return NextResponse.json(
-      { error: "You already have a category with that name" },
-      { status: 409 },
-    );
+  } catch (error) {
+    if (isDuplicateName(error)) {
+      return NextResponse.json(
+        { error: "You already have a category with that name" },
+        { status: 409 },
+      );
+    }
+    console.error("[categories] could not update", error);
+    return NextResponse.json({ error: "Could not save that" }, { status: 500 });
   }
 }
 

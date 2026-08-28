@@ -42,3 +42,17 @@ export async function ownsCategory(userId: string, id: string) {
   });
   return found !== null;
 }
+
+/// Whether a Prisma failure is the unique index on (userId, label).
+///
+/// Worth telling apart, because the alternative is reporting every possible
+/// failure as "you already have one of those" — which sends somebody off
+/// renaming a category when the real problem was the database.
+export function isDuplicateName(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: unknown }).code === "P2002"
+  );
+}
