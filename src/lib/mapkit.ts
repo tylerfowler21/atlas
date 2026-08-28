@@ -9,6 +9,28 @@
 /// sitting in a public JavaScript bundle is somebody else's free map quota.
 import { SignJWT, importPKCS8 } from "jose";
 
+/// What the MapKit key looks like, without revealing it.
+///
+/// A private key that will not parse makes this endpoint throw, and from
+/// outside that is indistinguishable from every other 500. These are the
+/// details that identify the usual causes: a value pasted without its header,
+/// or with its newlines lost, or truncated.
+export function inspectMapkitKey() {
+  const raw = process.env.MAPKIT_PRIVATE_KEY ?? null;
+  if (!raw) return { present: false as const };
+  const pem = raw.replace(/\\n/g, "\n");
+  return {
+    present: true as const,
+    rawLength: raw.length,
+    hadEscapedNewlines: raw.includes("\\n"),
+    hasRealNewlines: pem.includes("\n"),
+    lines: pem.trim().split("\n").length,
+    hasHeader: pem.includes("-----BEGIN PRIVATE KEY-----"),
+    hasFooter: pem.includes("-----END PRIVATE KEY-----"),
+    isQuoted: /^["']|["']$/.test(raw.trim()),
+  };
+}
+
 export const mapkitConfigured = Boolean(
   process.env.APPLE_TEAM_ID &&
     process.env.MAPKIT_KEY_ID &&

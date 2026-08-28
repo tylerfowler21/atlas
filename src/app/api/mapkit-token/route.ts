@@ -31,7 +31,19 @@ export async function GET(request: Request) {
     return unauthorized();
   }
 
-  const token = await mapkitToken(new URL(request.url).origin);
+  let token: string;
+  try {
+    token = await mapkitToken(new URL(request.url).origin);
+  } catch (e) {
+    // Signing can throw — a private key that will not parse is the usual
+    // reason — and an uncaught throw was the one path here that recorded
+    // nothing at all. A map that silently used the free basemap while this
+    // endpoint returned 500 had no trace anywhere, which is how it stayed
+    // unexplained.
+    const reason = e instanceof Error ? e.message : "unknown error";
+    await noteRefusal(`token could not be signed: ${reason}`);
+    return NextResponse.json({ error: "Could not sign a map token" }, { status: 500 });
+  }
 
   return new NextResponse(token, {
     headers: {

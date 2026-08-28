@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin";
 import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 import { checkAppleCredentials } from "@/lib/apple-check";
 import { inspectAppleSecret } from "@/lib/apple-secret-inspect";
-import { mapkitConfigured, mapkitOrigin } from "@/lib/mapkit";
+import { inspectMapkitKey, mapkitConfigured, mapkitOrigin } from "@/lib/mapkit";
 
 export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
@@ -58,6 +58,7 @@ export default async function AdminPage({
   const appleCheck = verify === "apple" ? await verifyApple() : null;
 
   const apple = inspectAppleSecret();
+  const mapkitKey = inspectMapkitKey();
 
   // The origin a MapKit token would be minted for. MapKit refuses a token whose
   // origin does not match the page requesting it, and the map then falls back
@@ -218,6 +219,36 @@ export default async function AdminPage({
             {tokenOrigin ?? "none (unrestricted)"}
           </span>
         </li>
+        <li className="flex gap-3 px-3 py-1.5">
+          <span className="text-muted">private key</span>
+          <span className="ml-auto font-mono">
+            {!mapkitKey.present
+              ? "not set"
+              : `${mapkitKey.lines} lines, ${mapkitKey.rawLength} chars`}
+          </span>
+        </li>
+        {mapkitKey.present && (
+          <li className="flex gap-3 px-3 py-1.5">
+            <span className="text-muted">key looks usable</span>
+            <span
+              className={`ml-auto font-medium ${
+                mapkitKey.hasHeader && mapkitKey.hasFooter && mapkitKey.lines > 1 && !mapkitKey.isQuoted
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-500"
+              }`}
+            >
+              {!mapkitKey.hasHeader
+                ? "NO — missing the BEGIN PRIVATE KEY line"
+                : !mapkitKey.hasFooter
+                  ? "NO — missing the END PRIVATE KEY line"
+                  : mapkitKey.isQuoted
+                    ? "NO — the value is wrapped in quotes"
+                    : mapkitKey.lines === 1
+                      ? "NO — it is all on one line, so its newlines were lost"
+                      : "yes"}
+            </span>
+          </li>
+        )}
         <li className="px-3 py-1.5 text-muted">
           The origin must match the address in the browser&apos;s bar exactly. If
           it does not, MapKit rejects the token and the map falls back to the
