@@ -33,4 +33,33 @@ const target = (() => {
 })();
 
 console.log(`[migrate] applying migrations to ${target}`);
-execFileSync("npx", ["prisma", "migrate", "deploy"], { stdio: "inherit" });
+
+try {
+  execFileSync("npx", ["prisma", "migrate", "deploy"], { stdio: "inherit" });
+} catch {
+  // The deploy output says what went wrong but not where the database stands,
+  // and a build log is usually the only place anyone can look. Status names
+  // every migration and which one is stuck, which is the difference between
+  // fixing this and guessing at it.
+  console.error("\n[migrate] FAILED. The state of the database:\n");
+  try {
+    execFileSync("npx", ["prisma", "migrate", "status"], { stdio: "inherit" });
+  } catch {
+    // status exits non-zero whenever anything is pending; its output is what
+    // matters, not its exit code.
+  }
+  console.error(
+    [
+      "",
+      "[migrate] The build stops here on purpose: shipping code against a",
+      "[migrate] schema it does not match takes the site down.",
+      "",
+      "[migrate] If a migration is listed as failed above, it must be resolved",
+      "[migrate] before any deploy can succeed — `prisma migrate resolve",
+      "[migrate] --rolled-back <name>` after undoing whatever it half-applied,",
+      "[migrate] or `--applied <name>` if the change is in fact already there.",
+      "",
+    ].join("\n"),
+  );
+  process.exit(1);
+}
