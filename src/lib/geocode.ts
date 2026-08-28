@@ -39,6 +39,14 @@ async function fromNominatim(query: string): Promise<SearchResult[]> {
 export async function geocode(
   query: string,
   region?: string | null,
+  /// Answering someone mid-word rather than someone who has finished typing.
+  ///
+  /// Only Photon is asked. It is built for half-typed queries and answers in
+  /// about a tenth of a second, where Nominatim is held to one request a second
+  /// on purpose — and its terms rule out type-ahead besides. Asking it here
+  /// would make every suggestion queue behind the last one for no gain: the
+  /// thorough search that follows a moment later asks it properly.
+  suggest = false,
 ): Promise<SearchResult[]> {
   // The region is asked for as well as the bare query, never instead of it.
   //
@@ -49,19 +57,21 @@ export async function geocode(
   // hide the answer when it is not.
   const queries = region ? [`${query}, ${region}`, query] : [query];
 
-  const found = await Promise.all(
-    queries.flatMap((q) => [
-      photonSearch(q).catch(() => [] as SearchResult[]),
-      fromNominatim(q).catch(() => [] as SearchResult[]),
-    ]),
+  // Grouped by query rather than flattened, so the ordering below does not
+  // depend on counting how many geocoders ran.
+  const byQuery = await Promise.all(
+    queries.map(async (q) => {
+      const [photon, osm] = await Promise.all([
+        photonSearch(q).catch(() => [] as SearchResult[]),
+        suggest ? [] : fromNominatim(q).catch(() => [] as SearchResult[]),
+      ]);
+      // Nominatim before Photon: when both know a place, its address is better.
+      return [...osm, ...photon];
+    }),
   );
 
-  // Hinted results first so the trip's own region still ranks above the rest,
-  // then Nominatim before Photon: when both know a place, its address is
-  // better.
-  const ordered = region
-    ? [found[1], found[0], found[3], found[2]]
-    : [found[1], found[0]];
+  // Hinted results first, so the trip's own region still ranks above the rest.
+  const ordered = byQuery;
 
   const merged: SearchResult[] = [];
   for (const result of ordered.flat()) {

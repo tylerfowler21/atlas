@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { usePlaceSearch } from "@/lib/use-place-search";
+import { searchPlaces } from "@/lib/search-places";
 import {
   ActivityIndicator,
   Alert,
@@ -117,29 +119,14 @@ export default function ItemEditor({
   /// stop somewhere new meant leaving for the map, saving it, and coming back.
   /// This is what the website does: find it, save it, attach it, in one go.
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
+
   /// Places created here, so they appear in the pickers without refetching.
   const [added, setAdded] = useState<Place[]>([]);
 
   const options = [...added, ...places];
 
-  async function searchWorld() {
-    const q = query.trim();
-    if (q.length < 3) return;
-    Keyboard.dismiss();
-    setSearching(true);
-    try {
-      const found = await api<{ results: SearchResult[] }>(
-        `/api/geocode?q=${encodeURIComponent(q)}`,
-      );
-      setResults(found.results);
-    } catch {
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }
+  /// Searched as you type, the same as the map tab and the website.
+  const { results, searching } = usePlaceSearch(query, searchPlaces);
 
   /// Saved as somewhere you want to go: it is on an itinerary, which is a plan
   /// rather than a record. Marking it visited is a thing you do afterwards.
@@ -163,7 +150,6 @@ export default function ItemEditor({
       if (target === "to") setToPlaceId(place.id);
       else setPlaceId(place.id);
       if (!title.trim()) setTitle(result.name);
-      setResults([]);
       setQuery("");
     } catch (e) {
       Alert.alert("Could not save that place", e instanceof Error ? e.message : "Try again");
@@ -316,7 +302,7 @@ export default function ItemEditor({
             <TextInput
               value={query}
               onChangeText={setQuery}
-              onSubmitEditing={searchWorld}
+              onSubmitEditing={() => Keyboard.dismiss()}
               returnKeyType="search"
               placeholder="Paris, Sagrada Família…"
               placeholderTextColor={palette.muted}

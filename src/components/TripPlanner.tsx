@@ -1,7 +1,9 @@
 "use client";
 
+import { usePlaceSearch } from "@/lib/use-place-search";
+import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
@@ -17,7 +19,7 @@ import {
 } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
-import type { ItineraryItemDTO, PlaceDTO, SearchResult, TripDTO } from "@/lib/types";
+import type { ItineraryItemDTO, PlaceDTO, TripDTO } from "@/lib/types";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
@@ -975,31 +977,8 @@ function AddStop({
   const [category, setCategory] = useState("other");
   // Searching the wider world from inside a trip, so adding somewhere new no
   // longer means a detour to the map and back.
-  const [world, setWorld] = useState<{ q: string; items: SearchResult[] }>({
-    q: "",
-    items: [],
-  });
-  const requestId = useRef(0);
   const trimmed = query.trim();
-
-  useEffect(() => {
-    if (trimmed.length < 3) return;
-    const id = ++requestId.current;
-
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(trimmed)}`);
-        const body = await res.json();
-        if (id === requestId.current) setWorld({ q: trimmed, items: body.results ?? [] });
-      } catch {
-        if (id === requestId.current) setWorld({ q: trimmed, items: [] });
-      }
-    }, 450);
-
-    return () => clearTimeout(timer);
-  }, [trimmed]);
-
-  const worldResults = world.q === trimmed ? world.items : [];
+  const { results: worldResults } = usePlaceSearch(trimmed, searchPlaces);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1093,7 +1072,6 @@ function AddStop({
                       category: r.category,
                     });
                     setQuery("");
-                    setWorld({ q: "", items: [] });
                   }}
                 >
                   <span aria-hidden>{categoryOf(r.category).icon}</span>

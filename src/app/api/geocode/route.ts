@@ -8,10 +8,14 @@ export async function GET(request: Request) {
   // narrow results.
   const region = searchParams.get("region")?.trim() || null;
 
-  if (q.length < 3) return NextResponse.json({ results: [] });
+  // Type-ahead, which goes to the fast geocoder only and will guess from two
+  // letters. Everything else waits for three and asks both.
+  const suggest = searchParams.get("suggest") === "1";
+
+  if (q.length < (suggest ? 2 : 3)) return NextResponse.json({ results: [] });
 
   try {
-    const results = await geocode(q, region);
+    const results = await geocode(q, region, suggest);
     return NextResponse.json({ results });
   } catch {
     return NextResponse.json(

@@ -1,8 +1,10 @@
 "use client";
 
+import { usePlaceSearch } from "@/lib/use-place-search";
+import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
 import { formatDay } from "@/lib/trips";
@@ -37,10 +39,6 @@ export default function TripBuilder() {
   const [activeDay, setActiveDay] = useState(0);
   const [stops, setStops] = useState<Stop[]>([]);
   const [query, setQuery] = useState("");
-  const [search, setSearch] = useState<{ q: string; items: SearchResult[] }>({
-    q: "",
-    items: [],
-  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dropMode, setDropMode] = useState(false);
@@ -63,33 +61,11 @@ export default function TripBuilder() {
   // actually in use is derived rather than stored — no correcting effect.
   const day = days.length > 0 ? Math.min(activeDay, days.length - 1) : 0;
 
-  // --- live search, debounced for the geocoder's rate limit ----------------
-  const requestId = useRef(0);
+  // --- live search, as you type --------------------------------------------
   const trimmed = query.trim();
-
-  useEffect(() => {
-    if (trimmed.length < 3) return;
-    const id = ++requestId.current;
-
-    const timer = setTimeout(async () => {
-      const hint = destination.trim();
-      const url = `/api/geocode?q=${encodeURIComponent(trimmed)}${
-        hint ? `&region=${encodeURIComponent(hint)}` : ""
-      }`;
-      try {
-        const res = await fetch(url);
-        const body = await res.json();
-        if (id === requestId.current) setSearch({ q: trimmed, items: body.results ?? [] });
-      } catch {
-        if (id === requestId.current) setSearch({ q: trimmed, items: [] });
-      }
-    }, 450);
-
-    return () => clearTimeout(timer);
-  }, [trimmed, destination]);
-
-  const results = search.q === trimmed ? search.items : [];
-  const searching = trimmed.length >= 3 && search.q !== trimmed;
+  const { results, searching } = usePlaceSearch(trimmed, (q, mode) =>
+    searchPlaces(q, mode, destination.trim()),
+  );
 
   const dayStops = useMemo(
     () => stops.filter((s) => s.dayIndex === day),
@@ -131,7 +107,6 @@ export default function TripBuilder() {
       },
     ]);
     setQuery("");
-    setSearch({ q: "", items: [] });
   }
 
   /// Clicking the map adds whatever is at that point. The reverse lookup

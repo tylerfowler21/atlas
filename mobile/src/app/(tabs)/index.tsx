@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { usePlaceSearch } from "@/lib/use-place-search";
+import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
 import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
-import { api, type Place, type SearchResult } from "@/lib/api";
+import { type Place, type SearchResult } from "@/lib/api";
 import {
   ActivityIndicator,
   FlatList,
@@ -73,27 +75,10 @@ export default function MapScreen() {
   const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
   /// Set by tapping a city or a country, which drills into it.
   const [within, setWithin] = useState<string | null>(null);
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-
-  /// Searched on demand rather than as you type: the geocoders behind this are
-  /// rate limited, and a request per keystroke is how you get throttled.
-  const search = useCallback(async () => {
-    const q = query.trim();
-    if (q.length < 3) return;
-    Keyboard.dismiss();
-    setSearching(true);
-    try {
-      const found = await api<{ results: SearchResult[] }>(
-        `/api/geocode?q=${encodeURIComponent(q)}`,
-      );
-      setResults(found.results);
-    } catch {
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, [query]);
+  /// Searched as you type. The hook asks the fast geocoder while you are still
+  /// typing and both of them once you stop, so nobody has to press anything to
+  /// find out whether the place they mean exists.
+  const { results, searching } = usePlaceSearch(query, searchPlaces);
   // MapView reads initialRegion once, when it mounts, and ignores it after —
   // so recomputing this cannot drag the map out from under someone who has
   // panned away.
@@ -206,7 +191,7 @@ export default function MapScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          onSubmitEditing={search}
+          onSubmitEditing={() => Keyboard.dismiss()}
           returnKeyType="search"
           placeholder="Search anywhere in the world…"
           placeholderTextColor={palette.muted}
@@ -246,11 +231,10 @@ export default function MapScreen() {
           style={[styles.results, { backgroundColor: palette.surface, borderColor: palette.border }]}
           keyboardShouldPersistTaps="handled"
         >
-          {results.map((r) => (
+          {results.map((r: SearchResult) => (
             <Pressable
               key={r.id}
               onPress={() => {
-                setResults([]);
                 setQuery("");
                 setDraft({
                   name: r.name,

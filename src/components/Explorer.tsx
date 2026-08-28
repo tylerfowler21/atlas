@@ -1,8 +1,10 @@
 "use client";
 
+import { usePlaceSearch } from "@/lib/use-place-search";
+import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
@@ -25,10 +27,6 @@ export default function Explorer({
   const [query, setQuery] = useState("");
   // Search results are stored with the query they belong to, so "is this
   // stale?" is a comparison rather than another piece of state to keep in sync.
-  const [search, setSearch] = useState<{ q: string; items: SearchResult[] }>({
-    q: "",
-    items: [],
-  });
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [dropMode, setDropMode] = useState(false);
@@ -68,31 +66,9 @@ export default function Explorer({
   const [drag, setDrag] = useState(0);
   const dragFrom = useRef<number | null>(null);
 
-  // --- world search, debounced to respect the geocoder's rate limit ---------
-  const requestId = useRef(0);
+  // --- world search, as you type -------------------------------------------
   const trimmedQuery = query.trim();
-
-  useEffect(() => {
-    if (trimmedQuery.length < 3) return;
-
-    const id = ++requestId.current;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/geocode?q=${encodeURIComponent(trimmedQuery)}`);
-        const body = await res.json();
-        // Ignore anything that came back after a newer keystroke.
-        if (id !== requestId.current) return;
-        setSearch({ q: trimmedQuery, items: body.results ?? [] });
-      } catch {
-        if (id === requestId.current) setSearch({ q: trimmedQuery, items: [] });
-      }
-    }, 450);
-
-    return () => clearTimeout(timer);
-  }, [trimmedQuery]);
-
-  const results = search.q === trimmedQuery ? search.items : [];
-  const searching = trimmedQuery.length >= 3 && search.q !== trimmedQuery;
+  const { results, searching } = usePlaceSearch(trimmedQuery, searchPlaces);
 
   const visiblePlaces = useMemo(
     () =>
@@ -263,7 +239,6 @@ export default function Explorer({
               setPlaces((prev) => [place, ...prev]);
               setDraft(null);
               setQuery("");
-              setSearch({ q: "", items: [] });
               setSelectedId(place.id);
             }}
           />
