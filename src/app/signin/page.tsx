@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { appleConfigured, auth, devLoginEnabled, googleConfigured, signIn } from "@/auth";
+import { safeNext } from "@/lib/safe-next";
 
 export const metadata: Metadata = { title: "Sign in — Roava" };
 export const dynamic = "force-dynamic";
@@ -9,12 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const session = await auth();
-  if (session?.user) redirect("/");
+  const { error, next } = await searchParams;
 
-  const { error } = await searchParams;
+  // Where to land afterwards — the trip somebody was reading when they decided
+  // to sign up, so they come back to it rather than to an empty map.
+  const destination = safeNext(next);
+
+  const session = await auth();
+  if (session?.user) redirect(destination);
 
   return (
     <div className="flex min-h-full flex-1 items-center justify-center overflow-auto p-6">
@@ -45,7 +50,7 @@ export default async function SignInPage({
           <form
             action={async () => {
               "use server";
-              await signIn("google", { redirectTo: "/" });
+              await signIn("google", { redirectTo: destination });
             }}
           >
             <button type="submit" className="btn btn-primary w-full justify-center">
@@ -58,7 +63,7 @@ export default async function SignInPage({
           <form
             action={async () => {
               "use server";
-              await signIn("apple", { redirectTo: "/" });
+              await signIn("apple", { redirectTo: destination });
             }}
           >
             <button
@@ -86,7 +91,7 @@ export default async function SignInPage({
               "use server";
               await signIn("dev", {
                 email: String(formData.get("email") ?? ""),
-                redirectTo: "/",
+                redirectTo: destination,
               });
             }}
           >

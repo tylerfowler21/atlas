@@ -3,6 +3,8 @@ import { resolvedCategories } from "@/lib/categories";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SharedTrip from "@/components/SharedTrip";
+import SignUpInvite from "@/components/SignUpInvite";
+import { getCurrentUser } from "@/lib/user";
 import {
   toPublicPlace,
   type PublicItemDTO,
@@ -17,6 +19,8 @@ async function loadShared(token: string) {
     include: {
       trip: {
         include: {
+          // Named on the sign-up invitation at the foot of the page.
+          user: { select: { name: true, username: true } },
           items: {
             orderBy: [{ dayIndex: "asc" }, { position: "asc" }],
             include: { place: true, toPlace: true },
@@ -83,5 +87,26 @@ export default async function SharedTripPage({
     toPlace: item.toPlace ? toPublicPlace(item.toPlace) : null,
   }));
 
-  return <SharedTrip trip={trip} items={items} categories={await resolvedCategories(share.trip.userId)} />;
+  const viewer = await getCurrentUser();
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1">
+        <SharedTrip
+          trip={trip}
+          items={items}
+          categories={await resolvedCategories(share.trip.userId)}
+        />
+      </div>
+
+      {/* A secret link is the one most likely to reach somebody with no
+          account: it is what you send a friend. */}
+      {!viewer && (
+        <SignUpInvite
+          author={share.trip.user?.username ? `@${share.trip.user.username}` : (share.trip.user?.name ?? null)}
+          returnTo={`/s/${token}`}
+        />
+      )}
+    </div>
+  );
 }

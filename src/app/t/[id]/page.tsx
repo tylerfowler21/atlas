@@ -7,6 +7,7 @@ import { loadPublishedTrip } from "@/lib/social";
 import type { PublicTripDTO } from "@/lib/types";
 import SharedTrip from "@/components/SharedTrip";
 import CopyTripButton from "@/components/CopyTripButton";
+import SignUpInvite from "@/components/SignUpInvite";
 import ReportOrBlock from "@/components/ReportOrBlock";
 import { isBlockedBetween } from "@/lib/moderation";
 
@@ -74,6 +75,7 @@ export default async function PublishedTripPage({
             tripId={trip.id}
             signedIn={Boolean(viewer)}
             isOwn={viewer?.id === trip.userId}
+            returnTo={`/t/${trip.id}`}
           />
           {viewer?.id !== trip.userId && (
             <ReportOrBlock
@@ -92,6 +94,13 @@ export default async function PublishedTripPage({
           categories={categories}
         />
       </div>
+
+      {!viewer && (
+        <SignUpInvite
+          author={trip.user.username ? `@${trip.user.username}` : trip.user.name}
+          returnTo={`/t/${trip.id}`}
+        />
+      )}
     </div>
   );
 }

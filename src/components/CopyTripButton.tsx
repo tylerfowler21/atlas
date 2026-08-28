@@ -7,10 +7,14 @@ export default function CopyTripButton({
   tripId,
   signedIn,
   isOwn,
+  returnTo,
 }: {
   tripId: string;
   signedIn: boolean;
   isOwn: boolean;
+  /// This page, so signing in comes back to the trip somebody was reading
+  /// rather than dropping them on their own empty map.
+  returnTo: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -18,9 +22,14 @@ export default function CopyTripButton({
 
   if (isOwn) return null;
   if (!signedIn) {
+    // "Sign in" is the wrong word for somebody who has never been here, and
+    // most people reading a shared trip have not.
     return (
-      <a href="/signin" className="btn btn-ghost">
-        Sign in to copy this
+      <a
+        href={`/signin?next=${encodeURIComponent(returnTo)}`}
+        className="btn btn-ghost"
+      >
+        Save this trip
       </a>
     );
   }
