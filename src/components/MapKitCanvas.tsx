@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MapCanvasProps, MapPin } from "@/components/map-types";
+import { categoryFromPoi } from "@/lib/poi-category";
 
 type Props = MapCanvasProps & {
   /// Called when Apple Maps cannot be used after all — the script is blocked,
@@ -110,6 +111,7 @@ export default function MapKitCanvas({
   selectedId,
   onSelect,
   onMapClick,
+  onPlaceSelect,
   fitToken,
   focus,
   initialCenter,
@@ -126,15 +128,17 @@ export default function MapKitCanvas({
 
   // Callbacks live in a ref so the map is not town down and rebuilt every time
   // a parent re-renders with a new inline function.
-  const handlers = useRef({ onSelect, onMapClick });
+  const handlers = useRef({ onSelect, onMapClick, onPlaceSelect });
   useEffect(() => {
-    handlers.current = { onSelect, onMapClick };
-  }, [onSelect, onMapClick]);
+    handlers.current = { onSelect, onMapClick, onPlaceSelect };
+  }, [onSelect, onMapClick, onPlaceSelect]);
 
   useEffect(() => {
     let cancelled = false;
     let created: mapkit.Map | null = null;
     let cleanupClick: (() => void) | undefined;
+    // When Apple last answered a tap with one of its own places.
+    let lastFeature = 0;
 
     (async () => {
       let kit: typeof mapkit;
@@ -162,6 +166,18 @@ export default function MapKitCanvas({
         showsPointsOfInterest: true,
       });
 
+      // The restaurants and museums Apple already draws become tappable.
+      //
+      // Without this they are decoration: you can see the place you mean and
+      // there is no way to say so, short of typing its name into a search box
+      // while looking straight at it.
+      //
+      // Only asked for when somebody is listening, because it changes what a
+      // tap on the map means, and the drop-a-pin flow relies on that.
+      if (handlers.current.onPlaceSelect) {
+        created.selectableMapFeatures = [kit.MapFeatureType.PointOfInterest];
+      }
+
       if (initialCenter) {
         created.center = new kit.Coordinate(initialCenter[1], initialCenter[0]);
         if (initialZoom) {
@@ -185,13 +201,52 @@ export default function MapKitCanvas({
         if (!click || !created) return;
         // A click that landed on a pin is a selection, not a drop-a-pin.
         if ((event.target as Element | null)?.closest(".roava-pin")) return;
+        // Nor is a click that Apple has just answered with a place of its own:
+        // dropping a nameless pin on top of a restaurant it named is worse than
+        // either outcome on its own.
+        if (Date.now() - lastFeature < 400) return;
         const coordinate = created.convertPointOnPageToCoordinate(
           new DOMPoint(event.pageX, event.pageY),
         );
         click(coordinate.latitude, coordinate.longitude);
       };
       container.current.addEventListener("click", onClick);
-      cleanupClick = () => container.current?.removeEventListener("click", onClick);
+
+      const onFeature = (event: { annotation?: unknown }) => {
+        const report = handlers.current.onPlaceSelect;
+        if (!report) return;
+
+        // A map feature, not one of our own pins. Ours are added through the
+        // annotation API and handled by their own click listeners; this event
+        // fires for both, and only Apple's carry a category.
+        const annotation = event.annotation as
+          | {
+              coordinate?: { latitude: number; longitude: number };
+              title?: string;
+              pointOfInterestCategory?: string;
+            }
+          | undefined;
+        if (!annotation?.coordinate || !annotation.pointOfInterestCategory) return;
+
+        lastFeature = Date.now();
+        report({
+          name: annotation.title ?? "Dropped pin",
+          lat: annotation.coordinate.latitude,
+          lng: annotation.coordinate.longitude,
+          category: categoryFromPoi(annotation.pointOfInterestCategory),
+        });
+      };
+      created.addEventListener("select", onFeature);
+
+      const mapForCleanup = created;
+      cleanupClick = () => {
+        container.current?.removeEventListener("click", onClick);
+        try {
+          mapForCleanup.removeEventListener("select", onFeature);
+        } catch {
+          // A map already destroyed has nothing to detach from.
+        }
+      };
 
       if (cancelled) return;
       instance.current = created;

@@ -13,6 +13,15 @@ export type MapPin = {
   muted?: boolean;
 };
 
+/// A place Apple already knows about, tapped on the map.
+export type SelectedPlace = {
+  name: string;
+  lat: number;
+  lng: number;
+  /// One of ours, worked out from Apple's own category for it.
+  category: string;
+};
+
 export type MapCanvasProps = {
   pins: MapPin[];
   /// [lng, lat] pairs drawn as a dashed connector between itinerary stops.
@@ -25,6 +34,10 @@ export type MapCanvasProps = {
   onSelect?: (id: string) => void;
   /// When set, clicking empty map reports where — this is the drop-a-pin flow.
   onMapClick?: (lat: number, lng: number) => void;
+  /// When set, the places Apple already labels on the map become tappable, and
+  /// tapping one reports it. Apple Maps only: the free basemap draws its own
+  /// labels but has no way to say what was underneath a click.
+  onPlaceSelect?: (place: SelectedPlace) => void;
   /// Change this string to re-fit the viewport to the current pins.
   fitToken?: string;
   /// Pan to one point without refitting everything. Bump `token` to re-run it.

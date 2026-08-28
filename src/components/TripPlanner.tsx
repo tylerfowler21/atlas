@@ -7,6 +7,7 @@ import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
+import type { SelectedPlace } from "@/components/map-types";
 import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
@@ -47,6 +48,12 @@ export default function TripPlanner({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [dropMode, setDropMode] = useState(false);
+  /// A place Apple labelled that has been tapped, waiting to be confirmed.
+  ///
+  /// Confirmed rather than added outright: the map is also how you pan and
+  /// zoom, and a stop that appears because a finger brushed a café is a worse
+  /// failure than one tap more.
+  const [tapped, setTapped] = useState<SelectedPlace | null>(null);
   // Which stop's emoji picker is open. Separate from selectedId so changing an
   // emoji doesn't also expand the notes panel.
   const [emojiFor, setEmojiFor] = useState<string | null>(null);
@@ -745,8 +752,53 @@ export default function TripPlanner({
           selectedId={selectedId}
           onSelect={setSelectedId}
           onMapClick={dropMode ? dropPin : undefined}
+          onPlaceSelect={setTapped}
           fitToken={`trip-${trip.id}-${activeDay}`}
         />
+
+        {tapped && (
+          <div className="absolute inset-x-0 bottom-3 flex justify-center px-3">
+            <div className="card flex max-w-sm items-center gap-3 p-3 shadow-lg">
+              <span aria-hidden className="text-lg">
+                {categoryOf(tapped.category).icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{tapped.name}</p>
+                <p className="text-xs text-muted">
+                  Add to day {activeDay + 1}?
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary shrink-0 text-xs"
+                disabled={busy}
+                onClick={async () => {
+                  const place = tapped;
+                  setTapped(null);
+                  await addNewPlace({
+                    name: place.name,
+                    lat: place.lat,
+                    lng: place.lng,
+                    address: null,
+                    city: null,
+                    country: null,
+                    countryCode: null,
+                    category: place.category,
+                  });
+                }}
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                className="shrink-0 text-xs text-muted hover:underline"
+                onClick={() => setTapped(null)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        )}
         {dropMode && (
           <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
             <p className="card px-3 py-1.5 text-xs shadow-lg">
