@@ -2,18 +2,29 @@ import { prisma } from "@/lib/prisma";
 import { isBuiltInCategory, type Category } from "@/lib/taxonomy";
 
 /// The categories somebody has made, in the order they chose.
+///
+/// Never throws. This is read by the layout every signed-in page renders
+/// inside, so a failure here is a failure of the whole app — and it has already
+/// happened once, in the window between the code shipping and the table
+/// existing. Somebody's own categories going missing should cost them their own
+/// categories, not the map, the trips and everything else.
 export async function userCategories(userId: string): Promise<Category[]> {
-  const rows = await prisma.category.findMany({
-    where: { userId },
-    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    label: r.label,
-    icon: r.icon,
-    color: r.color,
-    custom: true,
-  }));
+  try {
+    const rows = await prisma.category.findMany({
+      where: { userId },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      icon: r.icon,
+      color: r.color,
+      custom: true,
+    }));
+  } catch {
+    // The built-in categories are a working app on their own.
+    return [];
+  }
 }
 
 /// Whether this person is allowed to file something under this category.
