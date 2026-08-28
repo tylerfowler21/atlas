@@ -164,7 +164,10 @@ h1,
 }
 
 .roava-pin.is-muted {
-  opacity: 0.28;
+  /* Enough to recede, not so much that it disappears. It was 0.28 here and
+     0.45 on the Apple map — two different answers to the same question, and
+     both too faint over pale terrain. */
+  opacity: 0.72;
 }
 
 .maplibregl-ctrl-attrib {

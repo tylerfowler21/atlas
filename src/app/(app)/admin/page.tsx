@@ -7,6 +7,7 @@ import { appleSecretDaysLeft, appleSecretExpiry } from "@/auth";
 import { checkAppleCredentials } from "@/lib/apple-check";
 import { inspectAppleSecret } from "@/lib/apple-secret-inspect";
 import { inspectMapkitKey, mapkitConfigured, mapkitOrigin } from "@/lib/mapkit";
+import { checkMapkitCredentials } from "@/lib/mapkit-check";
 
 export const metadata: Metadata = { title: "Who's using Roava" };
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export default async function AdminPage({
   await requireAdmin();
 
   const appleCheck = verify === "apple" ? await verifyApple() : null;
+  const mapkitCheck = verify === "mapkit" ? await checkMapkitCredentials() : null;
 
   const apple = inspectAppleSecret();
   const mapkitKey = inspectMapkitKey();
@@ -208,6 +210,22 @@ export default async function AdminPage({
       )}
 
       <h2 className="mt-8 mb-2 text-sm font-medium">Apple Maps</h2>
+      {mapkitCheck ? (
+        <p
+          className={`card mb-2 px-3 py-2 text-xs ${
+            mapkitCheck.ok ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"
+          }`}
+        >
+          <strong>{mapkitCheck.ok ? "Apple accepted the map key." : "Apple rejected the map key."}</strong>{" "}
+          {mapkitCheck.detail}
+        </p>
+      ) : (
+        <p className="mb-2 text-xs">
+          <Link href="/admin?verify=mapkit" className="text-accent-text hover:underline">
+            Ask Apple whether this deployment&apos;s map key works →
+          </Link>
+        </p>
+      )}
       <ul className="card divide-y divide-line text-xs">
         <li className="flex gap-3 px-3 py-1.5">
           <span className="text-muted">configured</span>

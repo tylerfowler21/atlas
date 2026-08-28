@@ -123,7 +123,11 @@ export default function Explorer({
         lng: p.lng,
         color: meta.color,
         icon: placeIcon(p),
-        muted: p.status === "visited",
+        // Not muted for having been visited. Somewhere you have been is the
+        // point of this map, not background to it, and fading most of the pins
+        // made them hard to pick out — especially on Apple's paler cartography.
+        // The fade is for pins a filter has excluded, which these are not.
+        muted: false,
       };
     });
 

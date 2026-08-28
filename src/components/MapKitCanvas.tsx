@@ -85,7 +85,8 @@ function pinElement(pin: MapPin) {
   const el = document.createElement("div");
   el.className = "roava-pin";
   el.style.borderColor = pin.color;
-  if (pin.muted) el.style.opacity = "0.45";
+  // Matches the free basemap's muted pins, which used a different value.
+  if (pin.muted) el.style.opacity = "0.72";
 
   const face = document.createElement("span");
   face.className = "roava-pin-face";

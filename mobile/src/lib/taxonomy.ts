@@ -19,8 +19,10 @@ export const CATEGORIES = [
   { id: "nature", label: "Nature", icon: "🏞️", color: "#10b981" },
   { id: "hotel", label: "Stay", icon: "🛏️", color: "#6366f1" },
   { id: "shop", label: "Shop", icon: "🛍️", color: "#ec4899" },
-  { id: "transport", label: "Transport", icon: "✈️", color: "#64748b" },
-  { id: "other", label: "Other", icon: "📍", color: "#737373" },
+  // Both of these were mid-greys, which read as "disabled" and disappear over
+  // pale terrain. Slate and deep ocean stay neutral without vanishing.
+  { id: "transport", label: "Transport", icon: "✈️", color: "#4A6B8A" },
+  { id: "other", label: "Other", icon: "📍", color: "#0F2D4A" },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]["id"];
