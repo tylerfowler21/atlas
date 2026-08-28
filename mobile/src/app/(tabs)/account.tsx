@@ -28,7 +28,7 @@ function ago(iso: string) {
 
 export default function AccountScreen() {
   const palette = usePalette();
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUser } = useAuth();
   const { data: me, reload: reloadMe } = useApi<{ user: Me }>("/api/me");
   const { data: notes, reload: reloadNotes } = useApi<{
     notifications: Notification[];
@@ -164,6 +164,27 @@ export default function AccountScreen() {
         )}
 
         <CategoryManager />
+
+        <Text style={[styles.label, { color: palette.muted }]}>The welcome</Text>
+        <Pressable
+          style={styles.link}
+          onPress={async () => {
+            try {
+              await api("/api/replay-welcome", { method: "POST" });
+              // Clearing this is what sends the app back to the welcome screen.
+              updateUser({ onboarded: false });
+            } catch {
+              Alert.alert("Could not open the welcome", "Try again");
+            }
+          }}
+        >
+          <Text style={{ color: palette.accentText, fontSize: 14 }}>
+            Show me the welcome again
+          </Text>
+        </Pressable>
+        <Text style={{ color: palette.muted, fontSize: 12 }}>
+          Nothing is deleted — your places and trips stay as they are.
+        </Text>
 
         <Text style={[styles.label, { color: palette.muted }]}>Privacy</Text>
         <Pressable onPress={() => Linking.openURL(`${API_URL}/privacy`)} style={styles.link}>
