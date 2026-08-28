@@ -1,6 +1,8 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import FirstSteps from "@/components/FirstSteps";
+import type { FirstSteps as Steps } from "@/lib/first-steps";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
@@ -19,11 +21,14 @@ export default function Explorer({
   initialPlaces,
   trips,
   initialSelectedId = null,
+  firstSteps = null,
 }: {
   initialPlaces: PlaceDTO[];
   trips: TripDTO[];
   /// Arriving from ?place=<id>: open this place and centre on it.
   initialSelectedId?: string | null;
+  /// The short list of first steps, or null once it is finished or hidden.
+  firstSteps?: Steps | null;
 }) {
   const { categories, categoryOf, placeIconOf } = useCategories();
   const [places, setPlaces] = useState(initialPlaces);
@@ -341,6 +346,12 @@ export default function Explorer({
             </div>
 
             {notice && <p className="text-xs text-muted">{notice}</p>}
+
+            {firstSteps && !firstSteps.hidden && (
+              <div className={listOpen ? "" : "hidden lg:block"}>
+                <FirstSteps initial={firstSteps} />
+              </div>
+            )}
 
             <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
               <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">

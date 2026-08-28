@@ -17,7 +17,12 @@ function Routes() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={user !== null}>
+      {/* Somebody who has not been through the welcome sees only that: it ends
+          by marking them onboarded, which is what lets the tabs render. */}
+      <Stack.Protected guard={user !== null && !user.onboarded}>
+        <Stack.Screen name="welcome" />
+      </Stack.Protected>
+      <Stack.Protected guard={user !== null && user.onboarded}>
         <Stack.Screen name="(tabs)" />
         {/* The tabs draw their own chrome, so the stack hides its header by
             default. A screen pushed on top of them needs it back — without a

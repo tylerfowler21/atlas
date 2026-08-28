@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import FirstSteps from "@/components/FirstSteps";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
@@ -360,6 +361,7 @@ export default function MapScreen() {
                 data={listed}
                 keyExtractor={(p) => p.id}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+                ListHeaderComponent={<FirstSteps />}
                 ListEmptyComponent={
                   <Text style={[styles.listEmpty, { color: palette.muted }]}>
                     Nothing here yet.

@@ -12,6 +12,9 @@ type AuthState = {
   user: Me | null | undefined;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  /// Applies a change made elsewhere — finishing the welcome, picking a
+  /// username — without a round trip, so the screen it unlocks appears at once.
+  updateUser: (patch: Partial<Me>) => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -101,7 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((patch: Partial<Me>) => {
+    setUser((current) => (current ? { ...current, ...patch } : current));
+  }, []);
+
   return (
-    <AuthContext value={{ user, signIn, signOut }}>{children}</AuthContext>
+    <AuthContext value={{ user, signIn, signOut, updateUser }}>
+      {children}
+    </AuthContext>
   );
 }

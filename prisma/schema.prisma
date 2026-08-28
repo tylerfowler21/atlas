@@ -71,6 +71,13 @@ model User {
   /// Set once someone has been through (or skipped) the welcome. Null means
   /// they have never seen it, which is what sends them there.
   onboardedAt   DateTime?
+  /// When somebody put the first-steps list away.
+  ///
+  /// The steps themselves are not stored: they are counted from what actually
+  /// exists, so the list cannot claim you have made a trip when you have not,
+  /// and cannot be left stuck by a write that half-failed. The only thing worth
+  /// remembering is that you did not want to see it any more.
+  stepsHiddenAt DateTime?
 
   accounts       Account[]
   sessions       Session[]

@@ -18,6 +18,10 @@ roava-export.json
 
 # local dev Postgres (PGlite)
 .pgdata/
+# A dev database that has been set aside after corrupting. It is a Postgres
+# data directory, so it holds real OAuth tokens from local sign-ins — GitHub's
+# push protection is what caught one of these being committed.
+.pgdata.*/
 
 # iCloud Drive conflict copies
 *[0-9].toml

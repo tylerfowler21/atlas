@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import WelcomeFirstPlace from "@/components/WelcomeFirstPlace";
 import { useState } from "react";
 
 const TOUR = [
@@ -164,16 +165,24 @@ export default function Welcome({
       )}
 
       {step === 2 && (
+        <WelcomeFirstPlace
+          onSaved={() => setStep(3)}
+          onSkip={() => setStep(3)}
+        />
+      )}
+
+      {step === 3 && (
         <div className="space-y-5">
           <div>
             <p className="text-4xl" aria-hidden>
               ✈️
             </p>
-            <h1 className="mt-3 text-2xl font-semibold">Where do you want to start?</h1>
+            <h1 className="mt-3 text-2xl font-semibold">What next?</h1>
             <p className="mt-2 text-sm text-muted">
               The quickest way to a map that feels like yours is a trip
               you&apos;ve already taken — everywhere you went gets found and
-              pinned for you.
+              pinned for you. There&apos;s a short list of first steps waiting on
+              your map either way.
             </p>
           </div>
 
@@ -209,7 +218,7 @@ export default function Welcome({
       )}
 
       {step > 0 && (
-        <p className="mt-6 text-center text-xs text-muted">Step {step + 1} of 3</p>
+        <p className="mt-6 text-center text-xs text-muted">Step {step + 1} of 4</p>
       )}
     </div>
   );

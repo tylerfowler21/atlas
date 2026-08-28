@@ -23,12 +23,22 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  return {
-    id: session.user.id,
-    name: session.user.name ?? null,
-    email: session.user.email ?? null,
-    image: session.user.image ?? null,
-  };
+  // Confirmed against the database rather than taken from the token.
+  //
+  // A session cookie is a signed claim about who somebody was when they signed
+  // in, and it stays valid for weeks after the account it names has gone. Every
+  // page then asks for that user, does not find them, and throws — a server
+  // error on every screen, including the sign-in page you would use to get out
+  // of it. Deleting your account on one device did this to every other one.
+  //
+  // The bearer path below already reads the database for exactly this reason.
+  // This is the same read, on an indexed primary key, so the two agree about
+  // what a deleted account means.
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, name: true, email: true, image: true },
+  });
+  return user ?? null;
 }
 
 /// Looks up the user named by an `Authorization: Bearer` token. The database

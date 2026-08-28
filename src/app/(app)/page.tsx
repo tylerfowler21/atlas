@@ -2,6 +2,7 @@ import Explorer from "@/components/Explorer";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { serializePlace, serializeTrip } from "@/lib/types";
+import { firstSteps } from "@/lib/first-steps";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function MapPage({
   const { place } = await searchParams;
   const user = await requireUser();
 
-  const [places, trips] = await Promise.all([
+  const [places, trips, steps] = await Promise.all([
     prisma.place.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -24,6 +25,7 @@ export default async function MapPage({
       where: { userId: user.id },
       orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
     }),
+    firstSteps(user.id),
   ]);
 
   return (
@@ -31,6 +33,7 @@ export default async function MapPage({
       initialPlaces={places.map(serializePlace)}
       trips={trips.map(serializeTrip)}
       initialSelectedId={place ?? null}
+      firstSteps={steps.hidden ? null : steps}
     />
   );
 }
