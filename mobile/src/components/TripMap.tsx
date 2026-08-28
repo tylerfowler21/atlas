@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
+import { useCategories } from "@/lib/categories";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 import type { ItineraryItem } from "@/lib/api";
-import { stopIcon, travelMode } from "@/lib/taxonomy";
+import { travelMode } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
 
 /// Opens the platform's maps app with directions to somewhere.
@@ -48,6 +49,7 @@ export default function TripMap({
   items: ItineraryItem[];
   color: string;
 }) {
+  const { stopIconOf } = useCategories();
   const palette = usePalette();
 
   const stops = useMemo(
@@ -124,7 +126,7 @@ export default function TripMap({
           onCalloutPress={() => openDirections(i.place!.lat, i.place!.lng, i.title)}
         >
           <View style={[styles.pin, { borderColor: color, backgroundColor: palette.surface }]}>
-            <Text style={styles.glyph}>{i.emoji || stopIcon(i)}</Text>
+            <Text style={styles.glyph}>{i.emoji || stopIconOf(i)}</Text>
             <View style={[styles.badge, { backgroundColor: color }]}>
               <Text style={styles.badgeText}>{index + 1}</Text>
             </View>

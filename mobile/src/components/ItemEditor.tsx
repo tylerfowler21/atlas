@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import {
@@ -16,7 +17,7 @@ import {
   View,
 } from "react-native";
 import { api, type ItineraryItem, type Place, type SearchResult } from "@/lib/api";
-import { CATEGORIES, TRAVEL_MODES } from "@/lib/taxonomy";
+import { TRAVEL_MODES } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
 
 /// "09:30" — the shape the API stores and the website's time input produces.
@@ -98,6 +99,7 @@ export default function ItemEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { categories } = useCategories();
   const palette = usePalette();
   const existing = draft?.mode === "edit" ? draft.item : null;
   const kind = existing?.kind ?? (draft?.mode === "create" ? draft.kind : "stop");
@@ -360,7 +362,7 @@ export default function ItemEditor({
             <>
               <Text style={[styles.label, { color: palette.muted }]}>Category</Text>
               <View style={styles.chips}>
-                {CATEGORIES.map((c) => {
+                {categories.map((c) => {
                   const on = category === c.id;
                   return (
                     <Pressable

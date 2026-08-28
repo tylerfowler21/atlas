@@ -1,12 +1,14 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
-import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
+// taxonomy comes through the provider
 import { formatDay } from "@/lib/trips";
 import type { SearchResult } from "@/lib/types";
 
@@ -28,6 +30,7 @@ type Stop = {
 /// searching and clicking. Nothing to type but the name of a place, and every
 /// click lands on the map immediately.
 export default function TripBuilder() {
+  const { categories, categoryOf } = useCategories();
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -87,7 +90,7 @@ export default function TripBuilder() {
         muted: !badge,
       };
     });
-  }, [stops, dayStops]);
+  }, [stops, dayStops, categoryOf]);
 
   function addStop(
     title: string,
@@ -430,7 +433,7 @@ export default function TripBuilder() {
                           value={stop.category}
                           onChange={(e) => updateStop(stop.key, { category: e.target.value })}
                         >
-                          {CATEGORIES.map((c) => (
+                          {categories.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.icon} {c.label}
                             </option>

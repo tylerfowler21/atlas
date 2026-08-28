@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
@@ -17,7 +18,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
-import { placeIcon } from "@/lib/taxonomy";
+import { status as statusOf } from "@/lib/taxonomy";
 import { year } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
 
@@ -54,6 +55,7 @@ const RING = {
 } as const;
 
 export default function MapScreen() {
+  const { placeIconOf } = useCategories();
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
 
@@ -181,7 +183,7 @@ export default function MapScreen() {
                 },
               ]}
             >
-              <Text style={styles.pinGlyph}>{placeIcon(place)}</Text>
+              <Text style={styles.pinGlyph}>{placeIconOf(place)}</Text>
             </View>
           </Marker>
         ))}
@@ -368,7 +370,7 @@ export default function MapScreen() {
                     onPress={() => setDraft(placeToDraft(item))}
                     style={[styles.row, { borderBottomColor: palette.border }]}
                   >
-                    <Text style={styles.rowGlyph}>{placeIcon(item)}</Text>
+                    <Text style={styles.rowGlyph}>{placeIconOf(item)}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
                         {item.name}
@@ -377,7 +379,7 @@ export default function MapScreen() {
                         {[item.city, item.country].filter(Boolean).join(", ") || "—"}
                       </Text>
                     </View>
-                    {item.status === "visited" && <Text style={{ fontSize: 13 }}>✅</Text>}
+                    <Text style={{ fontSize: 13 }}>{statusOf(item.status).icon}</Text>
                     {item.status === "lived" && (
                       <Text style={{ color: palette.muted, fontSize: 12 }}>
                         {item.livedFrom

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { userCategories } from "@/lib/categories";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/user";
@@ -37,6 +38,10 @@ export default async function PublishedTripPage({
   const { trip, items } = found;
 
   if (await isBlockedBetween(viewer?.id ?? null, trip.userId)) notFound();
+
+  // The author's own categories, so their stops keep their icons and colours
+  // for anyone reading this.
+  const categories = await userCategories(trip.userId);
 
   const publicTrip: PublicTripDTO = {
     title: trip.title,
@@ -81,7 +86,11 @@ export default async function PublishedTripPage({
       </header>
 
       <div className="min-h-0 flex-1">
-        <SharedTrip trip={publicTrip} items={items} />
+        <SharedTrip
+          trip={publicTrip}
+          items={items}
+          categories={categories}
+        />
       </div>
     </div>
   );

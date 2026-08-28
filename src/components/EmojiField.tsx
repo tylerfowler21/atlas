@@ -1,7 +1,9 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import { useMemo, useState } from "react";
-import { category as categoryOf } from "@/lib/taxonomy";
+// taxonomy comes through the provider
 import { searchEmoji } from "@/lib/emoji-search";
 
 /// Travel-shaped quick picks. Typing or pasting anything else works too — on a
@@ -24,6 +26,7 @@ export default function EmojiField({
   fallback?: string;
   onChange: (emoji: string | null) => void;
 }) {
+  const { categoryOf } = useCategories();
   const fallback = explicitFallback ?? categoryOf(category).icon;
   const [query, setQuery] = useState("");
 

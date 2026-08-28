@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
-import { category as categoryOf, stopIcon, travelMode } from "@/lib/taxonomy";
+import { category as resolve, stopIcon, travelMode, type Category } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { PublicItemDTO, PublicTripDTO } from "@/lib/types";
@@ -13,10 +13,23 @@ import type { PublicItemDTO, PublicTripDTO } from "@/lib/types";
 export default function SharedTrip({
   trip,
   items,
+  categories = [],
 }: {
   trip: PublicTripDTO;
   items: PublicItemDTO[];
+  /// The categories this trip's own stops use, sent with the page.
+  ///
+  /// Whoever is reading a shared itinerary is not signed in as the person who
+  /// wrote it, and may not be signed in at all, so their own categories are no
+  /// help. Without these, a stop filed under one somebody invented would
+  /// quietly show as Other to everybody but its author.
+  categories?: Category[];
 }) {
+  const categoryOf = useCallback((id: string) => resolve(id, categories), [categories]);
+  const stopIconOf = useCallback(
+    (item: Parameters<typeof stopIcon>[0]) => stopIcon(item, categories),
+    [categories],
+  );
   const [activeDay, setActiveDay] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -43,12 +56,12 @@ export default function SharedTrip({
           lat: item.place!.lat,
           lng: item.place!.lng,
           color: badge ? trip.color : meta.color,
-          icon: stopIcon(item),
+          icon: stopIconOf(item),
           badge: badge ? String(badge) : null,
           muted: !badge,
         };
       });
-  }, [items, dayItems, trip.color]);
+  }, [items, dayItems, trip.color, categoryOf, stopIconOf]);
 
   const legs = useMemo(
     () =>
@@ -145,7 +158,7 @@ export default function SharedTrip({
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium">{item.title}</span>
                         <span className="block truncate text-xs text-muted">
-                          {stopIcon(item)}{" "}
+                          {stopIconOf(item)}{" "}
                           {item.kind === "travel"
                             ? `${travelMode(item.mode).label}${
                                 item.place && item.toPlace

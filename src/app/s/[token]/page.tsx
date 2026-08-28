@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { userCategories } from "@/lib/categories";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SharedTrip from "@/components/SharedTrip";
@@ -82,5 +83,5 @@ export default async function SharedTripPage({
     toPlace: item.toPlace ? toPublicPlace(item.toPlace) : null,
   }));
 
-  return <SharedTrip trip={trip} items={items} />;
+  return <SharedTrip trip={trip} items={items} categories={await userCategories(share.trip.userId)} />;
 }

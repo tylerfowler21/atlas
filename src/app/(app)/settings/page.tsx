@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/user";
 import Link from "next/link";
 import ProfileSettings from "@/components/ProfileSettings";
 import DeleteAccount from "@/components/DeleteAccount";
+import CategorySettings from "@/components/CategorySettings";
 
 export const metadata: Metadata = { title: "Profile — Roava" };
 export const dynamic = "force-dynamic";
@@ -32,6 +33,10 @@ export default async function SettingsPage() {
 
       <div className="mt-6">
         <ProfileSettings initialUsername={me.username} initialBio={me.bio} />
+      </div>
+
+      <div className="mt-8 border-t border-line pt-6">
+        <CategorySettings />
       </div>
 
       <div className="mt-8 flex gap-6 border-t border-line pt-4 text-sm">

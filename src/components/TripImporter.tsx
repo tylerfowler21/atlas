@@ -1,9 +1,11 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { CATEGORIES, category as categoryOf } from "@/lib/taxonomy";
+// taxonomy comes through the provider
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import type { SearchResult } from "@/lib/types";
 
@@ -29,6 +31,7 @@ type Row = ParsedEntry & {
 };
 
 export default function TripImporter() {
+  const { categories, categoryOf } = useCategories();
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -351,7 +354,7 @@ export default function TripImporter() {
                         )
                       }
                     >
-                      {CATEGORIES.map((c) => (
+                      {categories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.icon} {c.label}
                         </option>

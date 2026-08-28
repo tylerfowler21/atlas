@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ownsCategory } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
@@ -30,6 +31,12 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
+  }
+
+  // A category id arrives as a plain string, so it is checked against the
+  // built-in ones and this person's own before it is stored.
+  if (parsed.data.category && !(await ownsCategory(user.id, parsed.data.category))) {
+    return NextResponse.json({ error: "No such category" }, { status: 400 });
   }
 
   const data = parsed.data;

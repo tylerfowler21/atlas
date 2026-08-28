@@ -6,6 +6,8 @@ import { isAdmin } from "@/lib/admin";
 import { unreadCount } from "@/lib/notifications";
 import NavBar from "@/components/NavBar";
 import MobileTabBar from "@/components/MobileTabBar";
+import CategoriesProvider from "@/components/CategoriesProvider";
+import { userCategories } from "@/lib/categories";
 
 /// Everything the signed-in owner sees. The auth check lives here rather than
 /// in each page, so a new page under (app) is private by default; shared
@@ -24,6 +26,7 @@ export default async function AppLayout({
   if (!onboardedAt) redirect("/welcome");
 
   const unread = await unreadCount(user.id);
+  const categories = await userCategories(user.id);
 
   async function signOutAction() {
     "use server";
@@ -31,7 +34,7 @@ export default async function AppLayout({
   }
 
   return (
-    <>
+    <CategoriesProvider initial={categories}>
       <NavBar
         user={{ name: user.name, email: user.email, image: user.image }}
         admin={isAdmin(user)}
@@ -40,6 +43,6 @@ export default async function AppLayout({
       />
       <main className="min-h-0 flex-1 overflow-auto">{children}</main>
       <MobileTabBar admin={isAdmin(user)} signOutAction={signOutAction} />
-    </>
+    </CategoriesProvider>
   );
 }

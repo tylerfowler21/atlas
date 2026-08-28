@@ -1,5 +1,7 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import Link from "next/link";
 import { placeName } from "@/lib/place-name";
 import { useEffect, useState } from "react";
@@ -8,7 +10,7 @@ import CategoryPicker from "@/components/CategoryPicker";
 import EmojiField from "@/components/EmojiField";
 import Memories from "@/components/Memories";
 import StarRating from "@/components/StarRating";
-import { category as categoryOf, STATUSES } from "@/lib/taxonomy";
+import { STATUSES } from "@/lib/taxonomy";
 import { dayCount, toDateInput } from "@/lib/trips";
 import { flagEmoji } from "@/lib/geo";
 import { directionsUrl } from "@/lib/directions";
@@ -27,6 +29,7 @@ export default function PlaceDetail({
   onDeleted: (id: string) => void;
   onClose: () => void;
 }) {
+  const { categoryOf } = useCategories();
   const [draft, setDraft] = useState(place);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

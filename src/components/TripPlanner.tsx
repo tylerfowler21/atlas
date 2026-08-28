@@ -1,5 +1,7 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
@@ -9,14 +11,7 @@ import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
-import {
-  CATEGORIES,
-  category as categoryOf,
-  placeIcon,
-  stopIcon,
-  TRAVEL_MODES,
-  travelMode,
-} from "@/lib/taxonomy";
+import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type { ItineraryItemDTO, PlaceDTO, TripDTO } from "@/lib/types";
@@ -41,6 +36,7 @@ export default function TripPlanner({
   ownerImage: string | null;
   people: Collaborator[];
 }) {
+  const { categories, categoryOf, stopIconOf } = useCategories();
   // The trip is editable in place (title, dates, colour), so it lives in state
   // rather than being read straight from props.
   const [trip, setTrip] = useState(initialTrip);
@@ -96,13 +92,13 @@ export default function TripPlanner({
           lat: item.place!.lat,
           lng: item.place!.lng,
           color: badge ? trip.color : meta.color,
-          icon: stopIcon(item),
+          icon: stopIconOf(item),
           badge: badge ? String(badge) : null,
           muted: !badge,
         };
       })
       .concat(legEnds);
-  }, [items, dayItems, trip.color]);
+  }, [items, dayItems, trip.color, categoryOf, stopIconOf]);
 
   const legs = useMemo(
     () =>
@@ -474,7 +470,7 @@ export default function TripPlanner({
                           setEmojiFor((cur) => (cur === item.id ? null : item.id))
                         }
                       >
-                        {stopIcon(item)}
+                        {stopIconOf(item)}
                       </button>
                       <button
                         type="button"
@@ -637,7 +633,7 @@ export default function TripPlanner({
                           value={item.category}
                           onChange={(e) => patchItem(item.id, { category: e.target.value })}
                         >
-                          {CATEGORIES.map((c) => (
+                          {categories.map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.icon} {c.label}
                             </option>
@@ -973,6 +969,7 @@ function AddStop({
   notice: string | null;
   busy: boolean;
 }) {
+  const { categories, categoryOf, placeIconOf } = useCategories();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("other");
   // Searching the wider world from inside a trip, so adding somewhere new no
@@ -1033,7 +1030,7 @@ function AddStop({
                     if (ok) setQuery("");
                   }}
                 >
-                  <span aria-hidden>{placeIcon(place)}</span>
+                  <span aria-hidden>{placeIconOf(place)}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{place.name}</span>
                     <span className="block truncate text-xs text-muted">
@@ -1095,7 +1092,7 @@ function AddStop({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.icon} {c.label}
               </option>

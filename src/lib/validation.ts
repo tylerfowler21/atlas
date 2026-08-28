@@ -1,6 +1,13 @@
 import { z } from "zod";
-import { CATEGORY_IDS, STATUS_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
+import { STATUS_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
 import { REPORT_REASON_IDS } from "@/lib/report-reasons";
+
+/// A category id, which is either one of the built-in words or the cuid of one
+/// somebody made. Which of those it is cannot be settled here — it depends on
+/// who is asking — so the shape is checked here and the ownership by
+/// `resolveCategory` in the route, where the user is known.
+const categoryField = z.string().min(1).max(40);
+
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const optionalText = (max: number) =>
@@ -32,7 +39,7 @@ const emoji = z
 
 const placeFields = {
   name: trimmed(120).min(1, "Give the place a name"),
-  category: z.enum(CATEGORY_IDS),
+  category: categoryField,
   emoji,
   status: z.enum(STATUS_IDS),
   lat: z.number().min(-90).max(90),
@@ -50,7 +57,7 @@ const placeFields = {
 };
 
 export const placeCreateSchema = z.object(placeFields).extend({
-  category: z.enum(CATEGORY_IDS).default("other"),
+  category: categoryField.default("other"),
   status: z.enum(STATUS_IDS).default("wishlist"),
 });
 
@@ -89,7 +96,7 @@ const itemFields = {
   notes: optionalText(1000),
   dayIndex: z.number().int().min(0).max(365),
   startTime: optionalText(5),
-  category: z.enum(CATEGORY_IDS),
+  category: categoryField,
   position: z.number().int().min(0),
 };
 
@@ -98,7 +105,7 @@ export const itemCreateSchema = z
   .omit({ position: true })
   .extend({
     dayIndex: z.number().int().min(0).max(365).default(0),
-    category: z.enum(CATEGORY_IDS).default("other"),
+    category: categoryField.default("other"),
     // Everything created before travel legs existed is a stop, and so is
     // anything that does not say otherwise.
     kind: z.enum(["stop", "travel"]).default("stop"),
@@ -119,7 +126,7 @@ const importEntrySchema = z.object({
   title: trimmed(160).min(1),
   startTime: optionalText(5),
   notes: optionalText(1000),
-  category: z.enum(CATEGORY_IDS).default("other"),
+  category: categoryField.default("other"),
   place: z
     .object({
       name: trimmed(160).min(1),

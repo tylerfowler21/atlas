@@ -1,20 +1,23 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import { useMemo, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
-import { category as categoryOf, placeIcon } from "@/lib/taxonomy";
+// taxonomy comes through the provider
 import type { PlaceDTO } from "@/lib/types";
 
 export default function BeenMap({ places }: { places: PlaceDTO[] }) {
+  const { categoryOf, placeIconOf } = useCategories();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const pins = useMemo<MapPin[]>(
     () =>
       places.map((p) => {
         const meta = categoryOf(p.category);
-        return { id: p.id, lat: p.lat, lng: p.lng, color: meta.color, icon: placeIcon(p) };
+        return { id: p.id, lat: p.lat, lng: p.lng, color: meta.color, icon: placeIconOf(p) };
       }),
-    [places],
+    [places, categoryOf, placeIconOf],
   );
 
   const selected = places.find((p) => p.id === selectedId) ?? null;

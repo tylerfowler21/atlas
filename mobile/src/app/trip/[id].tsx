@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useCategories } from "@/lib/categories";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +17,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripMap, { openDirections } from "@/components/TripMap";
-import { stopIcon, travelMode } from "@/lib/taxonomy";
+import { travelMode } from "@/lib/taxonomy";
 import { dayAfter, formatDay } from "@/lib/dates";
 import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
@@ -48,6 +49,7 @@ function dayCount(trip: Trip, items: ItineraryItem[]) {
 }
 
 export default function TripScreen() {
+  const { stopIconOf } = useCategories();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error, loading, reload } = useApi<TripResponse>(`/api/trips/${id}`);
   const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
@@ -251,7 +253,7 @@ export default function TripScreen() {
                       onPress={() => setItem({ mode: "edit", item: entry })}
                     >
                       <Text style={styles.glyph}>
-                        {entry.emoji || mode?.icon || stopIcon(entry)}
+                        {entry.emoji || mode?.icon || stopIconOf(entry)}
                       </Text>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>

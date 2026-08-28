@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useCategories } from "@/lib/categories";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +17,6 @@ import {
 import { useRouter } from "expo-router";
 import { api, type Place } from "@/lib/api";
 import { openDirections } from "@/components/TripMap";
-import { CATEGORIES } from "@/lib/taxonomy";
 import { placeName } from "@/lib/place-name";
 import { usePalette } from "@/lib/use-palette";
 
@@ -58,6 +58,7 @@ export default function PlaceEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { categories } = useCategories();
   const palette = usePalette();
   const router = useRouter();
   const [name, setName] = useState(draft?.name ?? "");
@@ -266,7 +267,7 @@ export default function PlaceEditor({
 
           <Text style={[styles.label, { color: palette.muted }]}>Category</Text>
           <View style={styles.chips}>
-            {CATEGORIES.map((c) => {
+            {categories.map((c) => {
               const on = category === c.id;
               return (
                 <Pressable

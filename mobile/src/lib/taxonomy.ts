@@ -1,16 +1,14 @@
-/// MIRRORED FROM ../../src/lib/taxonomy.ts — keep the two identical.
-///
-/// Categories decide the emoji and colour of every pin, so if the app and the
-/// website disagree the same place looks like two different places. Metro
-/// cannot reach outside the app directory without monorepo configuration that
-/// would complicate cloud builds, so this is a copy, and `npm run check:mirror`
-/// in the website fails if they drift.
-
 /// The single source of truth for place categories. Everything that needs a
 /// colour, an icon, or a label for a category reads it from here so the map,
 /// the lists, and the itinerary can never drift apart.
+///
+/// These ten are built in and the same for everyone: they are what the
+/// geocoder's guesses map onto, and what a place falls back to when nothing
+/// else fits. People can add their own alongside them — those live in the
+/// database and arrive here as `extra`, and because these ids are words and
+/// those are cuids the two can never collide.
 
-export const CATEGORIES = [
+export const BUILT_IN_CATEGORIES = [
   { id: "restaurant", label: "Restaurant", icon: "🍽️", color: "#ef4444" },
   { id: "cafe", label: "Café", icon: "☕", color: "#b45309" },
   { id: "bar", label: "Bar", icon: "🍸", color: "#a855f7" },
@@ -25,41 +23,81 @@ export const CATEGORIES = [
   { id: "other", label: "Other", icon: "📍", color: "#0F2D4A" },
 ] as const;
 
-export type CategoryId = (typeof CATEGORIES)[number]["id"];
+export type BuiltInCategoryId = (typeof BUILT_IN_CATEGORIES)[number]["id"];
 
-export const CATEGORY_IDS = CATEGORIES.map((c) => c.id) as [
-  CategoryId,
-  ...CategoryId[],
+export const BUILT_IN_CATEGORY_IDS = BUILT_IN_CATEGORIES.map((c) => c.id) as [
+  BuiltInCategoryId,
+  ...BuiltInCategoryId[],
 ];
 
-const BY_ID = new Map(CATEGORIES.map((c) => [c.id as string, c]));
+/// What every part of the app actually handles: a built-in or one somebody
+/// made. Nothing downstream needs to know which it is looking at.
+export type Category = {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  /// True for the ones somebody made, which are the only ones they can edit.
+  custom?: boolean;
+};
 
-export function category(id: string) {
-  return BY_ID.get(id) ?? BY_ID.get("other")!;
+const BUILT_IN_BY_ID = new Map<string, Category>(
+  BUILT_IN_CATEGORIES.map((c) => [c.id as string, c as Category]),
+);
+
+/// The full list somebody sees: the built-in ones, then their own.
+export function allCategories(extra: Category[] = []): Category[] {
+  return [...(BUILT_IN_CATEGORIES as readonly Category[]), ...extra];
+}
+
+/// The category behind an id, from the built-in ones plus whatever the caller
+/// knows about.
+///
+/// Falls back to Other rather than throwing. An id can outlive its category —
+/// a shared trip seen by someone who does not have that category, or a place
+/// saved under one that has since been deleted — and a place with a puzzling
+/// icon is better than a page that will not render.
+export function category(id: string, extra: Category[] = []): Category {
+  return (
+    BUILT_IN_BY_ID.get(id) ??
+    extra.find((c) => c.id === id) ??
+    BUILT_IN_BY_ID.get("other")!
+  );
+}
+
+/// Whether an id names one of the built-in categories.
+export function isBuiltInCategory(id: string) {
+  return BUILT_IN_BY_ID.has(id);
 }
 
 /// The emoji to show for a saved place: its own if it has one, otherwise its
 /// category's. Every list and every map pin goes through here, so a place looks
 /// the same everywhere it appears.
-export function placeIcon(place: { emoji?: string | null; category: string }) {
-  return place.emoji || category(place.category).icon;
+export function placeIcon(
+  place: { emoji?: string | null; category: string },
+  extra: Category[] = [],
+) {
+  return place.emoji || category(place.category, extra).icon;
 }
 
 /// The emoji for one stop on an itinerary, most specific first: the stop's own
 /// override, then the place's, then the category. A stop with no place still
 /// gets an emoji this way.
-export function stopIcon(item: {
-  emoji?: string | null;
-  category: string;
-  kind?: string | null;
-  mode?: string | null;
-  place?: { emoji?: string | null; category: string } | null;
-}) {
+export function stopIcon(
+  item: {
+    emoji?: string | null;
+    category: string;
+    kind?: string | null;
+    mode?: string | null;
+    place?: { emoji?: string | null; category: string } | null;
+  },
+  extra: Category[] = [],
+) {
   if (item.emoji) return item.emoji;
   // A journey is identified by how you travelled, not by where it started.
   if (item.kind === "travel") return travelMode(item.mode).icon;
-  if (item.place) return placeIcon(item.place);
-  return category(item.category).icon;
+  if (item.place) return placeIcon(item.place, extra);
+  return category(item.category, extra).icon;
 }
 
 /// How you got from one place to the next. Drives the icon, the line drawn on
@@ -94,6 +132,13 @@ export const STATUSES = [
 /// Somewhere you have actually been, whether you passed through or stayed.
 export const BEEN_STATUSES = ["visited", "lived"] as const;
 
+const STATUS_BY_ID = new Map(STATUSES.map((s) => [s.id as string, s]));
+
+/// The status behind an id, falling back to the one a place starts life in.
+export function status(id: string) {
+  return STATUS_BY_ID.get(id) ?? STATUS_BY_ID.get("wishlist")!;
+}
+
 export type StatusId = (typeof STATUSES)[number]["id"];
 export const STATUS_IDS = STATUSES.map((s) => s.id) as [StatusId, ...StatusId[]];
 
@@ -104,7 +149,7 @@ export const STATUS_IDS = STATUSES.map((s) => s.id) as [StatusId, ...StatusId[]]
 /// leisure, shop, natural…) and a specific `type` (restaurant, cathedral,
 /// viewpoint…). Type wins when we recognise it, class is the fallback — that
 /// way "Sagrada Família" (building/cathedral) lands on Sight rather than Other.
-const BY_TYPE: Record<string, CategoryId> = {
+const BY_TYPE: Record<string, BuiltInCategoryId> = {
   restaurant: "restaurant",
   fast_food: "restaurant",
   food_court: "restaurant",
@@ -181,7 +226,7 @@ const BY_TYPE: Record<string, CategoryId> = {
   car_rental: "transport",
 };
 
-const BY_CLASS: Record<string, CategoryId> = {
+const BY_CLASS: Record<string, BuiltInCategoryId> = {
   historic: "sight",
   tourism: "sight",
   natural: "nature",
@@ -194,7 +239,9 @@ const BY_CLASS: Record<string, CategoryId> = {
   building: "other",
 };
 
-export function guessCategory(osmClass?: string, osmType?: string): CategoryId {
+/// Always a built-in one. A category somebody invented is theirs to apply: a
+/// gazetteer has no way to know that this particular bar is a "Sunset spot".
+export function guessCategory(osmClass?: string, osmType?: string): BuiltInCategoryId {
   const type = (osmType ?? "").toLowerCase();
   const klass = (osmClass ?? "").toLowerCase();
 

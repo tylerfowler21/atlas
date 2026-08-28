@@ -1,5 +1,7 @@
 "use client";
 
+import { useCategories } from "@/components/CategoriesProvider";
+
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
@@ -8,7 +10,7 @@ import { useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
-import { CATEGORIES, category as categoryOf, placeIcon, STATUSES } from "@/lib/taxonomy";
+import { STATUSES, status as statusOf } from "@/lib/taxonomy";
 import type { PlaceDTO, PlaceDraft, SearchResult, TripDTO } from "@/lib/types";
 
 const DRAFT_PIN_ID = "__draft__";
@@ -23,6 +25,7 @@ export default function Explorer({
   /// Arriving from ?place=<id>: open this place and centre on it.
   initialSelectedId?: string | null;
 }) {
+  const { categories, categoryOf, placeIconOf } = useCategories();
   const [places, setPlaces] = useState(initialPlaces);
   const [query, setQuery] = useState("");
   // Search results are stored with the query they belong to, so "is this
@@ -98,7 +101,7 @@ export default function Explorer({
         lat: p.lat,
         lng: p.lng,
         color: meta.color,
-        icon: placeIcon(p),
+        icon: placeIconOf(p),
         // Not muted for having been visited. Somewhere you have been is the
         // point of this map, not background to it, and fading most of the pins
         // made them hard to pick out — especially on Apple's paler cartography.
@@ -117,7 +120,7 @@ export default function Explorer({
       });
     }
     return list;
-  }, [visiblePlaces, draft]);
+  }, [visiblePlaces, draft, categoryOf, placeIconOf]);
 
   const selected = places.find((p) => p.id === selectedId) ?? null;
 
@@ -312,7 +315,7 @@ export default function Explorer({
             </div>
 
             <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
-              {CATEGORIES.map((c) => {
+              {categories.map((c) => {
                 const on = !hidden.has(c.id);
                 return (
                   <button
@@ -384,7 +387,7 @@ export default function Explorer({
                             className="grid size-7 shrink-0 place-items-center rounded-full text-xs"
                             style={{ background: `${meta.color}22` }}
                           >
-                            {placeIcon(p)}
+                            {placeIconOf(p)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm">{p.name}</span>
@@ -392,11 +395,13 @@ export default function Explorer({
                               {[p.city, p.country].filter(Boolean).join(", ") || meta.label}
                             </span>
                           </span>
-                          {p.status === "visited" && (
-                            <span aria-label="visited" className="text-xs">
-                              ✅
-                            </span>
-                          )}
+                          <span
+                            aria-label={statusOf(p.status).label}
+                            title={statusOf(p.status).label}
+                            className="text-xs"
+                          >
+                            {statusOf(p.status).icon}
+                          </span>
                         </button>
                       </li>
                     );

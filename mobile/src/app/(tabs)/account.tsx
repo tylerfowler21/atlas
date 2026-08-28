@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import CategoryManager from "@/components/CategoryManager";
 import {
   ActivityIndicator,
   Alert,
@@ -161,6 +162,8 @@ export default function AccountScreen() {
             ))}
           </View>
         )}
+
+        <CategoryManager />
 
         <Text style={[styles.label, { color: palette.muted }]}>Privacy</Text>
         <Pressable onPress={() => Linking.openURL(`${API_URL}/privacy`)} style={styles.link}>
