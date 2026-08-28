@@ -56,6 +56,20 @@ export async function DELETE(
   const existing = await loadOwned(id, user.id);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.place.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  // The itinerary entries go with it.
+  //
+  // The relation was SetNull, which left a stop with its old title and no
+  // place: still listed on the day, but with no pin, no route line and no
+  // directions. Deleting somewhere should remove it from the days it was on,
+  // not leave a husk that looks like a stop and behaves like nothing.
+  //
+  // Both ends of a journey count. A leg with one end missing is not a journey.
+  const [removed] = await prisma.$transaction([
+    prisma.itineraryItem.deleteMany({
+      where: { OR: [{ placeId: id }, { toPlaceId: id }] },
+    }),
+    prisma.place.delete({ where: { id } }),
+  ]);
+
+  return NextResponse.json({ ok: true, removedFromTrips: removed.count });
 }

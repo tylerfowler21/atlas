@@ -142,7 +142,17 @@ export default function PlaceEditor({
   }
 
   function remove() {
-    Alert.alert(draft!.name, "Remove this place?", [
+    // Names the trips it will change. Deleting a place removes it from the days
+    // it is on, which is not obvious from a screen about a place.
+    const onTripsNow = onTrips;
+    const message =
+      onTripsNow.length > 0
+        ? `This is on ${onTripsNow.length === 1 ? "a trip" : `${onTripsNow.length} trips`}: ${onTripsNow
+            .map((t) => t.title)
+            .join(", ")}. Deleting it removes those stops too.`
+        : "Remove this place?";
+
+    Alert.alert(draft!.name || "This place", message, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",

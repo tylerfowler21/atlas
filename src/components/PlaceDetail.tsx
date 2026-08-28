@@ -99,6 +99,17 @@ export default function PlaceDetail({
   }
 
   async function remove() {
+    // Asked only when there is something to lose. Deleting a place now removes
+    // it from the days it is on, and finding that out afterwards is too late.
+    if (onTrips.length > 0) {
+      const where = onTrips.map((t) => t.title).join(", ");
+      const confirmed = window.confirm(
+        `${placeName(place)} is on ${onTrips.length === 1 ? "a trip" : `${onTrips.length} trips`}: ${where}.\n\n` +
+          `Deleting it removes those stops too. This cannot be undone.`,
+      );
+      if (!confirmed) return;
+    }
+
     setBusy(true);
     const res = await fetch(`/api/places/${place.id}`, { method: "DELETE" });
     setBusy(false);
