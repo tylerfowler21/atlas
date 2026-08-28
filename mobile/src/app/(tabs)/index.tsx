@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
@@ -103,31 +104,10 @@ export default function MapScreen() {
   }, [all, status]);
 
   /// Cities and countries with how many places are in each, commonest first.
-  const groups = useMemo(() => {
-    const been = all.filter((p) => p.status === "visited" || p.status === "lived");
-    const tally = (key: "city" | "country") => {
-      const counted = new Map<string, number>();
-      for (const p of been) {
-        const value = p[key];
-        if (!value) continue;
-        counted.set(value, (counted.get(value) ?? 0) + 1);
-      }
-      return [...counted.entries()]
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    };
-    return { cities: tally("city"), countries: tally("country") };
-  }, [all]);
-
-  const counts = useMemo(() => {
-    const been = all.filter((p) => p.status === "visited" || p.status === "lived");
-    return {
-      total: all.length,
-      been: been.length,
-      cities: groups.cities.length,
-      countries: groups.countries.length,
-    };
-  }, [all, groups]);
+  /// Shared with the website so the two cannot disagree about a number somebody
+  /// might repeat out loud.
+  const groups = useMemo(() => groupPlaces(all), [all]);
+  const counts = groups.counts;
 
   /// What the list actually shows, once the view and any drill-down are applied.
   const listed = useMemo(() => {

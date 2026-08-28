@@ -2,6 +2,7 @@
 
 import { useCategories } from "@/components/CategoriesProvider";
 import FirstSteps from "@/components/FirstSteps";
+import { groupPlaces } from "@/lib/place-groups";
 import type { FirstSteps as Steps } from "@/lib/first-steps";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
@@ -71,6 +72,14 @@ export default function Explorer({
   // How far the sheet has been dragged from its resting position, in pixels.
   // Non-zero only while a finger is down, so the sheet follows the thumb
   // instead of only responding to a tap on something that looks draggable.
+  /// Which of the four counts the list is answering. Cities and countries are
+  /// questions about where you have been, and the answer is a list of places
+  /// rather than of restaurants — so choosing one shows the groups, and
+  /// choosing a group drills into it.
+  const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
+  /// The city or country being looked inside, if any.
+  const [drilledInto, setDrilledInto] = useState<string | null>(null);
+
   const [drag, setDrag] = useState(0);
   const dragFrom = useRef<number | null>(null);
 
@@ -78,14 +87,20 @@ export default function Explorer({
   const trimmedQuery = query.trim();
   const { results, searching } = usePlaceSearch(trimmedQuery, searchPlaces);
 
+  const groups = useMemo(() => groupPlaces(places), [places]);
+
   const visiblePlaces = useMemo(
     () =>
       places.filter(
         (p) =>
           (statusFilter === "all" || p.status === statusFilter) &&
+          // Been, Cities and Countries are all about where you have actually
+          // been, so a wishlist pin is not part of any of their answers.
+          (view === "all" || p.status !== "wishlist") &&
+          (drilledInto === null || p.city === drilledInto || p.country === drilledInto) &&
           !hidden.has(p.category),
       ),
-    [places, statusFilter, hidden],
+    [places, statusFilter, hidden, view, drilledInto],
   );
 
   const localMatches = useMemo(() => {
@@ -302,6 +317,36 @@ export default function Explorer({
               </div>
             </div>
 
+            {/* The four counts. "How many countries have you been to" is the
+                question this map exists to answer, and it is answered by naming
+                them — so these open into lists rather than just reading out a
+                number. */}
+            <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
+              {(
+                [
+                  ["all", groups.counts.total, "Places"],
+                  ["been", groups.counts.been, "Been"],
+                  ["cities", groups.counts.cities, "Cities"],
+                  ["countries", groups.counts.countries, "Countries"],
+                ] as const
+              ).map(([id, count, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`chip ${view === id ? "is-on" : ""}`}
+                  aria-pressed={view === id}
+                  onClick={() => {
+                    setView(id);
+                    setDrilledInto(null);
+                    setFitSeq((n) => n + 1);
+                  }}
+                >
+                  <span className="font-semibold tabular-nums">{count}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
               {[{ id: "all", label: "All", icon: "•" }, ...STATUSES].map((s) => (
                 <button
@@ -353,9 +398,60 @@ export default function Explorer({
               </div>
             )}
 
+            {drilledInto && (
+              <button
+                type="button"
+                className={`text-left text-xs text-accent-text hover:underline ${
+                  listOpen ? "" : "hidden lg:block"
+                }`}
+                onClick={() => {
+                  setDrilledInto(null);
+                  setFitSeq((n) => n + 1);
+                }}
+              >
+                ← Back to all {view === "cities" ? "cities" : "countries"}
+              </button>
+            )}
+
+            {(view === "cities" || view === "countries") && !drilledInto ? (
+              <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
+                <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
+                  {view === "cities" ? "Cities" : "Countries"} you&apos;ve been to
+                </h2>
+                {(view === "cities" ? groups.cities : groups.countries).length === 0 ? (
+                  <p className="card p-3 text-xs text-muted">
+                    Mark somewhere &ldquo;Been there&rdquo; and it&apos;ll be
+                    counted here.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+                    {(view === "cities" ? groups.cities : groups.countries).map((g) => (
+                      <li key={g.name}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
+                          onClick={() => {
+                            setDrilledInto(g.name);
+                            setFitSeq((n) => n + 1);
+                          }}
+                        >
+                          <span aria-hidden className="text-base">
+                            {view === "cities" ? "🏙️" : "🌍"}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm">{g.name}</span>
+                          <span className="shrink-0 text-xs tabular-nums text-muted">
+                            {g.count}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ) : (
             <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
               <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
-                Your places ({localMatches.length})
+                {drilledInto ?? "Your places"} ({localMatches.length})
               </h2>
               {localMatches.length === 0 ? (
                 places.length === 0 ? (
@@ -420,6 +516,7 @@ export default function Explorer({
                 </ul>
               )}
             </section>
+            )}
 
             {trimmedQuery.length >= 3 && (
               <section>
