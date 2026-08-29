@@ -92,7 +92,16 @@ export default function TripMap({
   }
 
   return (
-    <MapView ref={map} style={styles.map} initialRegion={region}>
+    <MapView
+      ref={map}
+      style={styles.map}
+      initialRegion={region}
+      // Where you are, on the map you are actually walking around with. The
+      // map tab has had this; the trip — the screen you have open while
+      // standing in the city — did not, which is backwards.
+      showsUserLocation
+      showsMyLocationButton
+    >
       {stops.length > 1 && (
         <Polyline
           coordinates={stops.map((i) => ({
