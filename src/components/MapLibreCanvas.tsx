@@ -257,8 +257,15 @@ export default function MapLibreCanvas({
   }, [map, styleReady, legs, routeColor]);
 
   // --- fit the viewport to every pin --------------------------------------
+  //
+  // Once per token, and not until there are pins to fit. Pins can arrive after
+  // the map does, and this used to give up in that gap and never try again.
+  const fittedFor = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!map || fitToken === undefined || pins.length === 0) return;
+    if (!map || fitToken === undefined) return;
+    if (fittedFor.current === fitToken) return;
+    if (pins.length === 0) return;
+    fittedFor.current = fitToken;
 
     if (pins.length === 1) {
       map.easeTo({ center: [pins[0]!.lng, pins[0]!.lat], zoom: 13, duration: 600 });
@@ -283,9 +290,7 @@ export default function MapLibreCanvas({
       ],
       { padding: 80, maxZoom: 14, duration: 600 },
     );
-    // Refitting is driven by fitToken alone; pins is read, not watched.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, fitToken]);
+  }, [map, fitToken, pins]);
 
   // --- pan to a single point ----------------------------------------------
   useEffect(() => {

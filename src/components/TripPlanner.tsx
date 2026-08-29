@@ -7,7 +7,7 @@ import { tripRegion } from "@/lib/place-groups";
 import { currentPosition, nearbyPlaces, HERE_MESSAGES } from "@/lib/here";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import type { SelectedPlace } from "@/components/map-types";
 import EmojiField from "@/components/EmojiField";
@@ -358,6 +358,44 @@ export default function TripPlanner({
     await patchItem(b.id, { position: a.position });
   }
 
+  /// Moving one stop to a particular place in the day, which is what dragging
+  /// does. The arrows swap neighbours; this cannot, because dragging the last
+  /// stop to the top is not a swap.
+  ///
+  /// The day is renumbered from zero afterwards and only the rows whose number
+  /// actually changed are saved. Positions arrive as whatever earlier edits
+  /// left behind, and reasoning about gaps in them is how off-by-one bugs get
+  /// in.
+  async function moveTo(from: number, to: number) {
+    if (from === to) return;
+
+    const next = [...dayItems];
+    const [moved] = next.splice(from, 1);
+    if (!moved) return;
+    next.splice(to, 0, moved);
+
+    // Shown before it is saved. Dragging that snaps back for half a second
+    // feels broken even when it worked.
+    setItems((prev) => {
+      const positions = new Map(next.map((item, i) => [item.id, i]));
+      return prev.map((item) =>
+        positions.has(item.id) ? { ...item, position: positions.get(item.id)! } : item,
+      );
+    });
+
+    await Promise.all(
+      next
+        .map((item, i) => (item.position === i ? null : patchItem(item.id, { position: i })))
+        .filter(Boolean),
+    );
+  }
+
+  /// Which row is being dragged, and which gap it is hovering over. The first
+  /// is a ref because nothing on screen depends on it; the second is state
+  /// because the line showing where it would land does.
+  const draggingFrom = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
   const dayDate = dateForDay(trip, activeDay);
 
   return (
@@ -462,17 +500,53 @@ export default function TripPlanner({
             </p>
           ) : (
             <ol className="mt-2 space-y-2">
+              {dayItems.length > 1 && (
+                // Only where dragging works. Touch does not fire the HTML drag
+                // events, and the arrows are still there for that — and for
+                // anybody doing this from a keyboard.
+                <li className="hidden text-xs text-muted lg:block">
+                  Drag a stop by its number to reorder the day.
+                </li>
+              )}
               {dayItems.map((item, index) => {
                 const meta = categoryOf(item.category);
                 return (
                   <li
                     key={item.id}
-                    className={`card p-2.5 ${selectedId === item.id ? "ring-2 ring-accent" : ""}`}
+                    draggable={!busy}
+                    onDragStart={(e) => {
+                      draggingFrom.current = index;
+                      // Firefox will not start a drag without data on it.
+                      e.dataTransfer.setData("text/plain", item.id);
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragOver={(e) => {
+                      if (draggingFrom.current === null) return;
+                      // Without this the drop is refused and nothing happens.
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOver !== index) setDragOver(index);
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      const from = draggingFrom.current;
+                      draggingFrom.current = null;
+                      setDragOver(null);
+                      if (from !== null) await moveTo(from, index);
+                    }}
+                    onDragEnd={() => {
+                      draggingFrom.current = null;
+                      setDragOver(null);
+                    }}
+                    className={`card p-2.5 transition-colors ${
+                      selectedId === item.id ? "ring-2 ring-accent" : ""
+                    } ${dragOver === index ? "ring-2 ring-accent/60" : ""}`}
                   >
                     <div className="flex items-start gap-2.5">
                       <span
                         aria-hidden
-                        className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                        title="Drag to reorder"
+                        className="grid size-7 shrink-0 cursor-grab place-items-center rounded-full text-xs font-semibold text-white active:cursor-grabbing"
                         style={{ background: trip.color }}
                       >
                         {index + 1}

@@ -376,10 +376,24 @@ export default function MapKitCanvas({
   }, [map, route, routeColor, legs]);
 
   /// Fit to the pins when the caller asks.
+  ///
+  /// Waits for the pins to exist. The map becomes available a moment before its
+  /// annotations are added, and this used to run in that gap, find nothing to
+  /// fit, and never try again — which is why opening a trip could leave you
+  /// looking at the whole world with the trip somewhere on it.
+  ///
+  /// Once per token, so adding a stop does not drag the map back from wherever
+  /// you had panned to. Changing day or trip changes the token, and that does
+  /// refit.
+  const fittedFor = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!map || fitToken === undefined || map.annotations.length === 0) return;
+    if (!map || fitToken === undefined) return;
+    if (fittedFor.current === fitToken) return;
+    if (map.annotations.length === 0) return;
+
+    fittedFor.current = fitToken;
     map.showItems(map.annotations, { animate: true });
-  }, [map, fitToken]);
+  }, [map, fitToken, pins]);
 
   /// Pan to one place without disturbing the rest.
   useEffect(() => {
