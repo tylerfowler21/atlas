@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { pinsToFit } from "@/lib/fit-pins";
 import type { MapCanvasProps, MapPin } from "@/components/map-types";
 import { categoryFromPoi } from "@/lib/poi-category";
 
@@ -392,7 +393,14 @@ export default function MapKitCanvas({
     if (map.annotations.length === 0) return;
 
     fittedFor.current = fitToken;
-    map.showItems(map.annotations, { animate: true });
+
+    // Matched by the id each annotation carries, not by position: the map owns
+    // that array and makes no promise about its order.
+    const wanted = new Set(pinsToFit(pins).map((p) => p.id));
+    const focused = map.annotations.filter(
+      (a) => wanted.has((a.data as { id?: string } | undefined)?.id ?? ""),
+    );
+    map.showItems(focused.length > 0 ? focused : map.annotations, { animate: true });
   }, [map, fitToken, pins]);
 
   /// Pan to one place without disturbing the rest.

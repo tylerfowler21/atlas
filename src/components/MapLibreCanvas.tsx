@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { pinsToFit } from "@/lib/fit-pins";
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -267,8 +268,10 @@ export default function MapLibreCanvas({
     if (pins.length === 0) return;
     fittedFor.current = fitToken;
 
-    if (pins.length === 1) {
-      map.easeTo({ center: [pins[0]!.lng, pins[0]!.lat], zoom: 13, duration: 600 });
+    const fitting = pinsToFit(pins);
+
+    if (fitting.length === 1) {
+      map.easeTo({ center: [fitting[0]!.lng, fitting[0]!.lat], zoom: 13, duration: 600 });
       return;
     }
 
@@ -276,7 +279,7 @@ export default function MapLibreCanvas({
     let south = 90;
     let east = -180;
     let north = -90;
-    for (const p of pins) {
+    for (const p of fitting) {
       west = Math.min(west, p.lng);
       east = Math.max(east, p.lng);
       south = Math.min(south, p.lat);
