@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   View,
+  PanResponder,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
@@ -47,6 +48,26 @@ function dayCount(trip: Trip, items: ItineraryItem[]) {
   // Never fewer days than there are entries, or a stop could have nowhere to be.
   const fromItems = items.reduce((n, i) => Math.max(n, i.dayIndex + 1), 0);
   return Math.max(1, fromDates, fromItems);
+}
+
+/// Each row's measured height, per day, so a distance dragged becomes a number
+/// of rows. Rows differ — a long title wraps — so the row being dragged
+/// supplies the unit.
+///
+/// Kept outside the component and reached through functions: the gesture
+/// callbacks are built during render, and neither a React ref read nor a
+/// direct mutation is allowed from there.
+const rowHeights: Record<number, number[]> = {};
+
+function recordRowHeight(day: number, index: number, height: number) {
+  (rowHeights[day] ??= [])[index] = height;
+}
+
+/// How many rows a drag of `dy` covers, from the height of the row being
+/// dragged. Falls back to a typical row when nothing has been measured yet.
+function rowsMoved(day: number, index: number, dy: number) {
+  const unit = rowHeights[day]?.[index] || 64;
+  return Math.round(dy / unit);
 }
 
 export default function TripScreen() {
@@ -113,6 +134,56 @@ export default function TripScreen() {
       }
     },
     [data, reload],
+  );
+
+  /// Dragging a stop up or down its day.
+  ///
+  /// PanResponder rather than a gesture library: it is part of React Native, so
+  /// this needs no native module and works on the build already on the phone.
+  ///
+  /// Each row reports its height as it lays out, so the distance dragged can be
+  /// turned into a number of rows. Rows are not all the same height — a long
+  /// title wraps — so the row being dragged supplies the unit, which is the one
+  /// whose height the finger is actually tracking.
+
+  /// The drag in progress. State because the rows are drawn from it, and
+  /// mirrored into a ref because the gesture's release handler runs long after
+  /// the render that created it and would otherwise close over an old value.
+  const [drag, setDrag] = useState<{ day: number; from: number; to: number } | null>(null);
+
+
+  const moveTo = useCallback(
+    async (day: number, from: number, to: number) => {
+      if (from === to) return;
+      const sameDay = (data?.items ?? [])
+        .filter((i) => i.dayIndex === day)
+        .sort((a, b) => a.position - b.position);
+
+      const next = [...sameDay];
+      const [moved] = next.splice(from, 1);
+      if (!moved) return;
+      next.splice(to, 0, moved);
+
+      try {
+        // Renumbered from zero, and only the rows that really moved are sent.
+        await Promise.all(
+          next
+            .map((item, i) =>
+              item.position === i
+                ? null
+                : api(`/api/items/${item.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ position: i }),
+                  }),
+            )
+            .filter(Boolean),
+        );
+        reload();
+      } catch (e) {
+        Alert.alert("Could not move that", e instanceof Error ? e.message : "Try again");
+      }
+    },
+    [data?.items, reload],
   );
 
   const remove = useCallback(
@@ -242,12 +313,45 @@ export default function TripScreen() {
               {stops.map((entry, index) => {
                 const leg = entry.kind === "travel";
                 const mode = leg ? travelMode(entry.mode) : null;
+
+                // Made per row so it closes over this row's day and index
+                // rather than over whatever they were when the screen mounted.
+                // PanResponder.create is a plain factory, not a hook.
+                const landingIndex = (dy: number) =>
+                  Math.max(0, Math.min(stops.length - 1, index + rowsMoved(day, index, dy)));
+
+                const pan = PanResponder.create({
+                  onStartShouldSetPanResponder: () => true,
+                  onMoveShouldSetPanResponder: () => true,
+                  onPanResponderGrant: () => setDrag({ day, from: index, to: index }),
+                  onPanResponderMove: (_event, gesture) => {
+                    const to = landingIndex(gesture.dy);
+                    setDrag({ day, from: index, to });
+                  },
+                  // The final distance comes with the release, so where it
+                  // lands is worked out from the gesture rather than read back
+                  // out of state written by an earlier render.
+                  onPanResponderRelease: (_event, gesture) => {
+                    setDrag(null);
+                    void moveTo(day, index, landingIndex(gesture.dy));
+                  },
+                  onPanResponderTerminate: () => setDrag(null),
+                });
+
+                const held = drag?.day === day && drag.from === index;
+                const target = drag?.day === day && drag.to === index;
+
                 return (
                   <View
                     key={entry.id}
+                    onLayout={(e) => {
+                      recordRowHeight(day, index, e.nativeEvent.layout.height);
+                    }}
                     style={[
                       styles.stop,
                       { backgroundColor: palette.surface, borderColor: palette.border },
+                      held && { opacity: 0.4 },
+                      target && !held && { borderColor: palette.accent, borderWidth: 2 },
                       // A journey is drawn differently from a stop: the day
                       // reads as a sequence, and the thing that moves you
                       // between places should not look like another place.
@@ -281,6 +385,9 @@ export default function TripScreen() {
                     </Pressable>
 
                     <View style={styles.controls}>
+                      <View {...pan.panHandlers} hitSlop={8} style={styles.grip}>
+                        <Text style={{ color: palette.muted, fontSize: 16 }}>≡</Text>
+                      </View>
                       {entry.place && (
                         <Pressable
                           onPress={() =>
@@ -385,6 +492,7 @@ const styles = StyleSheet.create({
   stopMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   stopTitle: { fontSize: 15 },
   stopMeta: { fontSize: 12, marginTop: 2 },
+  grip: { paddingHorizontal: 4, paddingVertical: 2 },
   controls: { flexDirection: "row", alignItems: "center", gap: 14, paddingLeft: 10 },
   addRow: { flexDirection: "row", gap: 16 },
   add: { paddingVertical: 10, paddingHorizontal: 4, marginTop: 4 },
