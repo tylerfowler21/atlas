@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
+import { currentPosition, nearbyPlaces } from "@/lib/here";
 import {
   ActivityIndicator,
   Alert,
@@ -135,6 +136,34 @@ export default function ItemEditor({
   const { results, searching } = usePlaceSearch(query, (q, mode) =>
     searchPlaces(q, mode, destination),
   );
+
+  /// Whatever is around wherever you are standing, once you have asked.
+  ///
+  /// The point of having this on a phone: you are in the place, you want it on
+  /// today, and typing its name is the long way round when the device already
+  /// knows where it is.
+  const [around, setAround] = useState<SearchResult[] | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  async function findMe() {
+    setLocating(true);
+    try {
+      const position = await currentPosition();
+      if (!position.ok) {
+        Alert.alert(position.title, position.detail);
+        return;
+      }
+      const found = await nearbyPlaces(position.lat, position.lng);
+      setAround(found);
+      if (found.length === 0) {
+        Alert.alert("Nothing named around here", "Try searching for it instead.");
+      }
+    } catch {
+      Alert.alert("Couldn't look up what's around you", "Try again in a moment.");
+    } finally {
+      setLocating(false);
+    }
+  }
 
   /// The ones where this trip is, with everything else folded away.
   const here = results.filter((r) => r.nearby);
@@ -325,6 +354,54 @@ export default function ItemEditor({
             {searching && <ActivityIndicator />}
           </View>
 
+          <Pressable
+            onPress={() => void findMe()}
+            disabled={locating}
+            style={[styles.hereButton, { borderColor: palette.border, opacity: locating ? 0.5 : 1 }]}
+          >
+            <Text style={{ color: palette.accentText, fontSize: 14, fontWeight: "500" }}>
+              {locating ? "Finding you…" : "📍 I'm here now"}
+            </Text>
+          </Pressable>
+
+          {around !== null && around.length > 0 && (
+            <View style={styles.aroundHeader}>
+              <Text style={{ color: palette.muted, fontSize: 12, flex: 1 }}>
+                Around you
+              </Text>
+              <Pressable onPress={() => setAround(null)} hitSlop={8}>
+                <Text style={{ color: palette.muted, fontSize: 12 }}>clear</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {(around ?? []).map((r) => (
+            <View
+              key={`near-${r.id}`}
+              style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
+            >
+              <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                {r.name}
+              </Text>
+              <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                {r.address ?? r.city ?? ""}
+              </Text>
+              <View style={styles.resultActions}>
+                <Pressable
+                  onPress={async () => {
+                    await saveAndAttach(r, "from");
+                    setAround(null);
+                  }}
+                  hitSlop={6}
+                >
+                  <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
+                    {travel ? "Leaving from here" : "Use this place"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+
           {shownResults.map((r) => (
             <View
               key={r.id}
@@ -450,6 +527,14 @@ const styles = StyleSheet.create({
   times: { flexDirection: "row", gap: 12 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingRight: 8 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  hereButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    paddingVertical: 11,
+    marginTop: 10,
+  },
+  aroundHeader: { flexDirection: "row", alignItems: "center", marginTop: 14, marginBottom: 4 },
   result: { borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 8 },
   resultActions: { flexDirection: "row", gap: 20, marginTop: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, maxWidth: 200 },
