@@ -5,6 +5,7 @@ import { useCategories } from "@/components/CategoriesProvider";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
 import { currentPosition, nearbyPlaces, HERE_MESSAGES } from "@/lib/here";
+import { enrichSelectedPlace } from "@/lib/enrich-place";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useMemo, useState, useRef } from "react";
@@ -894,16 +895,9 @@ export default function TripPlanner({
                 onClick={async () => {
                   const place = tapped;
                   setTapped(null);
-                  await addNewPlace({
-                    name: place.name,
-                    lat: place.lat,
-                    lng: place.lng,
-                    address: null,
-                    city: null,
-                    country: null,
-                    countryCode: null,
-                    category: place.category,
-                  });
+                  // With where it is, so it counts towards the city and country
+                  // totals like anything else saved.
+                  await addNewPlace(await enrichSelectedPlace(place));
                 }}
               >
                 Add

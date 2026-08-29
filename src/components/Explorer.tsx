@@ -15,6 +15,8 @@ import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
 import { STATUSES, status as statusOf } from "@/lib/taxonomy";
 import type { PlaceDTO, PlaceDraft, SearchResult, TripDTO } from "@/lib/types";
+import type { SelectedPlace } from "@/components/map-types";
+import { enrichSelectedPlace } from "@/lib/enrich-place";
 
 const DRAFT_PIN_ID = "__draft__";
 
@@ -188,6 +190,38 @@ export default function Explorer({
     } finally {
       setNotice(null);
     }
+  }
+
+  /// Tapping one of the places Apple already draws on the map.
+  ///
+  /// The map is full of named restaurants and museums, and until now the only
+  /// way to save one was to type its name into the search box while looking
+  /// straight at it. Its own label is a better answer than anything a reverse
+  /// lookup would guess from the coordinate.
+  ///
+  /// It opens the same form a dropped pin does, filled in — so it is still a
+  /// decision, with a status and a note, rather than a tap that silently adds
+  /// something to your map.
+  async function selectPlaceOnMap(place: SelectedPlace) {
+    setSelectedId(null);
+    // Shown at once with what Apple gave us, then filled in with where it is.
+    // Waiting on a network round trip before anything appears would make a tap
+    // feel like it had missed.
+    setDraft({
+      name: place.name,
+      lat: place.lat,
+      lng: place.lng,
+      address: null,
+      city: null,
+      country: null,
+      countryCode: null,
+      category: place.category,
+    });
+    const enriched = await enrichSelectedPlace(place);
+    setDraft((current) =>
+      // Only if they are still looking at the same thing.
+      current && current.lat === place.lat && current.lng === place.lng ? enriched : current,
+    );
   }
 
   const wishlistCount = places.filter((p) => p.status === "wishlist").length;
@@ -591,6 +625,7 @@ export default function Explorer({
                 ? () => setSelectedId(null)
                 : undefined
           }
+          onPlaceSelect={(place) => void selectPlaceOnMap(place)}
         />
         {dropMode && (
           <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
