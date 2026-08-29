@@ -4,6 +4,7 @@ import { useCategories } from "@/components/CategoriesProvider";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
+import { currentPosition, nearbyPlaces, HERE_MESSAGES } from "@/lib/here";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -16,7 +17,7 @@ import TripSettings from "@/components/TripSettings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
-import type { ItineraryItemDTO, PlaceDTO, TripDTO } from "@/lib/types";
+import type { ItineraryItemDTO, PlaceDTO, TripDTO, SearchResult } from "@/lib/types";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
@@ -1052,6 +1053,39 @@ function AddStop({
   /// kept — a trip to Lisbon can still have a day in Sintra, and the gazetteer
   /// does not always agree about which country a place is in — but it does not
   /// get to lead.
+  /// Whatever is around wherever you are standing, once you have asked.
+  ///
+  /// This is the reason to have the app open while actually on the trip: you
+  /// are in the place, you want it on today, and typing its name is the long
+  /// way round when the phone already knows where it is.
+  const [around, setAround] = useState<SearchResult[] | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  async function findMe() {
+    setLocating(true);
+    setLocationError(null);
+
+    const position = await currentPosition();
+    if (!position.ok) {
+      setLocating(false);
+      setLocationError(HERE_MESSAGES[position.error]);
+      return;
+    }
+
+    try {
+      const found = await nearbyPlaces(position.lat, position.lng);
+      setAround(found);
+      if (found.length === 0) {
+        setLocationError("Nothing named around here — try dropping a pin instead.");
+      }
+    } catch {
+      setLocationError("Couldn't look up what's around you.");
+    } finally {
+      setLocating(false);
+    }
+  }
+
   const here = worldResults.filter((r) => r.nearby);
   const elsewhere = worldResults.filter((r) => !r.nearby);
   const [showElsewhere, setShowElsewhere] = useState(false);
@@ -1088,8 +1122,68 @@ function AddStop({
         >
           📌 {dropMode ? "Click the map…" : "Drop a pin"}
         </button>
+
+        <button
+          type="button"
+          className="chip"
+          disabled={locating}
+          onClick={() => void findMe()}
+        >
+          📍 {locating ? "Finding you…" : "I'm here now"}
+        </button>
+
         {notice && <span className="text-xs text-muted">{notice}</span>}
       </div>
+
+      {locationError && <p className="mt-1.5 text-xs text-muted">{locationError}</p>}
+
+      {around && around.length > 0 && (
+        <>
+          <div className="mt-3 mb-1 flex items-center gap-2">
+            <p className="text-xs tracking-wide text-muted uppercase">Around you</p>
+            <button
+              type="button"
+              className="text-xs text-muted hover:underline"
+              onClick={() => setAround(null)}
+            >
+              clear
+            </button>
+          </div>
+          <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+            {around.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
+                  onClick={async () => {
+                    await onAddNew({
+                      name: r.name,
+                      lat: r.lat,
+                      lng: r.lng,
+                      address: r.address,
+                      city: r.city,
+                      country: r.country,
+                      countryCode: r.countryCode,
+                      category: r.category,
+                    });
+                    setAround(null);
+                  }}
+                >
+                  <span aria-hidden>{categoryOf(r.category).icon}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm">{r.name}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {r.address ?? r.city ?? ""}
+                    </span>
+                  </span>
+                  <span className="text-xs text-accent-text">Add</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {matches.length > 0 && (
         <ul className="mt-2 divide-y divide-line overflow-hidden rounded-lg border border-line">

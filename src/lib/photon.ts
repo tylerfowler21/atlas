@@ -39,7 +39,11 @@ export async function photonSearch(query: string): Promise<SearchResult[]> {
 
   const body = (await res.json()) as { features?: PhotonFeature[] };
 
-  return (body.features ?? [])
+  return toResults(body.features ?? []);
+}
+
+function toResults(features: PhotonFeature[]): SearchResult[] {
+  return features
     .filter((f) => f.properties.name && f.geometry?.coordinates)
     .map((f, index) => {
       const p = f.properties;
@@ -60,5 +64,46 @@ export async function photonSearch(query: string): Promise<SearchResult[]> {
           .filter(Boolean)
           .join(", "),
       };
+    });
+}
+
+/// What is around a point, nearest first.
+///
+/// This is the question somebody standing in a doorway is actually asking. A
+/// reverse lookup answers "what is the address here", which gives a street and
+/// a number; this gives the named things within a short walk, so the café you
+/// are inside is on the list rather than the road outside it.
+export async function photonNearby(
+  lat: number,
+  lng: number,
+  radiusKm = 0.3,
+): Promise<SearchResult[]> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lng),
+    radius: String(radiusKm),
+    limit: "12",
+    lang: "en",
+  });
+
+  const res = await fetch(`${ENDPOINT.replace(/api\/$/, "reverse")}?${params}`, {
+    headers: { "User-Agent": USER_AGENT },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Photon reverse responded ${res.status}`);
+
+  const body = (await res.json()) as { features?: PhotonFeature[] };
+
+  const seen = new Set<string>();
+  return toResults(body.features ?? [])
+    // Postcodes come back as features with the postcode as the name. Nobody is
+    // standing in a postcode, and "1200-479" is not a stop on a trip.
+    .filter((r) => /\p{L}/u.test(r.name))
+    // The same shop reaching us twice, once per OpenStreetMap entry.
+    .filter((r) => {
+      const key = `${r.name.toLowerCase()}|${r.lat.toFixed(4)},${r.lng.toFixed(4)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
 }
