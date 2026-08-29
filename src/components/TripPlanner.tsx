@@ -732,6 +732,7 @@ export default function TripPlanner({
         <AddTravel places={library} onAdd={addItem} busy={busy} />
 
         <AddStop
+          destination={trip.destination}
           places={library}
           usedPlaceIds={new Set(items.map((i) => i.placeId).filter(Boolean) as string[])}
           onAdd={addItem}
@@ -994,6 +995,7 @@ function AddTravel({
 /// The add-a-stop control: pick one of your saved places, or type anything
 /// that isn't a place ("Train to Porto") as a plain entry.
 function AddStop({
+  destination,
   places,
   usedPlaceIds,
   onAdd,
@@ -1020,6 +1022,9 @@ function AddStop({
   onToggleDrop: () => void;
   notice: string | null;
   busy: boolean;
+  /// Where the trip is. Searching "Time Out Market" from inside a trip to
+  /// Lisbon should not begin with the one in New York.
+  destination: string | null;
 }) {
   const { categories, categoryOf, placeIconOf } = useCategories();
   const [query, setQuery] = useState("");
@@ -1027,7 +1032,18 @@ function AddStop({
   // Searching the wider world from inside a trip, so adding somewhere new no
   // longer means a detour to the map and back.
   const trimmed = query.trim();
-  const { results: worldResults } = usePlaceSearch(trimmed, searchPlaces);
+  const { results: worldResults } = usePlaceSearch(trimmed, (q, mode) =>
+    searchPlaces(q, mode, destination),
+  );
+
+  /// Split by whether the result is where this trip is. Everywhere else is
+  /// kept — a trip to Lisbon can still have a day in Sintra, and the gazetteer
+  /// does not always agree about which country a place is in — but it does not
+  /// get to lead.
+  const here = worldResults.filter((r) => r.nearby);
+  const elsewhere = worldResults.filter((r) => !r.nearby);
+  const [showElsewhere, setShowElsewhere] = useState(false);
+  const shown = destination && here.length > 0 && !showElsewhere ? here : worldResults;
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1100,10 +1116,12 @@ function AddStop({
       {trimmed.length >= 3 && worldResults.length > 0 && (
         <>
           <p className="mt-3 mb-1 text-xs tracking-wide text-muted uppercase">
-            Somewhere new
+            {destination && here.length > 0 && !showElsewhere
+              ? `In ${destination}`
+              : "Somewhere new"}
           </p>
           <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
-            {worldResults.map((r) => (
+            {shown.map((r) => (
               <li key={r.id}>
                 <button
                   type="button"
@@ -1133,6 +1151,18 @@ function AddStop({
               </li>
             ))}
           </ul>
+
+          {destination && here.length > 0 && elsewhere.length > 0 && (
+            <button
+              type="button"
+              className="mt-1.5 text-xs text-muted hover:underline"
+              onClick={() => setShowElsewhere((v) => !v)}
+            >
+              {showElsewhere
+                ? `Just the ones in ${destination}`
+                : `${elsewhere.length} more elsewhere in the world`}
+            </button>
+          )}
         </>
       )}
 

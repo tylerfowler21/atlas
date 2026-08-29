@@ -106,6 +106,9 @@ export type Place = {
 
 /// A place found by the geocoder, before anyone saves it.
 export type SearchResult = {
+  /// Whether this one is where the caller said they were looking — set only
+  /// when a region was given, so a trip screen can show these on their own.
+  nearby?: boolean;
   id: string;
   name: string;
   lat: number;

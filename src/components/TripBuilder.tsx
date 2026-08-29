@@ -70,6 +70,15 @@ export default function TripBuilder() {
     searchPlaces(q, mode, destination.trim()),
   );
 
+  /// The ones where this trip is, and everything else folded away behind a
+  /// count. Searching a chain from inside a trip should not open with the
+  /// branch on another continent.
+  const hint = destination.trim();
+  const here = results.filter((r) => r.nearby);
+  const elsewhere = results.filter((r) => !r.nearby);
+  const [showElsewhere, setShowElsewhere] = useState(false);
+  const shownResults = hint && here.length > 0 && !showElsewhere ? here : results;
+
   const dayStops = useMemo(
     () => stops.filter((s) => s.dayIndex === day),
     [stops, day],
@@ -356,7 +365,7 @@ export default function TripBuilder() {
                       </button>
                     </li>
                   )}
-                  {results.map((r) => (
+                  {shownResults.map((r) => (
                     <li key={r.id}>
                       <button
                         type="button"
@@ -375,6 +384,18 @@ export default function TripBuilder() {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {hint && here.length > 0 && elsewhere.length > 0 && (
+                <button
+                  type="button"
+                  className="mt-1.5 text-xs text-muted hover:underline"
+                  onClick={() => setShowElsewhere((v) => !v)}
+                >
+                  {showElsewhere
+                    ? `Just the ones in ${hint}`
+                    : `${elsewhere.length} more elsewhere in the world`}
+                </button>
               )}
             </div>
 

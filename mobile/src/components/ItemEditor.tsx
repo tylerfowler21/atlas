@@ -90,11 +90,15 @@ function PlacePicker({
 
 export default function ItemEditor({
   draft,
+  destination,
   places,
   onClose,
   onSaved,
 }: {
   draft: ItemDraft | null;
+  /// Where the trip is, used to narrow the search. Looking for a chain from
+  /// inside a trip to Barcelona should not begin with the branch in Chicago.
+  destination: string | null;
   places: Place[];
   onClose: () => void;
   onSaved: () => void;
@@ -128,7 +132,15 @@ export default function ItemEditor({
   const options = [...added, ...places];
 
   /// Searched as you type, the same as the map tab and the website.
-  const { results, searching } = usePlaceSearch(query, searchPlaces);
+  const { results, searching } = usePlaceSearch(query, (q, mode) =>
+    searchPlaces(q, mode, destination),
+  );
+
+  /// The ones where this trip is, with everything else folded away.
+  const here = results.filter((r) => r.nearby);
+  const elsewhere = results.filter((r) => !r.nearby);
+  const [showElsewhere, setShowElsewhere] = useState(false);
+  const shownResults = destination && here.length > 0 && !showElsewhere ? here : results;
 
   /// Saved as somewhere you want to go: it is on an itinerary, which is a plan
   /// rather than a record. Marking it visited is a thing you do afterwards.
@@ -313,7 +325,7 @@ export default function ItemEditor({
             {searching && <ActivityIndicator />}
           </View>
 
-          {results.map((r) => (
+          {shownResults.map((r) => (
             <View
               key={r.id}
               style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
@@ -340,6 +352,16 @@ export default function ItemEditor({
               </View>
             </View>
           ))}
+
+          {destination && here.length > 0 && elsewhere.length > 0 && (
+            <Pressable onPress={() => setShowElsewhere((v) => !v)} hitSlop={8}>
+              <Text style={{ color: palette.muted, fontSize: 12, paddingVertical: 8 }}>
+                {showElsewhere
+                  ? `Just the ones in ${destination}`
+                  : `${elsewhere.length} more elsewhere in the world`}
+              </Text>
+            </Pressable>
+          )}
 
           <PlacePicker
             label={travel ? "Leaving from" : "Which saved place?"}

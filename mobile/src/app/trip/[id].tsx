@@ -170,6 +170,7 @@ export default function TripScreen() {
 
       <ItemEditor
         draft={item}
+        destination={data?.trip.destination ?? null}
         places={placeData?.places ?? []}
         onClose={() => setItem(null)}
         onSaved={reload}

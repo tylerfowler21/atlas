@@ -109,9 +109,11 @@ export async function geocode(
   };
 
   return [...merged]
-    .map((r, i) => ({ r, i }))
+    .map((r, i) => ({ r: { ...r, nearby: inRegion(r) }, i }))
     // Index keeps it stable, so within each group the engines' own order holds.
-    .sort((a, b) => Number(inRegion(b.r)) - Number(inRegion(a.r)) || a.i - b.i)
+    .sort((a, b) => Number(b.r.nearby) - Number(a.r.nearby) || a.i - b.i)
     .map(({ r }) => r)
-    .slice(0, 10);
+    // Room for a few elsewhere behind the fold, without the list becoming the
+    // gazetteer's entire opinion.
+    .slice(0, 12);
 }

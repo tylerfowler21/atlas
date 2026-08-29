@@ -69,6 +69,12 @@ export type SearchResult = {
   countryCode: string | null;
   category: string;
   context: string;
+  /// Whether this one is where the caller said they were looking — set only
+  /// when a region was given. The ranking already puts these first; saying so
+  /// lets the trip screens show them on their own and fold the rest away,
+  /// which is the difference between "here are five Time Out Markets" and
+  /// "here is the one in Lisbon".
+  nearby?: boolean;
 };
 
 type DateLike = { toISOString(): string };
