@@ -62,3 +62,36 @@ export function groupPlaces(places: PlaceLike[]) {
 export function within<T extends PlaceLike>(places: T[], name: string): T[] {
   return places.filter((p) => p.city === name || p.country === name);
 }
+
+/// Where a trip appears to be, worked out from the stops already on it.
+///
+/// The destination field is optional and most trips are made without one, so
+/// relying on it to narrow a search means the narrowing does not happen for
+/// most trips. The stops know: a trip with nine places in Portugal is a trip
+/// to Portugal, whatever the field says.
+///
+/// Deliberately cautious. It answers only when one country holds most of the
+/// stops, so a genuinely multi-country trip gets no hint rather than a wrong
+/// one, and adds the city only when that city is most of the trip too.
+export function tripRegion(
+  stops: { city?: string | null; country?: string | null }[],
+): string | null {
+  const countries = tally(stops.map((s) => ({ status: "visited", ...s })), "country");
+  const top = countries[0];
+  if (!top) return null;
+
+  const placed = stops.filter((s) => s.country).length;
+  // Half is the line: below it, the trip is not really "in" anywhere.
+  if (top.count * 2 <= placed) return null;
+
+  const cities = tally(
+    stops
+      .filter((s) => s.country === top.name)
+      .map((s) => ({ status: "visited", ...s })),
+    "city",
+  );
+  const city = cities[0];
+  if (city && city.count * 2 > top.count) return `${city.name}, ${top.name}`;
+
+  return top.name;
+}

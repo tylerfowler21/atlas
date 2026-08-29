@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { tripRegion } from "@/lib/place-groups";
 import { useCategories } from "@/lib/categories";
 import {
   ActivityIndicator,
@@ -170,7 +171,11 @@ export default function TripScreen() {
 
       <ItemEditor
         draft={item}
-        destination={data?.trip.destination ?? null}
+        destination={
+          // What the trip says it is, or what its stops say it is.
+          data?.trip.destination ??
+          tripRegion((data?.items ?? []).map((i) => i.place).filter((p) => p !== null))
+        }
         places={placeData?.places ?? []}
         onClose={() => setItem(null)}
         onSaved={reload}

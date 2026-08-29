@@ -3,6 +3,7 @@
 import { useCategories } from "@/components/CategoriesProvider";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
+import { tripRegion } from "@/lib/place-groups";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -47,6 +48,17 @@ export default function TripPlanner({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /// What to narrow the search to: what the trip says it is, or failing that
+  /// what its stops say it is. The destination field is optional and most
+  /// trips are made without one, so relying on it alone means the narrowing
+  /// does not happen for most trips.
+  const searchRegion = useMemo(
+    () =>
+      trip.destination ??
+      tripRegion(items.map((i) => i.place).filter((p) => p !== null)),
+    [trip.destination, items],
+  );
+
   const [dropMode, setDropMode] = useState(false);
   /// A place Apple labelled that has been tapped, waiting to be confirmed.
   ///
@@ -732,7 +744,7 @@ export default function TripPlanner({
         <AddTravel places={library} onAdd={addItem} busy={busy} />
 
         <AddStop
-          destination={trip.destination}
+          destination={searchRegion}
           places={library}
           usedPlaceIds={new Set(items.map((i) => i.placeId).filter(Boolean) as string[])}
           onAdd={addItem}
