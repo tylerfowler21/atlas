@@ -90,23 +90,31 @@ export default async function SharedTripPage({
   const viewer = await getCurrentUser();
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1">
+    <div className="h-full overflow-y-auto">
+      {/* min-h-full so a long itinerary scrolls on a phone, and h-full from lg
+          up so the two-column layout has a definite height to fill — the map
+          inside it sizes by percentage and needs something real to resolve
+          against. */}
+      <div className="flex min-h-full flex-col lg:h-full">
         <SharedTrip
           trip={trip}
           items={items}
           categories={await resolvedCategories(share.trip.userId)}
         />
-      </div>
 
-      {/* A secret link is the one most likely to reach somebody with no
-          account: it is what you send a friend. */}
-      {!viewer && (
-        <SignUpInvite
-          author={share.trip.user?.username ? `@${share.trip.user.username}` : (share.trip.user?.name ?? null)}
-          returnTo={`/s/${token}`}
-        />
-      )}
+        {/* A secret link is the one most likely to reach somebody with no
+            account: it is what you send a friend. */}
+        {!viewer && (
+          <SignUpInvite
+            author={
+              share.trip.user?.username
+                ? `@${share.trip.user.username}`
+                : (share.trip.user?.name ?? null)
+            }
+            returnTo={`/s/${token}`}
+          />
+        )}
+      </div>
     </div>
   );
 }

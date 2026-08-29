@@ -390,11 +390,37 @@ export default function TripPlanner({
     );
   }
 
-  /// Which row is being dragged, and which gap it is hovering over. The first
-  /// is a ref because nothing on screen depends on it; the second is state
-  /// because the line showing where it would land does.
+  /// Dragging a stop up or down the day.
+  ///
+  /// Pointer events rather than the HTML drag-and-drop API, which does not
+  /// exist on touch: a phone fires no dragstart at all, so the whole feature
+  /// was invisible on the device most likely to be used while actually on the
+  /// trip. Pointer events are the same code for a mouse and a finger.
   const draggingFrom = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+  /// Each row's position on screen, measured when a drag starts, so working out
+  /// which row the finger is over is a comparison rather than a hit test on
+  /// whatever is under it — the dragged row itself is under it.
+  const rowBounds = useRef<{ top: number; bottom: number }[]>([]);
+  const listRef = useRef<HTMLOListElement>(null);
+
+  function measureRows() {
+    const list = listRef.current;
+    if (!list) return;
+    rowBounds.current = [...list.querySelectorAll("[data-stop]")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    });
+  }
+
+  function rowAt(y: number) {
+    const rows = rowBounds.current;
+    if (rows.length === 0) return null;
+    if (y < rows[0]!.top) return 0;
+    if (y > rows[rows.length - 1]!.bottom) return rows.length - 1;
+    const hit = rows.findIndex((r) => y >= r.top && y <= r.bottom);
+    return hit === -1 ? null : hit;
+  }
 
   const dayDate = dateForDay(trip, activeDay);
 
@@ -499,12 +525,12 @@ export default function TripPlanner({
               Nothing planned for this day yet.
             </p>
           ) : (
-            <ol className="mt-2 space-y-2">
+            <ol ref={listRef} className="mt-2 space-y-2">
               {dayItems.length > 1 && (
                 // Only where dragging works. Touch does not fire the HTML drag
                 // events, and the arrows are still there for that — and for
                 // anybody doing this from a keyboard.
-                <li className="hidden text-xs text-muted lg:block">
+                <li className="text-xs text-muted">
                   Drag a stop by its number to reorder the day.
                 </li>
               )}
@@ -513,41 +539,43 @@ export default function TripPlanner({
                 return (
                   <li
                     key={item.id}
-                    draggable={!busy}
-                    onDragStart={(e) => {
-                      draggingFrom.current = index;
-                      // Firefox will not start a drag without data on it.
-                      e.dataTransfer.setData("text/plain", item.id);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      if (draggingFrom.current === null) return;
-                      // Without this the drop is refused and nothing happens.
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                      if (dragOver !== index) setDragOver(index);
-                    }}
-                    onDrop={async (e) => {
-                      e.preventDefault();
-                      const from = draggingFrom.current;
-                      draggingFrom.current = null;
-                      setDragOver(null);
-                      if (from !== null) await moveTo(from, index);
-                    }}
-                    onDragEnd={() => {
-                      draggingFrom.current = null;
-                      setDragOver(null);
-                    }}
+                    data-stop
                     className={`card p-2.5 transition-colors ${
                       selectedId === item.id ? "ring-2 ring-accent" : ""
                     } ${dragOver === index ? "ring-2 ring-accent/60" : ""}`}
                   >
                     <div className="flex items-start gap-2.5">
                       <span
-                        aria-hidden
                         title="Drag to reorder"
-                        className="grid size-7 shrink-0 cursor-grab place-items-center rounded-full text-xs font-semibold text-white active:cursor-grabbing"
+                        aria-label={`Stop ${index + 1}. Drag to reorder.`}
+                        className="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-full text-xs font-semibold text-white select-none active:cursor-grabbing"
                         style={{ background: trip.color }}
+                        onPointerDown={(e) => {
+                          if (busy) return;
+                          // Keeps the page from scrolling under the finger and
+                          // routes every later move here even once the pointer
+                          // has left this little circle.
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                          measureRows();
+                          draggingFrom.current = index;
+                          setDragOver(index);
+                        }}
+                        onPointerMove={(e) => {
+                          if (draggingFrom.current === null) return;
+                          const over = rowAt(e.clientY);
+                          if (over !== null && over !== dragOver) setDragOver(over);
+                        }}
+                        onPointerUp={async () => {
+                          const from = draggingFrom.current;
+                          const to = dragOver;
+                          draggingFrom.current = null;
+                          setDragOver(null);
+                          if (from !== null && to !== null) await moveTo(from, to);
+                        }}
+                        onPointerCancel={() => {
+                          draggingFrom.current = null;
+                          setDragOver(null);
+                        }}
                       >
                         {index + 1}
                       </span>
@@ -831,7 +859,10 @@ export default function TripPlanner({
         />
       </aside>
 
-      <div className="relative min-h-[55vh] flex-1 lg:min-h-0">
+      {/* A real height rather than a minimum: the map fills its box with a
+          percentage height, which needs something definite to resolve against.
+          See the same note in SharedTrip. */}
+      <div className="relative h-[55vh] lg:h-auto lg:min-h-0 lg:flex-1">
         <MapCanvas
           pins={pins}
           route={route}

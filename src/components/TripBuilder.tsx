@@ -539,7 +539,7 @@ export default function TripBuilder() {
         )}
       </aside>
 
-      <div className="relative min-h-[45vh] flex-1 lg:min-h-0">
+      <div className="relative h-[45vh] lg:h-auto lg:min-h-0 lg:flex-1">
         <MapCanvas
           pins={pins}
           fitToken={`builder-${stops.length}-${day}`}

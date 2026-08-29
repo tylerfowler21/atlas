@@ -53,7 +53,7 @@ export default async function PublishedTripPage({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-y-auto">
       <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">
@@ -87,7 +87,7 @@ export default async function PublishedTripPage({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1">
+      <div className="lg:min-h-0 lg:flex-1">
         <SharedTrip
           trip={publicTrip}
           items={items}

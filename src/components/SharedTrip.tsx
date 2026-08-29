@@ -85,8 +85,11 @@ export default function SharedTrip({
   const dayDate = dateForDay(trip, activeDay);
 
   return (
-    <div className="flex h-full flex-col lg:flex-row">
-      <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-line p-4 lg:h-full lg:w-[26rem] lg:border-r lg:border-b-0">
+    // Natural height on a phone, so the page scrolls and the map below the
+    // itinerary can actually be reached. Full height and two columns only from
+    // lg up, where both fit at once.
+    <div className="flex flex-col lg:h-full lg:flex-row">
+      <aside className="flex w-full shrink-0 flex-col gap-4 border-b border-line p-4 lg:h-full lg:w-[26rem] lg:overflow-y-auto lg:border-r lg:border-b-0">
         <div>
           <p className="text-xs tracking-wide text-muted uppercase">Shared itinerary</p>
           <h1 className="mt-1 flex items-center gap-2 text-lg font-semibold">
@@ -210,7 +213,13 @@ export default function SharedTrip({
         </p>
       </aside>
 
-      <div className="relative min-h-[55vh] flex-1 lg:min-h-0">
+      {/* A real height, not a minimum.
+          The map fills its box with height:100%, and a percentage height needs
+          a parent with a definite height to resolve against. With only a
+          min-height it resolved to nothing, the map collapsed to zero, and a
+          phone showed a blank band where the map should be — while a laptop was
+          fine, because there the row supplies a real height. */}
+      <div className="relative h-[55vh] lg:h-auto lg:min-h-0 lg:flex-1">
         <MapCanvas
           // A shared itinerary is readable with no account, so this map is
           // shown to strangers and crawlers. Keeping it on the free basemap
