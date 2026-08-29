@@ -53,6 +53,13 @@
         "projectId": "a002252e-fcc1-45d2-9db7-6a852ea5408f"
       }
     },
-    "backgroundColor": "#FCFAF6"
+    "backgroundColor": "#FCFAF6",
+    "updates": {
+      "url": "https://u.expo.dev/a002252e-fcc1-45d2-9db7-6a852ea5408f",
+      "fallbackToCacheTimeout": 3000
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    }
   }
 }

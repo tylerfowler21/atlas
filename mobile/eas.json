@@ -12,7 +12,8 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.roava.co"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -21,13 +22,15 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.roava.co"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.roava.co"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
