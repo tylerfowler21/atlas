@@ -57,9 +57,15 @@ export async function currentPosition(): Promise<Here> {
   }
 }
 
-export async function nearbyPlaces(lat: number, lng: number): Promise<SearchResult[]> {
+export async function nearbyPlaces(
+  lat: number,
+  lng: number,
+  /// Kilometres. Left out for "what is around me"; passed by a press on the map,
+  /// which is asking about the thing under the finger.
+  radiusKm?: number,
+): Promise<SearchResult[]> {
   const found = await api<{ results: SearchResult[] }>(
-    `/api/nearby?lat=${lat}&lng=${lng}`,
+    `/api/nearby?lat=${lat}&lng=${lng}${radiusKm ? `&radius=${radiusKm}` : ""}`,
   );
   return found.results ?? [];
 }

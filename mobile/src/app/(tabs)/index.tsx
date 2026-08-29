@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
 import { useCategories } from "@/lib/categories";
@@ -11,6 +12,7 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -57,11 +59,33 @@ const RING = {
 } as const;
 
 export default function MapScreen() {
-  const { placeIconOf } = useCategories();
+  const { placeIconOf, categoryOf } = useCategories();
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
 
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
+  /// What was found under a long press, waiting to be chosen from.
+  const [underFinger, setUnderFinger] = useState<
+    { lat: number; lng: number; found: SearchResult[] } | null
+  >(null);
+  const [looking, setLooking] = useState(false);
+
+  async function offerWhatIsHere(lat: number, lng: number) {
+    setLooking(true);
+    try {
+      const found = await nearbyPlaces(lat, lng, 0.08);
+      if (found.length === 0) {
+        // Nothing named there, so the old behaviour is the right one.
+        setDraft({ name: "", lat, lng });
+        return;
+      }
+      setUnderFinger({ lat, lng, found });
+    } catch {
+      setDraft({ name: "", lat, lng });
+    } finally {
+      setLooking(false);
+    }
+  }
   const [query, setQuery] = useState("");
   /// Status filtering lives here now the Been tab is gone: the map of
   /// everywhere you have been is the same map with everything else hidden.
@@ -134,17 +158,101 @@ export default function MapScreen() {
 
   return (
     <View style={styles.fill}>
+      {/* A long press that does nothing for a second reads as a press that
+          missed. */}
+      {looking && (
+        <View style={[styles.looking, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <ActivityIndicator />
+          <Text style={{ color: palette.muted, fontSize: 13 }}>Looking at what&apos;s there…</Text>
+        </View>
+      )}
+
       <PlaceEditor draft={draft} onClose={() => setDraft(null)} onSaved={reload} />
+
+      {/* What was found under a long press. A sheet rather than an alert: the
+          answer is a list with icons and addresses, and an alert would flatten
+          it into a paragraph. */}
+      <Modal
+        visible={underFinger !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setUnderFinger(null)}
+      >
+        <View style={[styles.hereSheet, { backgroundColor: palette.background }]}>
+          <View style={styles.hereHead}>
+            <Text style={[styles.hereTitle, { color: palette.ink }]}>What&apos;s here?</Text>
+            <Pressable onPress={() => setUnderFinger(null)} hitSlop={8}>
+              <Text style={{ color: palette.muted, fontSize: 15 }}>Close</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView>
+            {(underFinger?.found ?? []).map((r: SearchResult) => (
+              <Pressable
+                key={r.id}
+                style={[styles.hereRow, { borderColor: palette.border }]}
+                onPress={() => {
+                  setUnderFinger(null);
+                  setDraft({
+                    name: r.name,
+                    lat: r.lat,
+                    lng: r.lng,
+                    category: r.category,
+                    address: r.address,
+                    city: r.city,
+                    country: r.country,
+                    countryCode: r.countryCode,
+                  });
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>{categoryOf(r.category).icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                    {r.name}
+                  </Text>
+                  <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                    {r.address ?? r.city ?? ""}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+
+            {/* Still an option: not everything worth remembering is a place
+                anybody has named. */}
+            <Pressable
+              style={[styles.hereRow, { borderColor: palette.border }]}
+              onPress={() => {
+                const at = underFinger;
+                setUnderFinger(null);
+                if (at) setDraft({ name: "", lat: at.lat, lng: at.lng });
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>📌</Text>
+              <Text style={{ color: palette.accentText, fontSize: 15 }}>
+                None of these — just drop a pin
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </Modal>
 
       <MapView
         style={styles.fill}
         initialRegion={initial}
         showsUserLocation
         // Long press rather than tap: a tap is how you dismiss things and pan,
-        // and dropping a pin every time someone touches the map is maddening.
+        // and acting every time someone touches the map is maddening.
+        //
+        // It asks what is actually there before offering a blank pin. Apple
+        // draws the restaurants and museums right there on the map, and having
+        // to type the name of the thing you are pressing on is a strange way to
+        // save it. The app cannot be told which label was pressed — that only
+        // reaches Google's maps on iOS, not Apple's — so it asks what stands
+        // within eighty metres of the point instead, which is the same question
+        // from the other end.
         onLongPress={(e) => {
           const { latitude, longitude } = e.nativeEvent.coordinate;
-          setDraft({ name: "", lat: latitude, lng: longitude });
+          void offerWhatIsHere(latitude, longitude);
         }}
       >
         {places.map((place) => (
@@ -428,6 +536,32 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statusChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5 },
+  looking: {
+    position: "absolute",
+    top: 104,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    zIndex: 10,
+  },
+  hereSheet: { flex: 1, paddingHorizontal: 18, paddingTop: 18 },
+  hereHead: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  hereTitle: { flex: 1, fontSize: 18, fontWeight: "600" },
+  hereRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    marginBottom: 8,
+  },
   results: {
     position: "absolute",
     top: 104,

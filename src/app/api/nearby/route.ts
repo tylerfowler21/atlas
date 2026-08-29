@@ -22,8 +22,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "That isn't on Earth" }, { status: 400 });
   }
 
+  // How far to look. A finger on a map is asking about the thing under it, not
+  // about the neighbourhood, so callers doing that ask for a tighter circle
+  // than "what is around me".
+  const radius = Number(searchParams.get("radius"));
+  const km = Number.isFinite(radius) && radius > 0 ? Math.min(radius, 2) : undefined;
+
   try {
-    return NextResponse.json({ results: await photonNearby(lat, lng) });
+    return NextResponse.json({ results: await photonNearby(lat, lng, km) });
   } catch {
     return NextResponse.json(
       { error: "Couldn't look up what's around you", results: [] },
