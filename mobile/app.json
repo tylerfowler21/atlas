@@ -10,7 +10,7 @@
     "ios": {
       "bundleIdentifier": "com.tylerfowler.roava",
       "usesAppleSignIn": true,
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Roava shows where you are on the map so you can save the place you're standing in.",
         "ITSAppUsesNonExemptEncryption": false
