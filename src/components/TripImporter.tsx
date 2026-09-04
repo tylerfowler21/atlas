@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 // taxonomy comes through the provider
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
+import DraftTrip from "@/components/DraftTrip";
 import type { SearchResult } from "@/lib/types";
 
 const PLACEHOLDER = `Day 1: Zürich
@@ -59,7 +60,7 @@ export default function TripImporter() {
   /// neither, and the commonest list anybody keeps — the restaurants they
   /// liked — is the second kind. Wrapping one in an invented trip would put
   /// something on the Trips page that never happened.
-  const [destination, setDestination] = useState<"trip" | "places">("trip");
+  const [destination, setDestination] = useState<"trip" | "places" | "draft">("trip");
 
   const [title, setTitle] = useState("");
   const [region, setRegion] = useState("");
@@ -226,12 +227,18 @@ export default function TripImporter() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-xl font-semibold">
-        {destination === "trip" ? "Add a trip you've taken" : "Import a list of places"}
+        {destination === "trip"
+          ? "Add a trip you've taken"
+          : destination === "places"
+            ? "Import a list of places"
+            : "Plan a trip"}
       </h1>
       <p className="mt-1 text-sm text-muted">
         {destination === "trip"
           ? "Paste where you went, roughly by day, or upload the document you planned it in. Every place is looked up on the map and saved to your places, so you only type names."
-          : "Upload or paste a list — a note full of restaurants, a spreadsheet, anything one-per-line. Every place is looked up on the map, and you confirm each one before it is saved."}
+          : destination === "places"
+            ? "Upload or paste a list — a note full of restaurants, a spreadsheet, anything one-per-line. Every place is looked up on the map, and you confirm each one before it is saved."
+            : "Say where you're going and get a first draft. It lands in the box below as an ordinary itinerary, and goes through the same checking as anything else — nothing is saved until you have been through it."}
       </p>
 
       {/* What the list becomes. Asked first, because it changes what the rest
@@ -242,6 +249,7 @@ export default function TripImporter() {
           [
             ["trip", "🧳", "A trip I took"],
             ["places", "📍", "Just places"],
+            ["draft", "✨", "Plan one for me"],
           ] as const
         ).map(([id, icon, label]) => (
           <button
@@ -256,7 +264,7 @@ export default function TripImporter() {
           </button>
         ))}
       </div>
-      {destination === "trip" && (
+      {destination !== "places" && (
         <Link
           href="/trips/import"
           className="mt-1 inline-block text-xs text-muted hover:underline"
@@ -267,7 +275,7 @@ export default function TripImporter() {
 
       <div className="mt-6 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          {destination === "trip" && (
+          {destination !== "places" && (
             <label className="text-xs text-muted">
               Trip name
               <input
@@ -282,10 +290,10 @@ export default function TripImporter() {
               is a note about one place, and without saying which, "Husk" finds
               the one in Sydney. */}
           <label className="text-xs text-muted">
-            {destination === "trip" ? "Country or region" : "Where these are"}
+            {destination !== "places" ? "Country or region" : "Where these are"}
             <input
               className="input mt-1"
-              placeholder={destination === "trip" ? "Switzerland" : "Charleston"}
+              placeholder={destination !== "places" ? "Switzerland" : "Charleston"}
               value={region}
               onChange={(e) => setRegion(e.target.value)}
             />
@@ -297,7 +305,7 @@ export default function TripImporter() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           {/* A list of places has no first day. */}
-          {destination === "trip" && (
+          {destination !== "places" && (
             <label className="text-xs text-muted">
               First day (optional)
               <input
@@ -316,12 +324,25 @@ export default function TripImporter() {
               className="mb-1.5 size-4"
             />
             <span className="mb-1">
-              {destination === "trip"
+              {destination !== "places"
                 ? "Mark every place as “Been there”"
                 : "These are places I’ve been"}
             </span>
           </label>
         </div>
+
+        {destination === "draft" && (
+          <DraftTrip
+            onDrafted={(draft) => {
+              setText(draft.text);
+              // A drafted trip is still a trip: it needs a name and a region,
+              // and the model has just supplied both.
+              if (!title.trim()) setTitle(draft.title);
+              if (!region.trim()) setRegion(draft.destination);
+              setFileNote("Drafted. Read it through — the next step checks every place against a real map.");
+            }}
+          />
+        )}
 
         {/* A file, for the list somebody already keeps somewhere else.
             Everything lands in the same box, so what gets imported is always
@@ -382,7 +403,7 @@ export default function TripImporter() {
 
         <p className="text-xs text-muted">
           One place per line, and anything after <code> — </code> becomes a note.
-          {destination === "trip" && (
+          {destination !== "places" && (
             <>
               {" "}
               <code>Day 2</code> starts a new day and a leading <code>09:00</code>{" "}
@@ -394,7 +415,7 @@ export default function TripImporter() {
               {" "}
               <span className="text-foreground">
                 {preview.length} {preview.length === 1 ? "entry" : "entries"}
-                {destination === "trip" && (
+                {destination !== "places" && (
                   <>
                     {" "}
                     across {dayCount} {dayCount === 1 ? "day" : "days"}
@@ -446,7 +467,7 @@ export default function TripImporter() {
                 <li key={index} className="card p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* A list of places has no days in it. */}
-                    {destination === "trip" && (
+                    {destination !== "places" && (
                       <span className="chip">Day {row.dayIndex + 1}</span>
                     )}
                     {row.startTime && (
@@ -533,16 +554,16 @@ export default function TripImporter() {
               type="button"
               className="btn btn-primary"
               // A list of places needs no name; a trip does.
-              disabled={busy || (destination === "trip" && title.trim().length === 0)}
+              disabled={busy || (destination !== "places" && title.trim().length === 0)}
               onClick={create}
             >
               {busy
                 ? "Saving…"
-                : destination === "trip"
+                : destination !== "places"
                   ? `Create trip with ${rows.length} stops`
                   : `Add ${matched} ${matched === 1 ? "place" : "places"} to my map`}
             </button>
-            {destination === "trip" && title.trim().length === 0 && (
+            {destination !== "places" && title.trim().length === 0 && (
               <span className="text-xs text-amber-600 dark:text-amber-400">
                 Give the trip a name first.
               </span>
