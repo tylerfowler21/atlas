@@ -52,7 +52,13 @@ function withoutTrailing(title: string, city: string | null) {
   return title.toLowerCase().endsWith(suffix) ? title.slice(0, -suffix.length) : title;
 }
 
-export default function TripImporter() {
+export default function TripImporter({
+  initialMode = "trip",
+}: {
+  /// Which tab to open on, so a link can point straight at drafting rather
+  /// than landing somebody on importing and hoping they look along the row.
+  initialMode?: "trip" | "places" | "draft";
+}) {
   const { categories, categoryOf } = useCategories();
   const router = useRouter();
 
@@ -60,7 +66,7 @@ export default function TripImporter() {
   /// neither, and the commonest list anybody keeps — the restaurants they
   /// liked — is the second kind. Wrapping one in an invented trip would put
   /// something on the Trips page that never happened.
-  const [destination, setDestination] = useState<"trip" | "places" | "draft">("trip");
+  const [destination, setDestination] = useState<"trip" | "places" | "draft">(initialMode);
 
   const [title, setTitle] = useState("");
   const [region, setRegion] = useState("");

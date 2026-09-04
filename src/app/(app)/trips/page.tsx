@@ -29,6 +29,12 @@ export default async function TripsPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-start gap-2">
+        {/* Drafting had no way in but the address bar: the only route to it
+            was a button marked "Import a file", which is not what somebody
+            wanting a trip planned goes looking for. */}
+        <Link href="/import?mode=draft" className="btn btn-ghost whitespace-nowrap">
+          ✨ Plan one for me
+        </Link>
         <Link href="/import" className="btn btn-ghost whitespace-nowrap">
           Import a file
         </Link>
@@ -46,8 +52,11 @@ export default async function TripsPage() {
             places. Already been somewhere? Paste the itinerary and every stop
             is found and pinned for you.
           </p>
-          <div className="flex justify-center gap-2">
-            <Link href="/trips/import" className="btn btn-primary">
+          <div className="flex flex-wrap justify-center gap-2">
+            <Link href="/import?mode=draft" className="btn btn-primary">
+              ✨ Plan one for me
+            </Link>
+            <Link href="/trips/import" className="btn btn-ghost">
               Add a past trip
             </Link>
           </div>

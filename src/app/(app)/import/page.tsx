@@ -8,7 +8,17 @@ export const dynamic = "force-dynamic";
 /// Importing is not a trips feature, whatever the old address said. The
 /// commonest thing anybody imports is a list of places with no trip anywhere
 /// near it.
-export default async function ImportPage() {
+export default async function ImportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
   await requireUser();
-  return <TripImporter />;
+  const { mode } = await searchParams;
+
+  return (
+    <TripImporter
+      initialMode={mode === "draft" || mode === "places" ? mode : "trip"}
+    />
+  );
 }
