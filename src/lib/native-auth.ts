@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 /// Authentication for the iOS app.
 ///
 /// The website signs people in with cookies, which a native app cannot use.
@@ -132,4 +133,44 @@ export async function userForAppleIdentity(
       },
     },
   });
+}
+
+/// How long the app has to redeem a code. Long enough to survive being handed
+/// between Safari and the app, short enough that a code seen in a URL is
+/// almost always already dead.
+const CODE_TTL_MS = 90_000;
+
+/// Mints a one-time code for the app to exchange for a token.
+export async function issueNativeAuthCode(userId: string, state: string) {
+  const code = randomBytes(32).toString("base64url");
+
+  await prisma.nativeAuthCode.create({
+    data: { code, userId, state, expiresAt: new Date(Date.now() + CODE_TTL_MS) },
+  });
+
+  // Expired codes are worthless and nobody comes back for them.
+  await prisma.nativeAuthCode
+    .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+    .catch(() => {});
+
+  return code;
+}
+
+/// Redeems a code for the user it was minted for.
+///
+/// Marked used before anything else happens, so two requests racing with the
+/// same code cannot both win — which is the whole defence when the code
+/// travelled through a URL scheme anything could have been listening to.
+export async function redeemNativeAuthCode(code: string, state: string) {
+  const { count } = await prisma.nativeAuthCode.updateMany({
+    where: { code, state, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() },
+  });
+  if (count === 0) return null;
+
+  const found = await prisma.nativeAuthCode.findUnique({
+    where: { code },
+    select: { userId: true },
+  });
+  return found?.userId ?? null;
 }

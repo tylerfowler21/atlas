@@ -1,11 +1,11 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useState } from "react";
-import { Image, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
 import { useAuth } from "@/lib/auth";
 import { usePalette } from "@/lib/use-palette";
 
 export default function SignIn() {
-  const { signIn } = useAuth();
+  const { signIn, signInOnTheWeb } = useAuth();
   const scheme = useColorScheme();
   const palette = usePalette();
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +44,28 @@ export default function SignIn() {
           }
         }}
       />
+
+      {/* Apple first, because it is the one that happens on the device and
+          because Apple requires it to be offered wherever Google is. */}
+      <Pressable
+        style={[styles.google, { borderColor: palette.border }]}
+        onPress={async () => {
+          setError(null);
+          try {
+            await signInOnTheWeb();
+          } catch {
+            setError("Could not open the sign-in page");
+          }
+        }}
+      >
+        <Text style={{ color: palette.ink, fontSize: 16, fontWeight: "500" }}>
+          Continue with Google
+        </Text>
+      </Pressable>
+
+      <Text style={[styles.aside, { color: palette.muted }]}>
+        Google opens roava.co to sign in, then comes back here.
+      </Text>
     </View>
   );
 }
@@ -55,4 +77,14 @@ const styles = StyleSheet.create({
   blurb: { marginTop: 8, marginBottom: 28, textAlign: "center", lineHeight: 20 },
   error: { color: "#ef4444", marginBottom: 12, textAlign: "center" },
   button: { width: 260, height: 48 },
+  google: {
+    width: 260,
+    height: 48,
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aside: { marginTop: 14, fontSize: 12, textAlign: "center" },
 });

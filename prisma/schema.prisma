@@ -510,3 +510,27 @@ model PlaceShare {
 
   @@index([userId, area])
 }
+
+/// A one-time code handed to the app after signing in on the web.
+///
+/// The app cannot do Google sign-in itself without a native module, so it opens
+/// the website, which already does it, and the website hands the result back
+/// through the app's URL scheme.
+///
+/// What comes back is this code and not the token. A custom scheme is not a
+/// private channel — anything on the device can claim to be "roava://" — so the
+/// thing that travels through it is useless on its own: single use, ninety
+/// seconds, and redeemed over HTTPS for the real token. A stolen code is a race
+/// rather than an account.
+model NativeAuthCode {
+  code      String   @id
+  userId    String
+  /// Sent by the app when it started, and required again when redeeming, so a
+  /// code cannot be fed to an app that did not ask for one.
+  state     String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
