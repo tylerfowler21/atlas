@@ -85,6 +85,7 @@ model User {
   trips          Trip[]
   categories     Category[]
   categoryEdits  CategoryOverride[]
+  placeShares    PlaceShare[]
   memories       Memory[]
   photos         Photo[]
   blocking       Block[]            @relation("blocker")
@@ -471,4 +472,41 @@ model CategoryOverride {
 
   @@unique([userId, categoryId])
   @@index([userId])
+}
+
+/// Somewhere you have been, handed to somebody who is going there.
+///
+/// A trip is a plan with days in it. This is the other thing people ask for —
+/// "I'm in Charleston next week, where should I eat" — which is a place, a
+/// subset of what you know about it, and no dates at all.
+///
+/// Deliberately live rather than a snapshot: adding a restaurant next month
+/// adds it to every link you have already sent. A guide somebody keeps is
+/// worth more than a copy that rots, and the alternative is re-sending a link
+/// every time you learn something.
+model PlaceShare {
+  id     String @id @default(cuid())
+  userId String
+  /// The city or country it covers, matched against a place's own city and
+  /// country the same way the map's drill-down does.
+  area   String
+  /// Which categories are included. Empty means all of them — including any
+  /// added after the link was made, which is what "all" should keep meaning.
+  categories String[]
+  /// Which statuses are included. Recommendations are normally places you have
+  /// actually been, not ones you are still hoping to get to, but somebody
+  /// sharing a wishlist for a trip they are planning together wants the
+  /// opposite.
+  statuses String[]
+  /// Shown at the top, for the sentence that usually comes with the link.
+  note String?
+
+  token        String    @unique
+  createdAt    DateTime  @default(now())
+  lastViewedAt DateTime?
+  viewCount    Int       @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, area])
 }

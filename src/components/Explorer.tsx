@@ -2,6 +2,7 @@
 
 import { useCategories } from "@/components/CategoriesProvider";
 import FirstSteps from "@/components/FirstSteps";
+import ShareArea from "@/components/ShareArea";
 import { groupPlaces } from "@/lib/place-groups";
 import type { FirstSteps as Steps } from "@/lib/first-steps";
 
@@ -81,6 +82,8 @@ export default function Explorer({
   const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
   /// The city or country being looked inside, if any.
   const [drilledInto, setDrilledInto] = useState<string | null>(null);
+  /// Whether the share panel for that place is open.
+  const [sharing, setSharing] = useState(false);
 
   const [drag, setDrag] = useState(0);
   const dragFrom = useRef<number | null>(null);
@@ -433,18 +436,34 @@ export default function Explorer({
             )}
 
             {drilledInto && (
-              <button
-                type="button"
-                className={`text-left text-xs text-accent-text hover:underline ${
-                  listOpen ? "" : "hidden lg:block"
-                }`}
-                onClick={() => {
-                  setDrilledInto(null);
-                  setFitSeq((n) => n + 1);
-                }}
-              >
-                ← Back to all {view === "cities" ? "cities" : "countries"}
-              </button>
+              <div className={`flex items-center gap-3 ${listOpen ? "" : "hidden lg:flex"}`}>
+                <button
+                  type="button"
+                  className="text-left text-xs text-accent-text hover:underline"
+                  onClick={() => {
+                    setDrilledInto(null);
+                    setSharing(false);
+                    setFitSeq((n) => n + 1);
+                  }}
+                >
+                  ← Back to all {view === "cities" ? "cities" : "countries"}
+                </button>
+                {/* The moment somebody is looking at one city is the moment
+                    they might want to hand it to a friend who is going. */}
+                <button
+                  type="button"
+                  className="ml-auto text-xs text-accent-text hover:underline"
+                  onClick={() => setSharing((v) => !v)}
+                >
+                  {sharing ? "Cancel" : `Share ${drilledInto}`}
+                </button>
+              </div>
+            )}
+
+            {drilledInto && sharing && (
+              <div className={listOpen ? "" : "hidden lg:block"}>
+                <ShareArea area={drilledInto} onClose={() => setSharing(false)} />
+              </div>
             )}
 
             {(view === "cities" || view === "countries") && !drilledInto ? (
