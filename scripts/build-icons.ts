@@ -52,6 +52,22 @@ async function main() {
   await sharp(icon).resize(512, 512).toFile("public/brand/icon-512.png");
   await sharp(icon).resize(192, 192).toFile("public/brand/icon-192.png");
 
+  // The splash screen's mark, trimmed and transparent.
+  //
+  // It used to reuse the app icon, which cannot have an alpha channel — App
+  // Review rejects icons that do — so the splash drew a solid square of the
+  // icon's own green over the splash's green. The two were one value apart,
+  // #102D27 against #112D27, which is invisible as a colour and perfectly
+  // visible as an edge: a tile floating on a background, which is not what a
+  // splash screen should look like.
+  //
+  // Transparent, so there is no edge to notice at any background colour.
+  await sharp(SOURCE)
+    .trim()
+    .resize(1024, 1024, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toFile("mobile/assets/images/splash.png");
+
   // The web mark keeps its transparency: it is placed on the page's own
   // background, which is not the icon's green.
   await sharp(SOURCE).resize(256, 256).png().toFile("public/brand/mark.png");
