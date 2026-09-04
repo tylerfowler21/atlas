@@ -34,6 +34,12 @@ export default function TripImporter() {
   const { categories, categoryOf } = useCategories();
   const router = useRouter();
 
+  /// What the list becomes. A trip has days and dates; a set of places has
+  /// neither, and the commonest list anybody keeps — the restaurants they
+  /// liked — is the second kind. Wrapping one in an invented trip would put
+  /// something on the Trips page that never happened.
+  const [destination, setDestination] = useState<"trip" | "places">("trip");
+
   const [title, setTitle] = useState("");
   const [region, setRegion] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -117,46 +123,66 @@ export default function TripImporter() {
       ? new Date(Date.parse(startDate) + (days - 1) * 86400000).toISOString().slice(0, 10)
       : null;
 
-    const res = await fetch("/api/trips/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        trip: {
-          title: title.trim(),
-          destination: region.trim() || null,
-          startDate: startDate || null,
-          endDate,
-        },
-        markVisited,
-        entries: rows.map((row) => {
-          const match = row.chosen >= 0 ? row.candidates[row.chosen] : null;
-          return {
-            dayIndex: row.dayIndex,
-            title: row.title,
-            startTime: row.startTime,
-            notes: row.note,
-            category: row.category,
-            place: match
-              ? {
-                  name: row.title,
-                  lat: match.lat,
-                  lng: match.lng,
-                  address: match.address,
-                  city: match.city,
-                  country: match.country,
-                  countryCode: match.countryCode,
-                }
+    const entries = () =>
+      rows.map((row) => {
+        const match = row.chosen >= 0 ? row.candidates[row.chosen] : null;
+        return {
+          dayIndex: row.dayIndex,
+          title: row.title,
+          startTime: row.startTime,
+          notes: row.note,
+          category: row.category,
+          place: match
+            ? {
+                name: row.title,
+                lat: match.lat,
+                lng: match.lng,
+                address: match.address,
+                city: match.city,
+                country: match.country,
+                countryCode: match.countryCode,
+              }
               : null,
-          };
-        }),
-      }),
-    });
+        };
+      });
+
+    const res =
+      destination === "places"
+        ? await fetch("/api/places/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              status: markVisited ? "visited" : "wishlist",
+              entries: entries(),
+            }),
+          })
+        : await fetch("/api/trips/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              trip: {
+                title: title.trim(),
+                destination: region.trim() || null,
+                startDate: startDate || null,
+                endDate,
+              },
+              markVisited,
+              entries: entries(),
+            }),
+          });
 
     const body = await res.json().catch(() => ({}));
     setBusy(false);
 
     if (!res.ok) {
-      setError(body.error ?? "Could not create that trip");
+      setError(body.error ?? "Could not import that");
+      return;
+    }
+
+    if (destination === "places") {
+      // Straight to the map, which is where they now are.
+      router.push("/");
+      router.refresh();
       return;
     }
     router.push(`/trips/${body.tripId}`);
@@ -167,53 +193,89 @@ export default function TripImporter() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-xl font-semibold">Add a trip you&apos;ve taken</h1>
+      <h1 className="text-xl font-semibold">
+        {destination === "trip" ? "Add a trip you've taken" : "Import a list of places"}
+      </h1>
       <p className="mt-1 text-sm text-muted">
-        Paste where you went, roughly by day. Every place is looked up on the map
-        and saved to your places, so you only type names.
+        {destination === "trip"
+          ? "Paste where you went, roughly by day, or upload the document you planned it in. Every place is looked up on the map and saved to your places, so you only type names."
+          : "Upload or paste a list — a note full of restaurants, a spreadsheet, anything one-per-line. Every place is looked up on the map, and you confirm each one before it is saved."}
       </p>
-      <Link
-        href="/trips/import"
-        className="mt-1 inline-block text-xs text-muted hover:underline"
-      >
-        Rather pick dates and click through the days? Use the guided version
-      </Link>
+
+      {/* What the list becomes. Asked first, because it changes what the rest
+          of this page needs to know: a trip has a name and dates, a list of
+          places has neither. */}
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {(
+          [
+            ["trip", "🧳", "A trip I took"],
+            ["places", "📍", "Just places"],
+          ] as const
+        ).map(([id, icon, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`chip ${destination === id ? "is-on" : ""}`}
+            aria-pressed={destination === id}
+            onClick={() => setDestination(id)}
+          >
+            <span aria-hidden>{icon}</span>
+            {label}
+          </button>
+        ))}
+      </div>
+      {destination === "trip" && (
+        <Link
+          href="/trips/import"
+          className="mt-1 inline-block text-xs text-muted hover:underline"
+        >
+          Rather pick dates and click through the days? Use the guided version
+        </Link>
+      )}
 
       <div className="mt-6 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
+          {destination === "trip" && (
+            <label className="text-xs text-muted">
+              Trip name
+              <input
+                className="input mt-1"
+                placeholder="Switzerland"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+          )}
+          {/* This matters more for a list, not less. A note full of restaurants
+              is a note about one place, and without saying which, "Husk" finds
+              the one in Sydney. */}
           <label className="text-xs text-muted">
-            Trip name
+            {destination === "trip" ? "Country or region" : "Where these are"}
             <input
               className="input mt-1"
-              placeholder="Switzerland"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </label>
-          <label className="text-xs text-muted">
-            Country or region
-            <input
-              className="input mt-1"
-              placeholder="Switzerland"
+              placeholder={destination === "trip" ? "Switzerland" : "Charleston"}
               value={region}
               onChange={(e) => setRegion(e.target.value)}
             />
             <span className="mt-1 block text-xs text-muted">
-              Added to every search, so “Grindelwald” finds the right one.
+              Added to every search, so “Husk” finds the right one.
             </span>
           </label>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-xs text-muted">
-            First day (optional)
-            <input
-              type="date"
-              className="input mt-1"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </label>
+          {/* A list of places has no first day. */}
+          {destination === "trip" && (
+            <label className="text-xs text-muted">
+              First day (optional)
+              <input
+                type="date"
+                className="input mt-1"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </label>
+          )}
           <label className="flex items-end gap-2 text-xs text-muted">
             <input
               type="checkbox"
@@ -221,7 +283,11 @@ export default function TripImporter() {
               onChange={(e) => setMarkVisited(e.target.checked)}
               className="mb-1.5 size-4"
             />
-            <span className="mb-1">Mark every place as “Been there”</span>
+            <span className="mb-1">
+              {destination === "trip"
+                ? "Mark every place as “Been there”"
+                : "These are places I’ve been"}
+            </span>
           </label>
         </div>
 
@@ -283,14 +349,26 @@ export default function TripImporter() {
         </label>
 
         <p className="text-xs text-muted">
-          One place per line. <code>Day 2</code> starts a new day, a leading{" "}
-          <code>09:00</code> sets a time, and anything after <code> — </code> becomes a note.
+          One place per line, and anything after <code> — </code> becomes a note.
+          {destination === "trip" && (
+            <>
+              {" "}
+              <code>Day 2</code> starts a new day and a leading <code>09:00</code>{" "}
+              sets a time.
+            </>
+          )}
           {preview.length > 0 && (
             <>
               {" "}
               <span className="text-foreground">
-                {preview.length} {preview.length === 1 ? "entry" : "entries"} across{" "}
-                {dayCount} {dayCount === 1 ? "day" : "days"}.
+                {preview.length} {preview.length === 1 ? "entry" : "entries"}
+                {destination === "trip" && (
+                  <>
+                    {" "}
+                    across {dayCount} {dayCount === 1 ? "day" : "days"}
+                  </>
+                )}
+                .
               </span>
             </>
           )}
@@ -335,7 +413,10 @@ export default function TripImporter() {
               return (
                 <li key={index} className="card p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="chip">Day {row.dayIndex + 1}</span>
+                    {/* A list of places has no days in it. */}
+                    {destination === "trip" && (
+                      <span className="chip">Day {row.dayIndex + 1}</span>
+                    )}
                     {row.startTime && (
                       <span className="text-xs text-muted tabular-nums">{row.startTime}</span>
                     )}
@@ -419,14 +500,24 @@ export default function TripImporter() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy || title.trim().length === 0}
+              // A list of places needs no name; a trip does.
+              disabled={busy || (destination === "trip" && title.trim().length === 0)}
               onClick={create}
             >
-              {busy ? "Creating…" : `Create trip with ${rows.length} stops`}
+              {busy
+                ? "Saving…"
+                : destination === "trip"
+                  ? `Create trip with ${rows.length} stops`
+                  : `Add ${matched} ${matched === 1 ? "place" : "places"} to my map`}
             </button>
-            {title.trim().length === 0 && (
+            {destination === "trip" && title.trim().length === 0 && (
               <span className="text-xs text-amber-600 dark:text-amber-400">
                 Give the trip a name first.
+              </span>
+            )}
+            {destination === "places" && matched < rows.length && (
+              <span className="text-xs text-muted">
+                {rows.length - matched} without a map match will be skipped.
               </span>
             )}
           </div>

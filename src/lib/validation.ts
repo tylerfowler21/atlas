@@ -148,6 +148,17 @@ export const tripImportSchema = z.object({
   entries: z.array(importEntrySchema).min(1, "Nothing to import").max(300),
 });
 
+/// The same entries, with nowhere to put them but the map.
+///
+/// A list of restaurants somebody keeps in their notes is not a trip, and
+/// wrapping one in an invented trip to get it imported would put a thing on
+/// the Trips page that never happened.
+export const placeImportSchema = z.object({
+  /// Whether these are places somebody has been or ones they want to go.
+  status: z.enum(STATUS_IDS).default("visited"),
+  entries: z.array(importEntrySchema).min(1, "Nothing to import").max(300),
+});
+
 export const collaboratorInviteSchema = z.object({
   email: z
     .string()
