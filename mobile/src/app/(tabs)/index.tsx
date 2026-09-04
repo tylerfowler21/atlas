@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
@@ -103,6 +104,14 @@ export default function MapScreen() {
   const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
   /// Set by tapping a city or a country, which drills into it.
   const [within, setWithin] = useState<string | null>(null);
+  /// The share sheet for that place, and what it currently covers — the map
+  /// and the list follow it, so what is on screen is what the person receiving
+  /// the link will open.
+  const [sharing, setSharing] = useState(false);
+  const [sharePreview, setSharePreview] = useState<{
+    categories: string[];
+    statuses: string[];
+  } | null>(null);
   /// Searched as you type. The hook asks the fast geocoder while you are still
   /// typing and both of them once you stop, so nobody has to press anything to
   /// find out whether the place they mean exists.
@@ -133,12 +142,27 @@ export default function MapScreen() {
   const groups = useMemo(() => groupPlaces(all), [all]);
   const counts = groups.counts;
 
-  /// What the list actually shows, once the view and any drill-down are applied.
+  /// What the list actually shows, once the view, any drill-down, and any
+  /// share being composed are applied.
+  ///
+  /// While the sheet is open the list is the link: turning a category off takes
+  /// those places out of it, which is the only way to judge whether the link
+  /// says what you meant.
+  const preview = sharing ? sharePreview : null;
+
   const listed = useMemo(() => {
     const base = view === "all" ? places : places.filter((p) => p.status !== "wishlist");
-    if (!within) return base;
-    return base.filter((p) => p.city === within || p.country === within);
-  }, [places, view, within]);
+    const here = within
+      ? base.filter((p) => p.city === within || p.country === within)
+      : base;
+    if (!preview) return here;
+
+    return here.filter(
+      (p) =>
+        (preview.categories.length === 0 || preview.categories.includes(p.category)) &&
+        (preview.statuses.length === 0 || preview.statuses.includes(p.status)),
+    );
+  }, [places, view, within, preview]);
 
   if (loading && !data) {
     return (
@@ -255,7 +279,10 @@ export default function MapScreen() {
           void offerWhatIsHere(latitude, longitude);
         }}
       >
-        {places.map((place) => (
+        {/* The map shows what the list shows. While a link is being composed
+            that means the link, so turning a category off takes its pins off
+            the map too. */}
+        {(preview ? listed : places).map((place) => (
           <Marker
             key={place.id}
             coordinate={{ latitude: place.lat, longitude: place.lng }}
@@ -405,11 +432,36 @@ export default function MapScreen() {
             </View>
 
             {within && (
-              <Pressable onPress={() => setWithin(null)} style={styles.back}>
-                <Text style={{ color: palette.accentText, fontSize: 13 }}>
-                  ← Everything in {within}
-                </Text>
-              </Pressable>
+              <View style={styles.backRow}>
+                <Pressable onPress={() => setWithin(null)} style={styles.back}>
+                  <Text style={{ color: palette.accentText, fontSize: 13 }}>
+                    ← Everything in {within}
+                  </Text>
+                </Pressable>
+                {/* Looking at one city is the moment somebody might want to
+                    hand it to a friend who is going there. */}
+                <Pressable
+                  onPress={() => {
+                    setSharing(true);
+                    setSharePreview({ categories: [], statuses: ["visited", "lived"] });
+                  }}
+                  style={styles.back}
+                  hitSlop={8}
+                >
+                  <Text style={{ color: palette.accentText, fontSize: 13 }}>Share</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {within && sharing && (
+              <ShareArea
+                area={within}
+                onPreview={setSharePreview}
+                onClose={() => {
+                  setSharing(false);
+                  setSharePreview(null);
+                }}
+              />
             )}
 
             {(view === "cities" || view === "countries") && !within ? (
@@ -593,6 +645,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tileNumber: { fontSize: 18, fontWeight: "600" },
+  backRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   back: { paddingHorizontal: 14, paddingBottom: 8 },
   grabber: { width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
   row: {
