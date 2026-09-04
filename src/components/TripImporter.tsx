@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 // taxonomy comes through the provider
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
+import { categoryFromWord } from "@/lib/category-words";
 import type { SearchResult } from "@/lib/types";
 
 const PLACEHOLDER = `Day 1: Zürich
@@ -29,6 +30,18 @@ type Row = ParsedEntry & {
   category: string;
   state: "waiting" | "looking" | "done";
 };
+
+/// A spreadsheet's Category column ends up at the front of the note, because
+/// that is where the columns it came from put it. These read it back out.
+function leadingWord(note: string | null) {
+  return note ? (note.split(",")[0] ?? "").trim() : null;
+}
+
+function withoutLeadingWord(note: string | null) {
+  if (!note) return note;
+  const rest = note.split(",").slice(1).join(",").trim();
+  return rest || null;
+}
 
 /// Drops a trailing ", Somewhere" when that somewhere is already the place's
 /// city — the suffix a spreadsheet's location column added to help the search.
@@ -101,11 +114,19 @@ export default function TripImporter() {
         const res = await fetch(url);
         const body = await res.json();
         const candidates: SearchResult[] = body.results ?? [];
+        // A category the person wrote themselves beats the gazetteer's guess:
+        // they know the building is a restaurant, and OpenStreetMap thinks it
+        // is a building. A word we do not recognise is left alone — the
+        // category stays whatever the map made of it, and the picker below is
+        // there for exactly that.
+        const own = categoryFromWord(leadingWord(working[i]!.note));
+
         working[i] = {
           ...working[i]!,
           candidates,
           chosen: candidates.length > 0 ? 0 : -1,
-          category: candidates[0]?.category ?? "other",
+          category: own ?? candidates[0]?.category ?? "other",
+          note: own ? withoutLeadingWord(working[i]!.note) : working[i]!.note,
           state: "done",
         };
       } catch {
