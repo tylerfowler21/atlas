@@ -43,6 +43,8 @@ export default function TripImporter() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [fileNote, setFileNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const preview = useMemo(() => parseItinerary(text), [text]);
@@ -222,6 +224,53 @@ export default function TripImporter() {
             <span className="mb-1">Mark every place as “Been there”</span>
           </label>
         </div>
+
+        {/* A file, for the list somebody already keeps somewhere else.
+            Everything lands in the same box, so what gets imported is always
+            something they have read first. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="btn btn-ghost cursor-pointer text-xs">
+            {reading ? "Reading…" : "Upload a file"}
+            <input
+              type="file"
+              className="hidden"
+              accept=".txt,.md,.rtf,.csv,.tsv,.docx,.xlsx"
+              disabled={reading}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                // Cleared so choosing the same file twice still fires.
+                e.target.value = "";
+                if (!file) return;
+
+                setReading(true);
+                setError(null);
+                setFileNote(null);
+                try {
+                  const form = new FormData();
+                  form.append("file", file);
+                  const res = await fetch("/api/import/extract", { method: "POST", body: form });
+                  const body = await res.json();
+                  if (!res.ok) {
+                    setError(body.error ?? "That file could not be read");
+                    return;
+                  }
+                  setText((current) => (current.trim() ? `${current}\n${body.text}` : body.text));
+                  setFileNote(body.note ?? `Read ${file.name}. Check it over before importing.`);
+                } catch {
+                  setError("That file could not be read");
+                } finally {
+                  setReading(false);
+                }
+              }}
+            />
+          </label>
+          <span className="text-xs text-muted">
+            Word, Excel, CSV or plain text. Google Docs and Sheets export as
+            .docx and .xlsx — or just paste below.
+          </span>
+        </div>
+
+        {fileNote && <p className="text-xs text-muted">{fileNote}</p>}
 
         <label className="block text-xs text-muted">
           Itinerary
