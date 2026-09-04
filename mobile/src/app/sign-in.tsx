@@ -1,4 +1,5 @@
 import * as AppleAuthentication from "expo-apple-authentication";
+import GoogleIcon from "@/components/GoogleIcon";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
 import { useAuth } from "@/lib/auth";
@@ -47,8 +48,16 @@ export default function SignIn() {
 
       {/* Apple first, because it is the one that happens on the device and
           because Apple requires it to be offered wherever Google is. */}
+      {/* Google's own spec: their mark, their wording, a white field with a
+          grey border — and near-black in dark mode. It should look like every
+          other Google button anybody has used. */}
       <Pressable
-        style={[styles.google, { borderColor: palette.border }]}
+        style={[
+          styles.google,
+          scheme === "dark"
+            ? { backgroundColor: "#131314", borderColor: "#8E918F" }
+            : { backgroundColor: "#FFFFFF", borderColor: "#747775" },
+        ]}
         onPress={async () => {
           setError(null);
           try {
@@ -58,7 +67,14 @@ export default function SignIn() {
           }
         }}
       >
-        <Text style={{ color: palette.ink, fontSize: 16, fontWeight: "500" }}>
+        <GoogleIcon />
+        <Text
+          style={{
+            color: scheme === "dark" ? "#E3E3E3" : "#1F1F1F",
+            fontSize: 16,
+            fontWeight: "500",
+          }}
+        >
           Continue with Google
         </Text>
       </Pressable>
@@ -83,8 +99,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderWidth: 1,
     borderRadius: 10,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 10,
   },
   aside: { marginTop: 14, fontSize: 12, textAlign: "center" },
 });

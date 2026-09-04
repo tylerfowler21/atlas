@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { appleConfigured, auth, devLoginEnabled, googleConfigured, signIn } from "@/auth";
 import { safeNext } from "@/lib/safe-next";
+import GoogleIcon from "@/components/GoogleIcon";
 
 export const metadata: Metadata = { title: "Sign in — Roava" };
 export const dynamic = "force-dynamic";
@@ -53,7 +54,15 @@ export default async function SignInPage({
               await signIn("google", { redirectTo: destination });
             }}
           >
-            <button type="submit" className="btn btn-primary w-full justify-center">
+            {/* Google's own button spec: their mark, their wording, a white
+                field with a grey border in light and near-black in dark. It
+                looks like every other Google button somebody has ever used,
+                which on a sign-in screen is the entire point. */}
+            <button
+              type="submit"
+              className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-[#747775] bg-white text-sm font-medium text-[#1F1F1F] transition-colors hover:bg-[#F7F8F8] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3] dark:hover:bg-[#1B1B1C]"
+            >
+              <GoogleIcon />
               Continue with Google
             </button>
           </form>
@@ -68,7 +77,7 @@ export default async function SignInPage({
           >
             <button
               type="submit"
-              className="btn w-full justify-center bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-black text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
             >
               {/* Drawn rather than typed: the  glyph is an Apple-platform
                   font feature and renders as tofu on Android and Windows. */}
