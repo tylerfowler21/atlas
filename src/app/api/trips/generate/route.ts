@@ -72,8 +72,12 @@ export async function POST(request: Request) {
       title: itinerary.title,
       destination: itinerary.destination,
       summary: itinerary.summary,
+      /// For the website, which drops it into the box its importer already
+      /// reads.
       text,
-      stops: itinerary.stops.length,
+      /// For the app, which has no such box. The same draft, still structured,
+      /// so it does not have to parse prose back into the thing it just was.
+      stops: itinerary.stops,
       remaining: DRAFTS_PER_DAY - used - 1,
     });
   } catch (error) {

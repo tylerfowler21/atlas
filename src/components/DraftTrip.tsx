@@ -47,7 +47,7 @@ export default function DraftTrip({
         return;
       }
       setSummary(
-        `${body.stops} stops across ${days} ${days === 1 ? "day" : "days"}. ${body.summary}`,
+        `${body.stops.length} stops across ${days} ${days === 1 ? "day" : "days"}. ${body.summary}`,
       );
       onDrafted({ text: body.text, title: body.title, destination: body.destination });
     } catch {
