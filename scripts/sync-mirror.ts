@@ -8,6 +8,8 @@ const PAIRS = [
   ["src/lib/place-name.ts", "mobile/src/lib/place-name.ts"],
   ["src/lib/place-groups.ts", "mobile/src/lib/place-groups.ts"],
   ["src/lib/use-place-search.ts", "mobile/src/lib/use-place-search.ts"],
+  ["src/lib/bookings.ts", "mobile/src/lib/bookings.ts"],
+  ["src/lib/resources.ts", "mobile/src/lib/resources.ts"],
 ] as const;
 
 for (const [source, mirror] of PAIRS) {

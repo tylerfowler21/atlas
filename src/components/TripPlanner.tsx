@@ -15,10 +15,13 @@ import EmojiField from "@/components/EmojiField";
 import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
+import TripBookings from "@/components/TripBookings";
+import TripResources from "@/components/TripResources";
+import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
-import type { ItineraryItemDTO, PlaceDTO, TripDTO, SearchResult } from "@/lib/types";
+import type { ItineraryItemDTO, PlaceDTO, TripDTO, TripResourceDTO, SearchResult } from "@/lib/types";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
@@ -31,10 +34,12 @@ export default function TripPlanner({
   ownerLabel,
   ownerImage,
   people,
+  resources,
 }: {
   trip: TripDTO;
   initialItems: ItineraryItemDTO[];
   places: PlaceDTO[];
+  resources: TripResourceDTO[];
   role: TripRole;
   ownerLabel: string;
   ownerImage: string | null;
@@ -46,6 +51,9 @@ export default function TripPlanner({
   const [trip, setTrip] = useState(initialTrip);
   const [items, setItems] = useState(initialItems);
   const [activeDay, setActiveDay] = useState(0);
+  /// Which of the trip's three lists is showing. Days is the trip as it will
+  /// happen; the other two are the trip as it has to be prepared for.
+  const [view, setView] = useState<"days" | "bookings" | "before">("days");
   const [extraDays, setExtraDays] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -424,6 +432,8 @@ export default function TripPlanner({
   }
 
   const dayDate = dateForDay(trip, activeDay);
+  const toBook = outstanding(items).length;
+  const toSort = resources.filter((r) => !r.ready).length;
 
   return (
     <div className="flex h-full flex-col lg:flex-row">
@@ -482,6 +492,30 @@ export default function TripPlanner({
           initialPeople={people}
         />
 
+        {/* Three lists, not three pages: the trip's days, what still has to be
+            booked, and what has to be sorted before leaving. The counts are on
+            the tabs because an unbooked thing you have forgotten about is the
+            only one that costs anything. */}
+        <div className="flex gap-1.5 border-b border-line pb-2">
+          {([
+            ["days", "Days", 0],
+            ["bookings", "Bookings", toBook],
+            ["before", "Before you go", toSort],
+          ] as const).map(([id, label, count]) => (
+            <button
+              key={id}
+              type="button"
+              className={`chip ${view === id ? "is-on" : ""}`}
+              onClick={() => setView(id)}
+            >
+              {label}
+              {count > 0 && <span className="text-muted">{count}</span>}
+            </button>
+          ))}
+        </div>
+
+        {view === "days" && (
+          <>
         <div className="flex flex-wrap gap-1.5">
           {Array.from({ length: days }, (_, i) => {
             const date = dateForDay(trip, i);
@@ -615,6 +649,8 @@ export default function TripPlanner({
                           <p className="truncate text-xs text-muted">
                             {meta.label}
                             {item.place?.city ? ` · ${item.place.city}` : ""}
+                            {item.booking === BOOKING_NEEDED && " · to book"}
+                            {item.booking === BOOKING_BOOKED && " · booked ✓"}
                           </p>
                         )}
                       </button>
@@ -776,6 +812,54 @@ export default function TripPlanner({
                             if (next !== item.notes) patchItem(item.id, { notes: next });
                           }}
                         />
+                        {/* The tick that puts this on the bookings tab, and the
+                            one that takes it off again. Nothing is a booking
+                            until somebody says so, so the default is neither
+                            state and most stops never grow this at all. */}
+                        <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                          <label className="flex items-center gap-1.5 text-xs">
+                            <input
+                              type="checkbox"
+                              className="size-3.5"
+                              checked={item.booking !== null}
+                              onChange={() =>
+                                patchItem(item.id, {
+                                  booking: item.booking === null ? BOOKING_NEEDED : null,
+                                  bookingRef: item.booking === null ? item.bookingRef : null,
+                                })
+                              }
+                            />
+                            Needs booking
+                          </label>
+                          {item.booking !== null && (
+                            <label className="flex items-center gap-1.5 text-xs">
+                              <input
+                                type="checkbox"
+                                className="size-3.5"
+                                checked={item.booking === BOOKING_BOOKED}
+                                onChange={() =>
+                                  patchItem(item.id, { booking: nextState(item.booking) })
+                                }
+                              />
+                              Booked
+                            </label>
+                          )}
+                        </div>
+
+                        {item.booking === BOOKING_BOOKED && (
+                          <input
+                            key={`stopref-${item.id}`}
+                            className="input text-xs"
+                            aria-label="Confirmation number"
+                            placeholder="Confirmation number, reference…"
+                            defaultValue={item.bookingRef ?? ""}
+                            onBlur={(e) => {
+                              const next = e.target.value.trim() || null;
+                              if (next !== item.bookingRef) patchItem(item.id, { bookingRef: next });
+                            }}
+                          />
+                        )}
+
                         {item.kind === "travel" && item.place && item.toPlace && (
                           <a
                             href={directionsUrl(
@@ -858,6 +942,30 @@ export default function TripPlanner({
           notice={notice}
           busy={busy}
         />
+          </>
+        )}
+
+        {view === "bookings" && (
+          <TripBookings
+            trip={trip}
+            items={items}
+            onToggle={(item) =>
+              patchItem(item.id, { booking: nextState(item.booking) })
+            }
+            onRef={(item, ref) => patchItem(item.id, { bookingRef: ref })}
+            onOpen={(item) => {
+              // Straight to the stop on its own day, because the next question
+              // after "have I booked this" is usually "what time was it again".
+              setActiveDay(item.dayIndex);
+              setSelectedId(item.id);
+              setView("days");
+            }}
+          />
+        )}
+
+        {view === "before" && (
+          <TripResources tripId={trip.id} initial={resources} canEdit />
+        )}
       </aside>
 
       {/* A real height rather than a minimum: the map fills its box with a

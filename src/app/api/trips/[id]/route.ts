@@ -31,6 +31,7 @@ export async function GET(
         orderBy: [{ dayIndex: "asc" }, { position: "asc" }],
         include: { place: true, toPlace: true },
       },
+      resources: { orderBy: { position: "asc" } },
     },
   });
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -38,6 +39,7 @@ export async function GET(
   return NextResponse.json({
     trip: serializeTrip(trip),
     role: access.role,
+    resources: trip.resources,
     items: trip.items.map((item) => ({
       ...item,
       place: item.place ? serializePlace(item.place) : null,

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { STATUS_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
 import { REPORT_REASON_IDS } from "@/lib/report-reasons";
+import { BOOKING_STATES } from "@/lib/bookings";
+import { RESOURCE_KIND_IDS } from "@/lib/resources";
 
 /// A category id, which is either one of the built-in words or the cuid of one
 /// somebody made. Which of those it is cannot be settled here — it depends on
@@ -98,6 +100,10 @@ const itemFields = {
   startTime: optionalText(5),
   category: categoryField,
   position: z.number().int().min(0),
+  /// Null clears it: something wrongly marked as a booking should be as easy
+  /// to take off the list as it was to put on.
+  booking: z.enum(BOOKING_STATES).nullable().optional(),
+  bookingRef: optionalText(120),
 };
 
 export const itemCreateSchema = z
@@ -110,6 +116,18 @@ export const itemCreateSchema = z
     // anything that does not say otherwise.
     kind: z.enum(["stop", "travel"]).default("stop"),
   });
+
+/// A trip's apps, passes and paperwork.
+export const resourceCreateSchema = z.object({
+  label: trimmed(120).min(1, "Give it a name"),
+  url: optionalText(500),
+  note: optionalText(500),
+  kind: z.enum(RESOURCE_KIND_IDS).default("app"),
+});
+
+export const resourceUpdateSchema = resourceCreateSchema
+  .extend({ ready: z.boolean(), position: z.number().int().min(0) })
+  .partial();
 
 export const itemUpdateSchema = z.object(itemFields).partial();
 

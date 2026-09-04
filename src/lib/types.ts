@@ -53,8 +53,25 @@ export type ItineraryItemDTO = {
   endTime: string | null;
   category: string;
   position: number;
+  /// "needed", "booked", or null for the great majority of stops that are not
+  /// bookings at all.
+  booking: string | null;
+  bookingRef: string | null;
   place: PlaceDTO | null;
   toPlace: PlaceDTO | null;
+};
+
+/// Something to have before you go rather than somewhere to be while you are
+/// there — an app, a pass, a document, a link.
+export type TripResourceDTO = {
+  id: string;
+  tripId: string;
+  label: string;
+  url: string | null;
+  note: string | null;
+  kind: string;
+  ready: boolean;
+  position: number;
 };
 
 /// A place as returned by the geocode proxy, before it is saved.

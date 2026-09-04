@@ -249,6 +249,7 @@ model Trip {
   items         ItineraryItem[]
   share         TripShare?
   collaborators TripCollaborator[]
+  resources     TripResource[]
   copiedFrom    Trip?              @relation("copies", fields: [copiedFromId], references: [id], onDelete: SetNull)
   copies        Trip[]             @relation("copies")
   memories      Memory[]
@@ -382,6 +383,15 @@ model ItineraryItem {
   emoji     String?
   /// Sort position within the day
   position  Int      @default(0)
+  /// Whether this needs booking, and whether it has been: "needed" or "booked".
+  /// Null means nobody has said, which is most things — a walk along the lake
+  /// is not a booking, and a trip full of "N/A" rows is noise rather than a
+  /// list. Only what someone marked appears on the bookings tab.
+  booking   String?
+  /// The confirmation number, reference, or whatever else you would need at
+  /// the door. Free text: airlines, restaurants and cable cars all disagree
+  /// about what a booking reference looks like.
+  bookingRef String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -392,6 +402,31 @@ model ItineraryItem {
   @@index([tripId, dayIndex, position])
   @@index([placeId])
   @@index([toPlaceId])
+}
+
+/// Something you need to have before the trip rather than somewhere you go on
+/// it: the transit app that only works if you registered a card at home, the
+/// rail pass that is cheaper bought in advance, the offline map, the visa.
+///
+/// These are the notes that live in a group chat and are lost by the time they
+/// matter. Keeping them on the trip means they are read on the way to the
+/// airport, which is when they are worth anything.
+model TripResource {
+  id       String  @id @default(cuid())
+  tripId   String
+  label    String
+  /// Where to get it — a store page, a booking site, a government form.
+  url      String?
+  note     String?
+  /// "app", "pass", "doc" or "link". Only decides which icon it wears.
+  kind     String  @default("app")
+  /// Ticked once you actually have it.
+  ready    Boolean @default(false)
+  position Int     @default(0)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, position])
 }
 
 /// The last few sign-in failures, kept so they can be read without dashboard

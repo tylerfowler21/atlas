@@ -20,6 +20,7 @@ import {
 import { api, type ItineraryItem, type Place, type SearchResult } from "@/lib/api";
 import { TRAVEL_MODES } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
+import { BOOKING_BOOKED, BOOKING_NEEDED, nextState } from "@/lib/bookings";
 
 /// "09:30" — the shape the API stores and the website's time input produces.
 const TIME_HINT = "HH:MM";
@@ -113,6 +114,9 @@ export default function ItemEditor({
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "");
   const [category, setCategory] = useState(existing?.category ?? "other");
+  /// Whether this is something that has to be booked, and whether it has been.
+  /// Null for the great majority of stops, which are not bookings at all.
+  const [booking, setBooking] = useState<string | null>(existing?.booking ?? null);
   const [startTime, setStartTime] = useState(existing?.startTime ?? "");
   const [endTime, setEndTime] = useState(existing?.endTime ?? "");
   const [travelMode, setTravelMode] = useState(existing?.mode ?? "train");
@@ -225,6 +229,10 @@ export default function ItemEditor({
         mode: travel ? travelMode : null,
         placeId,
         toPlaceId: travel ? toPlaceId : null,
+        booking,
+        // Clearing the booking clears what was booked with it; a reference to
+        // a reservation nobody is making any more is just a stale number.
+        ...(booking === null ? { bookingRef: null } : {}),
       };
       if (draft!.mode === "create") {
         await api(`/api/trips/${draft!.tripId}/items`, {
@@ -494,6 +502,28 @@ export default function ItemEditor({
             style={[styles.input, styles.emoji, field]}
           />
 
+          {/* The tick that puts this on the trip's bookings tab, and takes it
+              off again. Nothing is a booking until somebody says so. */}
+          <Pressable
+            onPress={() => setBooking(booking === null ? BOOKING_NEEDED : null)}
+            style={styles.check}
+          >
+            <Text style={{ fontSize: 18 }}>{booking === null ? "⬜️" : "☑️"}</Text>
+            <Text style={{ color: palette.ink, fontSize: 14 }}>Needs booking</Text>
+          </Pressable>
+
+          {booking !== null && (
+            <Pressable
+              onPress={() => setBooking(nextState(booking))}
+              style={[styles.check, { marginLeft: 22 }]}
+            >
+              <Text style={{ fontSize: 18 }}>
+                {booking === BOOKING_BOOKED ? "☑️" : "⬜️"}
+              </Text>
+              <Text style={{ color: palette.ink, fontSize: 14 }}>Booked</Text>
+            </Pressable>
+          )}
+
           <Text style={[styles.label, { color: palette.muted }]}>Notes</Text>
           <TextInput
             value={notes}
@@ -524,6 +554,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   emoji: { width: 90, fontSize: 22 },
   notes: { minHeight: 80, textAlignVertical: "top" },
+  check: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16 },
   times: { flexDirection: "row", gap: 12 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingRight: 8 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },

@@ -20,23 +20,27 @@ import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
-import { dayAfter, formatDay } from "@/lib/dates";
-import { API_URL, api, type ItineraryItem, type Place, type Trip } from "@/lib/api";
+import { dayLabel } from "@/lib/dates";
+import {
+  API_URL,
+  api,
+  type ItineraryItem,
+  type Place,
+  type Trip,
+  type TripResource,
+} from "@/lib/api";
+import TripBookings from "@/components/TripBookings";
+import TripResources from "@/components/TripResources";
+import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
-type TripResponse = { trip: Trip; role: string; items: ItineraryItem[] };
-
-/// A trip runs from its start date; without one it is still a list of days,
-/// just unlabelled ones. Matching the website, which lets a trip exist before
-/// anyone has decided when it happens.
-function dayLabel(trip: Trip, index: number) {
-  if (!trip.startDate) return `Day ${index + 1}`;
-  return formatDay(dayAfter(trip.startDate, index).toISOString(), {
-    weekday: "short",
-    year: undefined,
-  });
-}
+type TripResponse = {
+  trip: Trip;
+  role: string;
+  items: ItineraryItem[];
+  resources: TripResource[];
+};
 
 function dayCount(trip: Trip, items: ItineraryItem[]) {
   const fromDates =
@@ -83,11 +87,16 @@ export default function TripScreen() {
   /// Which day the map is showing. Null is the whole trip, which is the right
   /// opening view — the shape of the thing before its parts.
   const [mapDay, setMapDay] = useState<number | null>(null);
+  /// Which of the trip's three lists is showing: the trip as it will happen,
+  /// and the two ways it has to be prepared for.
+  const [view, setView] = useState<"days" | "bookings" | "before">("days");
 
   const days = useMemo(
     () => (data ? dayCount(data.trip, data.items) : 0),
     [data],
   );
+  const toBook = outstanding(data?.items ?? []).length;
+  const toSort = (data?.resources ?? []).filter((r) => !r.ready).length;
 
   /// A share link is a secret URL: anyone holding it reads the itinerary
   /// without an account, which is the point. The endpoint returns a path
@@ -271,6 +280,51 @@ export default function TripScreen() {
           color={data.trip.color}
         />
 
+        {/* Three lists, not three screens. The counts sit on the tabs because
+            something unbooked that has been forgotten about is the only one of
+            the three that can cost you anything. */}
+        <View style={styles.views}>
+          {(
+            [
+              ["days", "Days", 0],
+              ["bookings", "Bookings", toBook],
+              ["before", "Before you go", toSort],
+            ] as const
+          ).map(([id, label, count]) => {
+            const on = view === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setView(id)}
+                style={[
+                  styles.viewTab,
+                  { borderColor: on ? palette.accent : palette.border },
+                  on && { backgroundColor: palette.accent },
+                ]}
+              >
+                <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
+                  {label}
+                  {count > 0 ? ` ${count}` : ""}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {view === "bookings" && (
+          <TripBookings trip={data.trip} items={data.items} onChanged={reload} />
+        )}
+
+        {view === "before" && (
+          <TripResources
+            tripId={id}
+            resources={data.resources ?? []}
+            onChanged={reload}
+          />
+        )}
+
+        {view === "days" && (
+          <>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -369,13 +423,15 @@ export default function TripScreen() {
                         <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>
                           {entry.title}
                         </Text>
-                        {(entry.startTime || entry.notes) && (
+                        {(entry.startTime || entry.notes || entry.booking) && (
                           <Text style={[styles.stopMeta, { color: palette.muted }]} numberOfLines={1}>
                             {[
                               entry.startTime && entry.endTime
                                 ? `${entry.startTime}–${entry.endTime}`
                                 : entry.startTime,
                               entry.notes,
+                              entry.booking === BOOKING_BOOKED ? "booked ✓" : null,
+                              entry.booking === BOOKING_NEEDED ? "to book" : null,
                             ]
                               .filter(Boolean)
                               .join(" · ")}
@@ -458,6 +514,8 @@ export default function TripScreen() {
             </View>
           );
         })}
+          </>
+        )}
 
         <Pressable onPress={share} style={styles.share}>
           <Text style={{ color: palette.accentText, fontSize: 14 }}>
@@ -474,6 +532,8 @@ export default function TripScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
+  views: { flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingTop: 12 },
+  viewTab: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   dayChips: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingVertical: 12 },
   dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   day: { paddingHorizontal: 12, paddingTop: 16 },

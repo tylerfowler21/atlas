@@ -27,3 +27,17 @@ export function year(iso: string) {
 export function dayAfter(startIso: string, index: number) {
   return new Date(Date.parse(startIso) + index * 86_400_000);
 }
+
+/// A trip runs from its start date; without one it is still a list of days,
+/// just unlabelled ones. Matching the website, which lets a trip exist before
+/// anyone has decided when it happens.
+export function dayLabel(
+  trip: { startDate: string | null },
+  index: number,
+): string {
+  if (!trip.startDate) return `Day ${index + 1}`;
+  return formatDay(dayAfter(trip.startDate, index).toISOString(), {
+    weekday: "short",
+    year: undefined,
+  });
+}
