@@ -4,9 +4,20 @@ import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "roava.token";
 
-/// Set per build. There is no sensible default: pointing a debug build at
-/// production by accident is how test data ends up in real accounts.
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
+/// Set per build, and inlined at bundle time — which is the catch.
+///
+/// A published update is bundled separately from the build it lands on, and it
+/// does not inherit the build's environment. Publish one without this set and
+/// the app has no address to talk to: not signed out, not offline, just
+/// silently unable to reach anything, on somebody's phone, with no way back.
+/// That happened.
+///
+/// So a release falls back to production, which is the only thing a release
+/// could sensibly mean. Development still refuses to guess: pointing a debug
+/// build at production by accident is how test data ends up in real accounts,
+/// and there the variable comes from mobile/.env where somebody chose it.
+export const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? (__DEV__ ? "" : "https://www.roava.co");
 
 export async function storedToken() {
   return SecureStore.getItemAsync(TOKEN_KEY);
