@@ -224,10 +224,10 @@ export default function TripBuilder() {
             Set the dates, then click through the days adding what you did.
           </p>
           <Link
-            href="/trips/import/paste"
+            href="/import"
             className="mt-1 inline-block text-xs text-muted hover:underline"
           >
-            Already have it written down? Paste a list instead
+            Already have it written down? Upload or paste it instead
           </Link>
         </div>
 

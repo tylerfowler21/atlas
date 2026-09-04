@@ -46,7 +46,7 @@ export async function firstSteps(userId: string): Promise<FirstSteps> {
     {
       id: "save",
       label: "Save somewhere you want to go",
-      hint: "Search for it and drop it on your map.",
+      hint: "Search for it, drop a pin, or import a list you already have.",
       done: saved > 0,
       href: "/",
     },

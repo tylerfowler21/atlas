@@ -26,6 +26,9 @@ export default async function TripsPage() {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Link href="/import" className="btn btn-ghost whitespace-nowrap">
+            Import a file
+          </Link>
           <Link href="/trips/import" className="btn btn-ghost whitespace-nowrap">
             Add a past trip
           </Link>

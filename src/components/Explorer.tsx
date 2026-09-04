@@ -555,11 +555,15 @@ export default function Explorer({
                   <div className="card space-y-3 p-3">
                     <p className="text-sm font-medium">Your map is empty</p>
                     <p className="text-xs text-muted">
-                      The quickest start is a trip you&apos;ve already taken — paste
-                      where you went and every place gets found and pinned for you.
+                      The quickest start is a list you already have — a note full
+                      of places, a spreadsheet, a document. Every place gets found
+                      and pinned for you.
                     </p>
-                    <Link href="/trips/import" className="btn btn-primary w-full justify-center">
-                      Paste a trip you&apos;ve taken
+                    <Link href="/import" className="btn btn-primary w-full justify-center">
+                      Import a list or a file
+                    </Link>
+                    <Link href="/trips/import" className="btn btn-ghost w-full justify-center">
+                      Or build a trip day by day
                     </Link>
                     <p className="text-xs text-muted">
                       Or search for somewhere above, or press{" "}
