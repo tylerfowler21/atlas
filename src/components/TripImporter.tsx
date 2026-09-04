@@ -30,6 +30,14 @@ type Row = ParsedEntry & {
   state: "waiting" | "looking" | "done";
 };
 
+/// Drops a trailing ", Somewhere" when that somewhere is already the place's
+/// city — the suffix a spreadsheet's location column added to help the search.
+function withoutTrailing(title: string, city: string | null) {
+  if (!city) return title;
+  const suffix = `, ${city}`.toLowerCase();
+  return title.toLowerCase().endsWith(suffix) ? title.slice(0, -suffix.length) : title;
+}
+
 export default function TripImporter() {
   const { categories, categoryOf } = useCategories();
   const router = useRouter();
@@ -134,7 +142,10 @@ export default function TripImporter() {
           category: row.category,
           place: match
             ? {
-                name: row.title,
+                // "Husk, Charleston" was written that way so the geocoder had
+                // something to work with; the city is stored separately, so
+                // saying it twice on the pin is just noise.
+                name: withoutTrailing(row.title, match.city),
                 lat: match.lat,
                 lng: match.lng,
                 address: match.address,
