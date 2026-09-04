@@ -82,8 +82,19 @@ export default function Explorer({
   const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
   /// The city or country being looked inside, if any.
   const [drilledInto, setDrilledInto] = useState<string | null>(null);
-  /// Whether the share panel for that place is open.
+  /// Whether the share panel for that place is open, and what it currently
+  /// covers.
+  ///
+  /// The map follows it. Deciding what to put in a link is a visual question —
+  /// "is that enough of the city" — and answering it from a row of chips while
+  /// the map shows something else is guesswork. Turning a category off takes
+  /// its pins off the map, so what is on screen is what the person receiving
+  /// it will open.
   const [sharing, setSharing] = useState(false);
+  const [sharePreview, setSharePreview] = useState<{
+    categories: string[];
+    statuses: string[];
+  } | null>(null);
 
   const [drag, setDrag] = useState(0);
   const dragFrom = useRef<number | null>(null);
@@ -94,6 +105,9 @@ export default function Explorer({
 
   const groups = useMemo(() => groupPlaces(places), [places]);
 
+  /// Only while the panel is open — closing it puts the map back.
+  const preview = sharing ? sharePreview : null;
+
   const visiblePlaces = useMemo(
     () =>
       places.filter(
@@ -103,9 +117,13 @@ export default function Explorer({
           // been, so a wishlist pin is not part of any of their answers.
           (view === "all" || p.status !== "wishlist") &&
           (drilledInto === null || p.city === drilledInto || p.country === drilledInto) &&
+          // While a link is being composed, the map shows the link.
+          (preview === null ||
+            ((preview.categories.length === 0 || preview.categories.includes(p.category)) &&
+              (preview.statuses.length === 0 || preview.statuses.includes(p.status)))) &&
           !hidden.has(p.category),
       ),
-    [places, statusFilter, hidden, view, drilledInto],
+    [places, statusFilter, hidden, view, drilledInto, preview],
   );
 
   const localMatches = useMemo(() => {
@@ -453,7 +471,16 @@ export default function Explorer({
                 <button
                   type="button"
                   className="ml-auto text-xs text-accent-text hover:underline"
-                  onClick={() => setSharing((v) => !v)}
+                  onClick={() => {
+                    const next = !sharing;
+                    setSharing(next);
+                    // A new link covers everywhere you have been, so that is
+                    // what the map should show the moment the panel opens.
+                    setSharePreview(
+                      next ? { categories: [], statuses: ["visited", "lived"] } : null,
+                    );
+                    setFitSeq((n) => n + 1);
+                  }}
                 >
                   {sharing ? "Cancel" : `Share ${drilledInto}`}
                 </button>
@@ -462,7 +489,18 @@ export default function Explorer({
 
             {drilledInto && sharing && (
               <div className={listOpen ? "" : "hidden lg:block"}>
-                <ShareArea area={drilledInto} onClose={() => setSharing(false)} />
+                <ShareArea
+                  area={drilledInto}
+                  onPreview={(next) => {
+                    setSharePreview(next);
+                    setFitSeq((n) => n + 1);
+                  }}
+                  onClose={() => {
+                    setSharing(false);
+                    setSharePreview(null);
+                    setFitSeq((n) => n + 1);
+                  }}
+                />
               </div>
             )}
 

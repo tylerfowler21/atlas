@@ -12,11 +12,14 @@ import { STATUSES } from "@/lib/taxonomy";
 /// choice rather than everything you have ever saved there.
 export default function ShareArea({
   area,
+  onPreview,
   onClose,
 }: {
   area: string;
-  /// Which categories are present in this area, so the list offers what there
-  /// is rather than all ten.
+  /// Reports what the link currently covers, so the map behind can show it.
+  /// Choosing what to include is a visual question, and it cannot be answered
+  /// from a row of chips while the map shows something else.
+  onPreview: (covers: { categories: string[]; statuses: string[] }) => void;
   onClose: () => void;
 }) {
   const { categories } = useCategories();
@@ -36,15 +39,10 @@ export default function ShareArea({
     const res = await fetch("/api/place-shares", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        area,
-        // Empty means everything, which is also what "all ticked" should mean —
-        // otherwise a category invented later would be missing from a link the
-        // person thought covered the lot.
-        categories: chosen.size === categories.length ? [] : [...chosen],
-        statuses: [...statuses],
-        note: note.trim() || null,
-      }),
+      // Empty categories means everything, which is also what "all ticked"
+      // should mean — otherwise a category invented later would be missing
+      // from a link the person thought covered the lot.
+      body: JSON.stringify({ area, ...covers(chosen, statuses), note: note.trim() || null }),
     });
     setBusy(false);
 
@@ -61,6 +59,19 @@ export default function ShareArea({
     if (next.has(id)) next.delete(id);
     else next.add(id);
     apply(next);
+    return next;
+  }
+
+  /// What the link covers as it stands. Kept in one place so the preview and
+  /// the thing that eventually gets saved cannot disagree.
+  function covers(nextCategories: Set<string>, nextStatuses: Set<string>) {
+    return {
+      categories:
+        nextCategories.size === 0 || nextCategories.size === categories.length
+          ? []
+          : [...nextCategories],
+      statuses: [...nextStatuses],
+    };
   }
 
   if (link) {
@@ -111,15 +122,16 @@ export default function ShareArea({
                 type="button"
                 className={`chip ${on ? "is-on" : ""}`}
                 style={on ? { borderColor: c.color } : { opacity: 0.5 }}
-                onClick={() =>
-                  toggle(
-                    // First tap on an untouched list means "only this one",
-                    // which is the common case — somebody sharing restaurants.
+                onClick={() => {
+                  const next = toggle(
+                    // First tap on an untouched list means "all but this one",
+                    // since the list starts as everything.
                     chosen.size === 0 ? new Set(categories.map((x) => x.id)) : chosen,
                     c.id,
                     setChosen,
-                  )
-                }
+                  );
+                  onPreview(covers(next, statuses));
+                }}
               >
                 <span aria-hidden>{c.icon}</span>
                 {c.label}
@@ -141,7 +153,10 @@ export default function ShareArea({
               type="button"
               className={`chip ${statuses.has(s.id) ? "is-on" : ""}`}
               style={statuses.has(s.id) ? undefined : { opacity: 0.5 }}
-              onClick={() => toggle(statuses, s.id, setStatuses)}
+              onClick={() => {
+                const next = toggle(statuses, s.id, setStatuses);
+                onPreview(covers(chosen, next));
+              }}
             >
               <span aria-hidden>{s.icon}</span>
               {s.label}
