@@ -22,6 +22,38 @@ const SOURCE = "brand/roava-icon-source.png";
 /// shadow.
 const INSET = 0.09;
 
+/// The mark on its own, with the icon's tile keyed out.
+async function cutTileAway(source: string) {
+  const { data, info } = await sharp(source)
+    .trim()
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const DARKEST_MARK = 110;
+  const BRIGHTEST_TILE = 60;
+
+  const out = Buffer.alloc(data.length);
+  for (let i = 0; i < data.length; i += 4) {
+    const brightness = Math.max(data[i]!, data[i + 1]!, data[i + 2]!);
+    const opacity = Math.max(
+      0,
+      Math.min(1, (brightness - BRIGHTEST_TILE) / (DARKEST_MARK - BRIGHTEST_TILE)),
+    );
+
+    out[i] = data[i]!;
+    out[i + 1] = data[i + 1]!;
+    out[i + 2] = data[i + 2]!;
+    out[i + 3] = Math.round(Math.min(data[i + 3]!, opacity * 255));
+  }
+
+  return sharp(out, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+}
+
 async function main() {
   await mkdir("public/brand", { recursive: true });
   await mkdir("mobile/assets/images", { recursive: true });
@@ -62,7 +94,18 @@ async function main() {
   // splash screen should look like.
   //
   // Transparent, so there is no edge to notice at any background colour.
-  await sharp(SOURCE)
+  //
+  // The tile has to be cut out rather than trimmed away: the source artwork is
+  // the icon, so trimming only removes the transparent margin and leaves the
+  // rounded green tile sitting in the middle of the splash. And the tile is a
+  // gradient — #15372E at the top, #081C18 at the bottom — so no single
+  // background colour could ever hide it.
+  //
+  // Brightness separates the two cleanly. Every part of the tile is darker than
+  // 60; the cream and the orange sun are far brighter. The ramp between 60 and
+  // 110 keeps the mark's antialiased edges soft instead of leaving a cut-out
+  // line around it.
+  await sharp(await cutTileAway(SOURCE))
     .trim()
     .resize(1024, 1024, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
