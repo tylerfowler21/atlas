@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useCategories } from "@/components/CategoriesProvider";
 import { STATUSES } from "@/lib/taxonomy";
+import { placeName } from "@/lib/place-name";
+import type { PlaceDTO } from "@/lib/types";
 
 /// Handing somebody the part of a city you think they should know about.
 ///
@@ -12,17 +14,22 @@ import { STATUSES } from "@/lib/taxonomy";
 /// choice rather than everything you have ever saved there.
 export default function ShareArea({
   area,
+  places,
   onPreview,
   onClose,
 }: {
   area: string;
+  /// Everything saved here, unfiltered. The map behind shows the link on a
+  /// laptop, but on a phone this panel covers the map completely — so the list
+  /// says what is in it either way.
+  places: PlaceDTO[];
   /// Reports what the link currently covers, so the map behind can show it.
   /// Choosing what to include is a visual question, and it cannot be answered
   /// from a row of chips while the map shows something else.
   onPreview: (covers: { categories: string[]; statuses: string[] }) => void;
   onClose: () => void;
 }) {
-  const { categories } = useCategories();
+  const { categories, categoryOf } = useCategories();
 
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [statuses, setStatuses] = useState<Set<string>>(new Set(["visited", "lived"]));
@@ -53,6 +60,14 @@ export default function ShareArea({
     const { share } = (await res.json()) as { share: { path: string } };
     setLink(`${window.location.origin}${share.path}`);
   }
+
+  /// What the link would contain right now, by the rule the server applies
+  /// when somebody opens it.
+  const included = places.filter(
+    (p) =>
+      (chosen.size === 0 || chosen.size === categories.length || chosen.has(p.category)) &&
+      (statuses.size === 0 || statuses.has(p.status)),
+  );
 
   function toggle(set: Set<string>, id: string, apply: (next: Set<string>) => void) {
     const next = new Set(set);
@@ -163,6 +178,29 @@ export default function ShareArea({
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-xs text-muted">
+          {included.length} {included.length === 1 ? "place" : "places"} in this link
+        </p>
+        {included.length === 0 ? (
+          <p className="text-xs text-muted">Nothing matches what you have chosen.</p>
+        ) : (
+          <ul className="max-h-44 divide-y divide-line overflow-y-auto rounded-lg border border-line">
+            {included.map((p) => (
+              <li key={p.id} className="flex items-center gap-2 px-2.5 py-1.5">
+                <span aria-hidden className="text-sm">
+                  {p.emoji || categoryOf(p.category).icon}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm">{placeName(p)}</span>
+                <span className="shrink-0 text-xs text-muted">
+                  {categoryOf(p.category).label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <input

@@ -456,6 +456,9 @@ export default function MapScreen() {
             {within && sharing && (
               <ShareArea
                 area={within}
+                // Everything saved here, before the sheet's own filtering —
+                // the sheet decides what the link contains and shows it.
+                places={all.filter((p) => p.city === within || p.country === within)}
                 onPreview={setSharePreview}
                 onClose={() => {
                   setSharing(false);

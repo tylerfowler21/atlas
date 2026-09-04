@@ -491,6 +491,9 @@ export default function Explorer({
               <div className={listOpen ? "" : "hidden lg:block"}>
                 <ShareArea
                   area={drilledInto}
+                  places={places.filter(
+                    (p) => p.city === drilledInto || p.country === drilledInto,
+                  )}
                   onPreview={(next) => {
                     setSharePreview(next);
                     setFitSeq((n) => n + 1);

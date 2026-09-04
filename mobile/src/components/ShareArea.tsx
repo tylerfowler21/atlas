@@ -15,24 +15,30 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, API_URL } from "@/lib/api";
+import { api, API_URL, type Place } from "@/lib/api";
+import { placeName } from "@/lib/place-name";
 import { useCategories } from "@/lib/categories";
 import { usePalette } from "@/lib/use-palette";
 import { STATUSES } from "@/lib/taxonomy";
 
 export default function ShareArea({
   area,
+  places,
   onClose,
   onPreview,
 }: {
   area: string;
+  /// Everything saved in this place, unfiltered. The sheet shows what the link
+  /// will contain, because on a phone it covers the map completely — the
+  /// website can put this panel beside the map and let the pins answer the
+  /// question, and here there is nothing behind the sheet to look at.
+  places: Place[];
   onClose: () => void;
-  /// What the link currently covers, so the map behind can show it — the same
-  /// live preview the website gives.
+  /// Still reported, so the map underneath matches when the sheet is dismissed.
   onPreview: (covers: { categories: string[]; statuses: string[] }) => void;
 }) {
   const palette = usePalette();
-  const { categories } = useCategories();
+  const { categories, categoryOf } = useCategories();
 
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [statuses, setStatuses] = useState<Set<string>>(new Set(["visited", "lived"]));
@@ -51,6 +57,15 @@ export default function ShareArea({
       statuses: [...nextStatuses],
     };
   }
+
+  /// The places the link would contain right now, by the same rule the server
+  /// applies when somebody opens it.
+  const chosenNow = covers(chosen, statuses);
+  const included = places.filter(
+    (p) =>
+      (chosenNow.categories.length === 0 || chosenNow.categories.includes(p.category)) &&
+      (chosenNow.statuses.length === 0 || chosenNow.statuses.includes(p.status)),
+  );
 
   function toggle(set: Set<string>, id: string, apply: (next: Set<string>) => void) {
     const next = new Set(set);
@@ -172,6 +187,31 @@ export default function ShareArea({
               ))}
             </View>
 
+            {/* What the link actually contains, as it stands. */}
+            <Text style={[styles.label, { color: palette.muted, marginTop: 22 }]}>
+              {included.length} {included.length === 1 ? "place" : "places"} in this link
+            </Text>
+            {included.length === 0 ? (
+              <Text style={{ color: palette.muted, fontSize: 13 }}>
+                Nothing matches what you have chosen.
+              </Text>
+            ) : (
+              included.map((p) => (
+                <View key={p.id} style={[styles.included, { borderColor: palette.border }]}>
+                  <Text style={{ fontSize: 15 }}>{p.emoji || categoryOf(p.category).icon}</Text>
+                  <Text
+                    style={{ color: palette.ink, fontSize: 14, flex: 1 }}
+                    numberOfLines={1}
+                  >
+                    {placeName(p)}
+                  </Text>
+                  <Text style={{ color: palette.muted, fontSize: 12 }}>
+                    {categoryOf(p.category).label}
+                  </Text>
+                </View>
+              ))
+            )}
+
             <TextInput
               value={note}
               onChangeText={setNote}
@@ -219,5 +259,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   primary: { marginTop: 20, borderRadius: 10, alignItems: "center", paddingVertical: 14 },
+  included: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 6,
+  },
   link: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 13, marginBottom: 4 },
 });
