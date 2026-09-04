@@ -18,22 +18,24 @@ export default async function TripsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Trips</h1>
-          <p className="mt-1 text-sm text-muted">
-            Plan a trip day by day from the places you&apos;ve saved.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Link href="/import" className="btn btn-ghost whitespace-nowrap">
-            Import a file
-          </Link>
-          <Link href="/trips/import" className="btn btn-ghost whitespace-nowrap">
-            Add a past trip
-          </Link>
-          <NewTripForm />
-        </div>
+      {/* The heading sits above the actions rather than beside them.
+          New trip opens into a card in this row, and while it shared a line
+          with the heading it squeezed it into a column two words wide. */}
+      <div>
+        <h1 className="text-xl font-semibold">Trips</h1>
+        <p className="mt-1 text-sm text-muted">
+          Plan a trip day by day from the places you&apos;ve saved.
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-start gap-2">
+        <Link href="/import" className="btn btn-ghost whitespace-nowrap">
+          Import a file
+        </Link>
+        <Link href="/trips/import" className="btn btn-ghost whitespace-nowrap">
+          Add a past trip
+        </Link>
+        <NewTripForm />
       </div>
 
       {trips.length === 0 ? (

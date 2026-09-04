@@ -58,7 +58,12 @@ export default function NewTripForm() {
   }
 
   return (
-    <div className="card w-full max-w-md space-y-3 p-4">
+    // The wrapper is full width so the form takes a line of its own rather than
+    // sitting beside the buttons it belongs under; the card inside keeps a
+    // readable width. A max-width on the flex item itself was not enough —
+    // wrapping is decided on the width the item would actually take.
+    <div className="w-full">
+      <div className="card w-full max-w-md space-y-3 p-4">
       <h2 className="text-sm font-semibold">New trip</h2>
 
       <input
@@ -125,9 +130,10 @@ export default function NewTripForm() {
         >
           {saving ? "Creating…" : "Create trip"}
         </button>
-        <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
-          Cancel
-        </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
