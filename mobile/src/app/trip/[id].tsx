@@ -373,7 +373,11 @@ export default function TripScreen() {
           </ScrollView>
         )}
 
-        {Array.from({ length: days }, (_, day) => {
+        {/* Picking a date shows that day. It used to only move the map, which
+            made the calendar look broken: you tap the 20th, the list underneath
+            is still every day of the trip, and nothing appears to have
+            happened. "Whole trip" is still there for the long view. */}
+        {(mapDay === null ? Array.from({ length: days }, (_, d) => d) : [mapDay]).map((day) => {
           const stops = data.items.filter((i) => i.dayIndex === day);
           return (
             <View key={day} style={styles.day}>
@@ -384,7 +388,6 @@ export default function TripScreen() {
                 ]}
               >
                 {dayLabel(data.trip, day)}
-                {mapDay === day ? "  · on the map" : ""}
               </Text>
 
               {stops.map((entry, index) => {
