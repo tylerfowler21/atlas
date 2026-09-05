@@ -1,8 +1,8 @@
 1. SCREEN RECORDING
 Attached. It shows cold launch, Sign in with Apple (registration and login in
-one, since a new Apple ID creates the account), saving a place from search,
-creating a trip and adding a stop, the calendar and Bookings tab, reporting a
-published trip, reporting and blocking a person, and account deletion.
+one, as a new Apple ID creates the account), saving a place from search,
+creating a trip and adding a stop, the Bookings tab, reporting a published
+trip, reporting and blocking a person, and account deletion.
 
 2. PURPOSE AND AUDIENCE
 Roava is a personal travel map and trip planner. People keep travel notes in
@@ -31,7 +31,7 @@ Main features from a fresh account:
   checklist for apps, passes and documents.
 - Journal tab: dated entries, optionally attached to a trip.
 - Discover tab: "People" lists users you can follow; "Feed" shows trips they
-  have published, which you can copy or report.
+  published, which you can copy or report.
 - Account tab: profile, sign out, delete account.
 No sample files are needed; the app works with an empty account.
 
@@ -42,14 +42,14 @@ No sample files are needed; the app works with an empty account.
 - Sign in with Apple and Google Sign-In: the only authentication. Handled by
   Auth.js; we never see or store a password.
 - Apple MapKit: the map, via react-native-maps
-- Nominatim (OpenStreetMap Foundation) and Photon (Komoot): place search and
-  geocoding, worldwide
+- Nominatim (OpenStreetMap Foundation) and Photon (Komoot): worldwide place
+  search and geocoding
 - Anthropic (Claude API): one optional free feature, "Plan one for me", which
   drafts an itinerary from a destination and a number of days. Only the text
   typed on that screen is sent. Every suggested place is then checked against
   the geocoders above and shown to the user to confirm before it is saved.
-- Expo Application Services: delivers JavaScript updates to the installed build
-No advertising, analytics or tracking SDKs. The app does not collect data for
+- Expo Application Services: delivers JavaScript updates to the build
+No advertising, analytics or tracking SDKs. The app collects no data for
 tracking as defined by App Tracking Transparency and shows no ATT prompt.
 
 5. REGIONAL DIFFERENCES
