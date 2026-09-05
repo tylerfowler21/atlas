@@ -1,0 +1,68 @@
+1. SCREEN RECORDING
+Attached. It shows cold launch, Sign in with Apple (registration and login in
+one, since a new Apple ID creates the account), saving a place from search,
+creating a trip and adding a stop, the calendar and Bookings tab, reporting a
+published trip, reporting and blocking a person, and account deletion.
+
+2. PURPOSE AND AUDIENCE
+Roava is a personal travel map and trip planner. People keep travel notes in
+several places at once: a Notes list of restaurants, a spreadsheet for the
+itinerary, screenshots in a group chat. None of it is on a map, none of it is
+together. Roava puts it in one place: you save places you have been and want
+to go, they become pins on your own map, and you build a trip day by day from
+them. The audience is ordinary travellers planning their own trips. It is a
+single-user tool first; following someone or publishing a trip is optional.
+There are no in-app purchases and no paid content.
+
+3. SETUP AND ACCESS
+No demo account is needed and none exists, because there is no email-and-
+password sign-in. Sign in is Sign in with Apple or Google only. Tap "Continue
+with Apple" and you are in: no invite code, waiting list or allowlist. Any
+Apple ID gets a full account immediately, with every feature available. Hiding
+your email with Apple's private relay works normally.
+
+Main features from a fresh account:
+- Map tab: search a place at the top, tap a result, save it. It becomes a pin.
+  The button at bottom right centres the map on you, asking for location
+  permission the first time.
+- Trips tab: "+ New trip". Inside, "Add a stop" searches for places, the
+  calendar shows the trip's days in the month they fall in, the Bookings tab
+  collects anything ticked as needing a booking, and "Before you go" is a
+  checklist for apps, passes and documents.
+- Journal tab: dated entries, optionally attached to a trip.
+- Discover tab: "People" lists users you can follow; "Feed" shows trips they
+  have published, which you can copy or report.
+- Account tab: profile, sign out, delete account.
+No sample files are needed; the app works with an empty account.
+
+4. EXTERNAL SERVICES
+- Vercel: hosts the web API the app talks to (https://www.roava.co)
+- Neon: PostgreSQL database holding places, trips and journal entries
+- Vercel Blob: storage for photos attached to journal entries
+- Sign in with Apple and Google Sign-In: the only authentication. Handled by
+  Auth.js; we never see or store a password.
+- Apple MapKit: the map, via react-native-maps
+- Nominatim (OpenStreetMap Foundation) and Photon (Komoot): place search and
+  geocoding, worldwide
+- Anthropic (Claude API): one optional free feature, "Plan one for me", which
+  drafts an itinerary from a destination and a number of days. Only the text
+  typed on that screen is sent. Every suggested place is then checked against
+  the geocoders above and shown to the user to confirm before it is saved.
+- Expo Application Services: delivers JavaScript updates to the installed build
+No advertising, analytics or tracking SDKs. The app does not collect data for
+tracking as defined by App Tracking Transparency and shows no ATT prompt.
+
+5. REGIONAL DIFFERENCES
+None. The app behaves identically everywhere: same features, same content, no
+geographic restrictions or region-locked functionality. Maps and place search
+cover the whole world. Dates and place names follow the device's locale, the
+only thing that varies; no feature is added or removed anywhere.
+
+6. REGULATED INDUSTRY / THIRD-PARTY MATERIAL
+Neither applies. Roava is not a booking agent, does not sell travel, processes
+no payments and holds no licence-requiring role. The Bookings feature is a
+personal checklist of things booked elsewhere, with a field for the user's own
+confirmation number; nothing is booked through the app. It hosts no protected
+third-party material: content is the user's own, or map data used under its
+providers' licences — Apple MapKit under Apple's terms, OpenStreetMap-derived
+geocoding under the Open Database Licence, attributed in the app.
