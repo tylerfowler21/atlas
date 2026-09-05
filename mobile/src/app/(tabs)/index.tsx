@@ -13,6 +13,7 @@ import { type Place, type SearchResult } from "@/lib/api";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Keyboard,
   Modal,
   Pressable,
@@ -322,10 +323,12 @@ export default function MapScreen() {
             center: { latitude: here.lat, longitude: here.lng },
           });
         }}
-        style={[styles.findMe, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        style={styles.findMe}
         accessibilityLabel="Show where I am"
       >
-        <Text style={{ fontSize: 17 }}>📍</Text>
+        {/* The supplied artwork, which brings its own tile — so the button
+            draws no surface of its own. */}
+        <Image source={require("../../../assets/images/locate.png")} style={styles.findMeIcon} />
       </Pressable>
 
       <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
@@ -591,17 +594,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   pinGlyph: { fontSize: 16 },
-  findMe: {
-    position: "absolute",
-    right: 12,
-    bottom: 92,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  findMe: { position: "absolute", right: 12, bottom: 92 },
+  findMeIcon: { width: 44, height: 44 },
   searchBar: {
     position: "absolute",
     top: 12,

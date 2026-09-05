@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useCategories } from "@/lib/categories";
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 import type { ItineraryItem } from "@/lib/api";
 import { travelMode } from "@/lib/taxonomy";
@@ -179,12 +179,14 @@ export default function TripMap({
       {/* iOS ignores showsMyLocationButton, so the way back to yourself has to
           be drawn. It is the control people reach for after panning away to
           look at tomorrow. */}
-      <Pressable
-        onPress={findMe}
-        style={[styles.findMe, { backgroundColor: palette.surface, borderColor: palette.border }]}
-        accessibilityLabel="Show where I am"
-      >
-        <Text style={{ fontSize: 16 }}>📍</Text>
+      <Pressable onPress={findMe} style={styles.findMe} accessibilityLabel="Show where I am">
+        {/* The supplied artwork, which brings its own tile — so the button
+            draws no surface of its own rather than putting a rounded square
+            inside a circle. */}
+        <Image
+          source={require("../../assets/images/locate.png")}
+          style={styles.findMeIcon}
+        />
       </Pressable>
     </View>
   );
@@ -211,17 +213,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
-  findMe: {
-    position: "absolute",
-    right: 10,
-    bottom: 10,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  findMe: { position: "absolute", right: 10, bottom: 10 },
+  findMeIcon: { width: 40, height: 40 },
   glyph: { fontSize: 16 },
   badge: {
     position: "absolute",
