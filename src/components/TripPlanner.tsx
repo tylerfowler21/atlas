@@ -16,6 +16,7 @@ import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
 import TripBookings from "@/components/TripBookings";
+import TripCalendar from "@/components/TripCalendar";
 import TripResources from "@/components/TripResources";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
@@ -433,6 +434,14 @@ export default function TripPlanner({
 
   const dayDate = dateForDay(trip, activeDay);
   const toBook = outstanding(items).length;
+  /// How many stops each day has, for the dots on the calendar.
+  const dayCounts = useMemo(() => {
+    const counts = Array.from({ length: days }, () => 0);
+    for (const item of items) {
+      if (item.dayIndex < counts.length) counts[item.dayIndex] += 1;
+    }
+    return counts;
+  }, [items, days]);
   const toSort = resources.filter((r) => !r.ready).length;
 
   return (
@@ -516,34 +525,47 @@ export default function TripPlanner({
 
         {view === "days" && (
           <>
-        <div className="flex flex-wrap gap-1.5">
-          {Array.from({ length: days }, (_, i) => {
-            const date = dateForDay(trip, i);
-            return (
+        {/* On a calendar when the trip has dates, because "day 3" is a number
+            you have to convert before it tells you anything — and the answer
+            people want from it is which Saturday it is. A trip with no dates
+            yet has nothing to align to, so it keeps the chips. */}
+        {trip.startDate ? (
+          <TripCalendar
+            startDate={trip.startDate}
+            days={days}
+            color={trip.color}
+            activeDay={activeDay}
+            counts={dayCounts}
+            onPick={setActiveDay}
+          />
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from({ length: days }, (_, i) => (
               <button
                 key={i}
                 type="button"
                 className={`chip ${activeDay === i ? "is-on" : ""}`}
                 onClick={() => setActiveDay(i)}
               >
-                {date ? formatDay(date, { weekday: "short", month: undefined, day: undefined }) : `Day ${i + 1}`}
+                Day
                 <span className="text-muted">{i + 1}</span>
               </button>
-            );
-          })}
-          {!trip.endDate && (
-            <button
-              type="button"
-              className="chip"
-              onClick={() => {
-                setExtraDays((n) => n + 1);
-                setActiveDay(days);
-              }}
-            >
-              ＋ Day
-            </button>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {!trip.endDate && (
+          <button
+            type="button"
+            className="chip self-start"
+            onClick={() => {
+              setExtraDays((n) => n + 1);
+              setActiveDay(days);
+            }}
+          >
+            ＋ Day
+          </button>
+        )}
 
         <div>
           <h2 className="text-sm font-semibold">

@@ -30,6 +30,7 @@ import {
   type TripResource,
 } from "@/lib/api";
 import TripBookings from "@/components/TripBookings";
+import TripCalendar from "@/components/TripCalendar";
 import TripResources from "@/components/TripResources";
 import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
 import { useApi } from "@/lib/use-api";
@@ -96,6 +97,14 @@ export default function TripScreen() {
     [data],
   );
   const toBook = outstanding(data?.items ?? []).length;
+  /// Stops per day, for the dots on the calendar.
+  const dayCounts = useMemo(() => {
+    const counts = Array.from({ length: days }, () => 0);
+    for (const item of data?.items ?? []) {
+      if (item.dayIndex < counts.length) counts[item.dayIndex] += 1;
+    }
+    return counts;
+  }, [data, days]);
   const toSort = (data?.resources ?? []).filter((r) => !r.ready).length;
 
   /// A share link is a secret URL: anyone holding it reads the itinerary
@@ -325,30 +334,44 @@ export default function TripScreen() {
 
         {view === "days" && (
           <>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dayChips}
-        >
-          {[null, ...Array.from({ length: days }, (_, d) => d)].map((d) => {
-            const on = mapDay === d;
-            return (
-              <Pressable
-                key={d ?? "all"}
-                onPress={() => setMapDay(d)}
-                style={[
-                  styles.dayChip,
-                  { backgroundColor: palette.surface, borderColor: palette.border },
-                  on && { backgroundColor: palette.accent, borderColor: palette.accent },
-                ]}
-              >
-                <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
-                  {d === null ? "Whole trip" : dayLabel(data.trip, d)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {/* A calendar once the trip has dates, because "day 3" is a number you
+            have to convert before it tells you anything. A trip with no dates
+            has nothing to align to, so it keeps the row of chips. */}
+        {data.trip.startDate ? (
+          <TripCalendar
+            startDate={data.trip.startDate}
+            days={days}
+            color={data.trip.color}
+            activeDay={mapDay}
+            counts={dayCounts}
+            onPick={setMapDay}
+          />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.dayChips}
+          >
+            {[null, ...Array.from({ length: days }, (_, d) => d)].map((d) => {
+              const on = mapDay === d;
+              return (
+                <Pressable
+                  key={d ?? "all"}
+                  onPress={() => setMapDay(d)}
+                  style={[
+                    styles.dayChip,
+                    { backgroundColor: palette.surface, borderColor: palette.border },
+                    on && { backgroundColor: palette.accent, borderColor: palette.accent },
+                  ]}
+                >
+                  <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
+                    {d === null ? "Whole trip" : `Day ${d + 1}`}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
 
         {Array.from({ length: days }, (_, day) => {
           const stops = data.items.filter((i) => i.dayIndex === day);
