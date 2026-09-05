@@ -26,9 +26,9 @@ Main features from a fresh account:
   The button at bottom right centres the map on you, asking for location
   permission the first time.
 - Trips tab: "+ New trip". Inside, "Add a stop" searches for places, the
-  calendar shows the trip's days in the month they fall in, the Bookings tab
-  collects anything ticked as needing a booking, and "Before you go" is a
-  checklist for apps, passes and documents.
+  calendar shows the trip's days in the month they fall in, Bookings collects
+  anything ticked as needing one, and "Before you go" is a checklist for apps,
+  passes and documents.
 - Journal tab: dated entries, optionally attached to a trip.
 - Discover tab: "People" lists users you can follow; "Feed" shows trips they
   published, which you can copy or report.
@@ -46,7 +46,7 @@ No sample files are needed; the app works with an empty account.
   search and geocoding
 - Anthropic (Claude API): one optional free feature, "Plan one for me", which
   drafts an itinerary from a destination and a number of days. Only the text
-  typed on that screen is sent. Every suggested place is then checked against
+  typed on that screen is sent. Each suggested place is then checked against
   the geocoders above and shown to the user to confirm before it is saved.
 - Expo Application Services: delivers JavaScript updates to the build
 No advertising, analytics or tracking SDKs. The app collects no data for
