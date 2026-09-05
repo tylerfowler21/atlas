@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useCategories } from "@/lib/categories";
-import { Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 import type { ItineraryItem } from "@/lib/api";
 import { travelMode } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
+import { useMyLocation } from "@/lib/use-my-location";
 
 /// Opens the platform's maps app with directions to somewhere.
 ///
@@ -51,6 +52,10 @@ export default function TripMap({
 }) {
   const { stopIconOf } = useCategories();
   const palette = usePalette();
+  // Asked for when the trip opens, so the dot is already there rather than
+  // appearing after a press. This is the screen you have open while standing
+  // in the city.
+  const { granted, locate } = useMyLocation();
 
   const stops = useMemo(
     () => items.filter((i) => i.kind === "stop" && i.place),
@@ -91,15 +96,26 @@ export default function TripMap({
     );
   }
 
+  /// Centre on the phone without losing the zoom somebody has set: the
+  /// question is "where am I among these", not "show me a fresh map".
+  async function findMe() {
+    const here = await locate();
+    if (!here) return;
+    map.current?.animateCamera({
+      center: { latitude: here.lat, longitude: here.lng },
+    });
+  }
+
   return (
+    <View style={styles.map}>
     <MapView
       ref={map}
-      style={styles.map}
+      style={StyleSheet.absoluteFill}
       initialRegion={region}
       // Where you are, on the map you are actually walking around with. The
       // map tab has had this; the trip — the screen you have open while
       // standing in the city — did not, which is backwards.
-      showsUserLocation
+      showsUserLocation={granted}
       showsMyLocationButton
     >
       {stops.length > 1 && (
@@ -159,6 +175,18 @@ export default function TripMap({
         </Marker>
       ))}
     </MapView>
+
+      {/* iOS ignores showsMyLocationButton, so the way back to yourself has to
+          be drawn. It is the control people reach for after panning away to
+          look at tomorrow. */}
+      <Pressable
+        onPress={findMe}
+        style={[styles.findMe, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        accessibilityLabel="Show where I am"
+      >
+        <Text style={{ fontSize: 16 }}>📍</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -182,6 +210,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
+  },
+  findMe: {
+    position: "absolute",
+    right: 10,
+    bottom: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   glyph: { fontSize: 16 },
   badge: {

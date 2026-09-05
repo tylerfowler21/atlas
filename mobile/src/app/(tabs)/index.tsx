@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
@@ -7,6 +7,7 @@ import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
+import { useMyLocation } from "@/lib/use-my-location";
 import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
 import { type Place, type SearchResult } from "@/lib/api";
 import {
@@ -63,6 +64,10 @@ export default function MapScreen() {
   const { placeIconOf, categoryOf } = useCategories();
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
+  const map = useRef<MapView>(null);
+  // Asked for when the map opens rather than when somebody presses "I'm here
+  // now", so the dot is on the map for everyone who has agreed to it.
+  const { granted, locate } = useMyLocation();
 
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   /// What was found under a long press, waiting to be chosen from.
@@ -261,9 +266,10 @@ export default function MapScreen() {
       </Modal>
 
       <MapView
+        ref={map}
         style={styles.fill}
         initialRegion={initial}
-        showsUserLocation
+        showsUserLocation={granted}
         // Long press rather than tap: a tap is how you dismiss things and pan,
         // and acting every time someone touches the map is maddening.
         //
@@ -304,6 +310,23 @@ export default function MapScreen() {
           </Marker>
         ))}
       </MapView>
+
+      {/* iOS draws no button of its own for this, and "where am I among my
+          pins" is the question a saved map exists to answer while you are out
+          in the city. */}
+      <Pressable
+        onPress={async () => {
+          const here = await locate();
+          if (!here) return;
+          map.current?.animateCamera({
+            center: { latitude: here.lat, longitude: here.lng },
+          });
+        }}
+        style={[styles.findMe, { backgroundColor: palette.surface, borderColor: palette.border }]}
+        accessibilityLabel="Show where I am"
+      >
+        <Text style={{ fontSize: 17 }}>📍</Text>
+      </Pressable>
 
       <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <TextInput
@@ -568,6 +591,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   pinGlyph: { fontSize: 16 },
+  findMe: {
+    position: "absolute",
+    right: 12,
+    bottom: 92,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   searchBar: {
     position: "absolute",
     top: 12,
