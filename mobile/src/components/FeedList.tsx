@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   FlatList,
@@ -15,6 +16,7 @@ import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 import { formatDay } from "@/lib/dates";
+import { REPORT_REASONS } from "@/lib/report-reasons";
 
 function dates(trip: FeedTrip) {
   if (!trip.startDate) return null;
@@ -48,6 +50,38 @@ export default function FeedList() {
     },
     [router],
   );
+
+  /// Reporting the trip itself, not only whoever published it.
+  ///
+  /// A published itinerary is somebody else's writing appearing on your phone,
+  /// and the way to complain about it has to be on the thing you are looking
+  /// at. Blocking the author lives on the person, where anyone would look for
+  /// it; a trip needs its own door, because the objection is usually to the
+  /// trip rather than to them.
+  const report = useCallback((trip: FeedTrip) => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: `Report "${trip.title}"`,
+        message: "Nothing is shared with whoever published it.",
+        options: ["Cancel", ...REPORT_REASONS.map((r) => r.label)],
+        cancelButtonIndex: 0,
+      },
+      async (chosen) => {
+        if (chosen === 0) return;
+        const reason = REPORT_REASONS[chosen - 1];
+        if (!reason) return;
+        try {
+          await api("/api/report", {
+            method: "POST",
+            body: JSON.stringify({ reason: reason.id, tripId: trip.id }),
+          });
+          Alert.alert("Reported", "Thank you — this has been sent for review.");
+        } catch (e) {
+          Alert.alert("Could not report", e instanceof Error ? e.message : "Try again");
+        }
+      },
+    );
+  }, []);
 
   if (loading && !data) {
     return (
@@ -88,19 +122,29 @@ export default function FeedList() {
                     .filter(Boolean)
                     .join(" · ")}
                 </Text>
-                <Pressable
-                  onPress={() => copy(item.id, item.title)}
-                  disabled={copying === item.id}
-                  style={[styles.copy, { borderColor: palette.border }]}
-                >
-                  {copying === item.id ? (
-                    <ActivityIndicator />
-                  ) : (
-                    <Text style={{ color: palette.accentText, fontSize: 13, fontWeight: "600" }}>
-                      Copy into my trips
-                    </Text>
-                  )}
-                </Pressable>
+                <View style={styles.actions}>
+                  <Pressable
+                    onPress={() => copy(item.id, item.title)}
+                    disabled={copying === item.id}
+                    style={[styles.copy, { borderColor: palette.border }]}
+                  >
+                    {copying === item.id ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <Text style={{ color: palette.accentText, fontSize: 13, fontWeight: "600" }}>
+                        Copy into my trips
+                      </Text>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => report(item)}
+                    hitSlop={8}
+                    accessibilityLabel={`Report ${item.title}`}
+                    style={[styles.copy, { borderColor: palette.border }]}
+                  >
+                    <Text style={{ color: palette.muted, fontSize: 13 }}>Report</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           );
@@ -129,6 +173,7 @@ const styles = StyleSheet.create({
   author: { fontSize: 12 },
   title: { fontSize: 16, fontWeight: "600", marginTop: 2 },
   meta: { fontSize: 13, marginTop: 4 },
+  actions: { flexDirection: "row", gap: 8, alignItems: "center" },
   copy: {
     alignSelf: "flex-start",
     marginTop: 10,
