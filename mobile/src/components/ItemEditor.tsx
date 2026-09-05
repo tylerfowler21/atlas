@@ -178,6 +178,7 @@ export default function ItemEditor({
   /// Saved as somewhere you want to go: it is on an itinerary, which is a plan
   /// rather than a record. Marking it visited is a thing you do afterwards.
   async function saveAndAttach(result: SearchResult, target: "from" | "to") {
+    Keyboard.dismiss();
     try {
       const { place } = await api<{ place: Place }>("/api/places", {
         method: "POST",
@@ -279,7 +280,16 @@ export default function ItemEditor({
           </Pressable>
         </View>
 
-        <ScrollView style={{ backgroundColor: palette.background }} contentContainerStyle={styles.body}>
+        <ScrollView
+          style={{ backgroundColor: palette.background }}
+          contentContainerStyle={styles.body}
+          // Without this iOS spends the first tap dismissing the keyboard and
+          // never delivers it, so picking a search result took two taps and the
+          // first one looked like nothing happening. Scrolling still puts the
+          // keyboard away, which is the gesture it was standing in for.
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           <Text style={[styles.label, { color: palette.muted }]}>
             {travel ? "What journey?" : "What are you doing?"}
           </Text>

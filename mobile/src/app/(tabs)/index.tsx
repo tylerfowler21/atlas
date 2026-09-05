@@ -281,6 +281,11 @@ export default function MapScreen() {
         // reaches Google's maps on iOS, not Apple's — so it asks what stands
         // within eighty metres of the point instead, which is the same question
         // from the other end.
+        // A tap on the map is how you get back to it. Nothing is added on a
+        // plain tap — that is what the long press below is for — but the
+        // keyboard goes away, because a finger on the map means "I am done
+        // typing" and there was previously nothing that meant that.
+        onPress={() => Keyboard.dismiss()}
         onLongPress={(e) => {
           const { latitude, longitude } = e.nativeEvent.coordinate;
           void offerWhatIsHere(latitude, longitude);
@@ -342,6 +347,21 @@ export default function MapScreen() {
           style={{ flex: 1, fontSize: 15, color: palette.ink }}
         />
         {searching && <ActivityIndicator />}
+        {/* The way back to the map. Without it the keyboard covers half the
+            screen with no gesture that closes it, and the only escape from a
+            search is to have typed something worth tapping. */}
+        {query.length > 0 && !searching && (
+          <Pressable
+            onPress={() => {
+              setQuery("");
+              Keyboard.dismiss();
+            }}
+            hitSlop={10}
+            accessibilityLabel="Clear the search"
+          >
+            <Text style={{ color: palette.muted, fontSize: 17 }}>✕</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.statusRow}>
@@ -374,12 +394,17 @@ export default function MapScreen() {
         <ScrollView
           style={[styles.results, { backgroundColor: palette.surface, borderColor: palette.border }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {results.map((r: SearchResult) => (
             <Pressable
               key={r.id}
               onPress={() => {
                 setQuery("");
+                // Before the editor opens, not after: a keyboard raised by the
+                // search has nothing to do with the sheet that follows it, and
+                // arrives on top of it.
+                Keyboard.dismiss();
                 setDraft({
                   name: r.name,
                   lat: r.lat,

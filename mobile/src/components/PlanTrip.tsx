@@ -170,6 +170,7 @@ export default function PlanTrip({
         style={{ backgroundColor: palette.background }}
         contentContainerStyle={styles.sheet}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.head}>
           <Text style={[styles.title, { color: palette.ink }]}>Plan a trip</Text>
