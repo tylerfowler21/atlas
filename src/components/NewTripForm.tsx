@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import DestinationField from "@/components/DestinationField";
 
 const COLORS = [
   "#0F2D4A", // deep ocean
@@ -16,7 +17,7 @@ export default function NewTripForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [destination, setDestination] = useState("");
+  const [destinations, setDestinations] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [color, setColor] = useState(COLORS[0]!);
@@ -40,7 +41,7 @@ export default function NewTripForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim(),
-        destination: destination.trim() || null,
+        destinations,
         // A date input gives "YYYY-MM-DD"; parsed as UTC midnight.
         startDate: startDate || null,
         endDate: endDate || null,
@@ -73,11 +74,10 @@ export default function NewTripForm() {
         onChange={(e) => setTitle(e.target.value)}
         autoFocus
       />
-      <input
-        className="input"
-        placeholder="Destination (optional)"
-        value={destination}
-        onChange={(e) => setDestination(e.target.value)}
+      <DestinationField
+        value={destinations}
+        onChange={setDestinations}
+        placeholder="Where are you going? (optional)"
       />
 
       <div className="grid grid-cols-2 gap-2">

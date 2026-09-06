@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { tripWhere } from "@/lib/trip-where";
 import {
   ActivityIndicator,
   FlatList,
@@ -88,7 +89,7 @@ export default function TripsScreen() {
                   {item.title}
                 </Text>
                 <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
-                  {[item.destination, when].filter(Boolean).join(" · ") || "No dates yet"}
+                  {[tripWhere(item), when].filter(Boolean).join(" · ") || "No dates yet"}
                 </Text>
               </View>
               {item.publishedAt && (

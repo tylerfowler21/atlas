@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { tripWhere } from "@/lib/trip-where";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -118,7 +119,7 @@ export default function FeedList() {
                   {item.title}
                 </Text>
                 <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
-                  {[item.destination, when, `${item.stopCount} stops`]
+                  {[tripWhere(item), when, `${item.stopCount} stops`]
                     .filter(Boolean)
                     .join(" · ")}
                 </Text>

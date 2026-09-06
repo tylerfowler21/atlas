@@ -47,6 +47,7 @@ export default async function PublishedTripPage({
   const publicTrip: PublicTripDTO = {
     title: trip.title,
     destination: trip.destination,
+    destinations: trip.destinations,
     startDate: trip.startDate?.toISOString() ?? null,
     endDate: trip.endDate?.toISOString() ?? null,
     color: trip.color,

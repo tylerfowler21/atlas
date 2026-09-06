@@ -22,6 +22,7 @@ export function toFeedTrip(trip: {
   startDate: Date | null;
   endDate: Date | null;
   color: string;
+  destinations?: string[];
   publishedAt: Date | null;
   user: { username: string | null; name: string | null; image: string | null };
   copiedFrom: { title: string; user: { username: string | null } } | null;
@@ -31,6 +32,7 @@ export function toFeedTrip(trip: {
     id: trip.id,
     title: trip.title,
     destination: trip.destination,
+    destinations: trip.destinations ?? [],
     startDate: trip.startDate?.toISOString() ?? null,
     endDate: trip.endDate?.toISOString() ?? null,
     color: trip.color,

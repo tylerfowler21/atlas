@@ -26,6 +26,7 @@ export type TripDTO = {
   id: string;
   title: string;
   destination: string | null;
+  destinations: string[];
   startDate: string | null;
   endDate: string | null;
   notes: string | null;
@@ -179,6 +180,7 @@ export type PublicItemDTO = {
 export type PublicTripDTO = {
   title: string;
   destination: string | null;
+  destinations?: string[];
   startDate: string | null;
   endDate: string | null;
   color: string;

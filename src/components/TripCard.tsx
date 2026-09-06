@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { tripWhere } from "@/lib/trip-where";
 import { formatRange } from "@/lib/trips";
 import type { FeedTrip } from "@/lib/social";
 
@@ -23,7 +24,7 @@ export default function TripCard({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{trip.title}</p>
         <p className="truncate text-xs text-muted">
-          {[trip.destination, formatRange(trip)].filter(Boolean).join(" · ")}
+          {[tripWhere(trip), formatRange(trip)].filter(Boolean).join(" · ")}
         </p>
         {showAuthor && (
           <p className="truncate text-xs text-muted">

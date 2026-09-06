@@ -1,4 +1,6 @@
 import { useState } from "react";
+import DestinationField from "@/components/DestinationField";
+import { tripRegions } from "@/lib/trip-where";
 import {
   ActivityIndicator,
   Alert,
@@ -41,7 +43,11 @@ export default function TripEditor({
 }) {
   const palette = usePalette();
   const [title, setTitle] = useState(trip?.title ?? "");
-  const [destination, setDestination] = useState(trip?.destination ?? "");
+  // Seeded from whichever field this trip has: one made before trips could go
+  // to more than one place still has only the old one.
+  const [destinations, setDestinations] = useState<string[]>(() =>
+    trip ? tripRegions(trip) : [],
+  );
   const [start, setStart] = useState(trip?.startDate?.slice(0, 10) ?? "");
   const [end, setEnd] = useState(trip?.endDate?.slice(0, 10) ?? "");
   const [color, setColor] = useState(trip?.color ?? TRIP_COLORS[0]);
@@ -64,7 +70,7 @@ export default function TripEditor({
     try {
       const body = {
         title: name,
-        destination: destination.trim() || null,
+        destinations,
         startDate: start || null,
         endDate: end || null,
         color,
@@ -140,14 +146,8 @@ export default function TripEditor({
             style={[styles.input, field]}
           />
 
-          <Text style={[styles.label, { color: palette.muted }]}>Destination</Text>
-          <TextInput
-            value={destination}
-            onChangeText={setDestination}
-            placeholder="Lisbon, Portugal"
-            placeholderTextColor={palette.muted}
-            style={[styles.input, field]}
-          />
+          <Text style={[styles.label, { color: palette.muted }]}>Where it goes</Text>
+          <DestinationField value={destinations} onChange={setDestinations} />
 
           <View style={styles.dates}>
             <View style={styles.dateField}>

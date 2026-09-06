@@ -66,6 +66,7 @@ export default async function SharedTripPage({
   const trip: PublicTripDTO = {
     title: share.trip.title,
     destination: share.trip.destination,
+    destinations: share.trip.destinations,
     startDate: share.trip.startDate?.toISOString() ?? null,
     endDate: share.trip.endDate?.toISOString() ?? null,
     color: share.trip.color,

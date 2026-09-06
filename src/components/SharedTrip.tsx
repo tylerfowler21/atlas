@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { tripWhere } from "@/lib/trip-where";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import { category as resolve, stopIcon, travelMode, type Category } from "@/lib/taxonomy";
@@ -101,7 +102,7 @@ export default function SharedTrip({
             {trip.title}
           </h1>
           <p className="text-xs text-muted">
-            {[trip.destination, formatRange(trip)].filter(Boolean).join(" · ")}
+            {[tripWhere(trip), formatRange(trip)].filter(Boolean).join(" · ")}
           </p>
         </div>
 

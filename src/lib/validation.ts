@@ -68,6 +68,9 @@ export const placeUpdateSchema = z.object(placeFields).partial();
 const tripFields = {
   title: trimmed(120).min(1, "Give the trip a title"),
   destination: optionalText(160),
+  /// Capped because this is a hint for a search and a line of text under a
+  /// name, not an itinerary — a trip listing thirty is describing its stops.
+  destinations: z.array(trimmed(120).min(1)).max(12).optional(),
   startDate: z.coerce.date().nullable().optional(),
   endDate: z.coerce.date().nullable().optional(),
   notes: optionalText(2000),

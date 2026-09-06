@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { tripWhere } from "@/lib/trip-where";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { visibleTripsWhere } from "@/lib/trip-access";
@@ -77,7 +78,7 @@ export default async function TripsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{trip.title}</p>
                     <p className="truncate text-xs text-muted">
-                      {[trip.destination, formatRange(dto)].filter(Boolean).join(" · ")}
+                      {[tripWhere(trip), formatRange(dto)].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

@@ -231,7 +231,13 @@ model Trip {
   id          String    @id @default(cuid())
   userId      String
   title       String
+  /// Kept for every trip made before a trip could have more than one, and as
+  /// the fallback everything still reads when `destinations` is empty.
   destination String?
+  /// Where the trip goes, in order. A fortnight in Switzerland is Lucerne and
+  /// Interlaken and Zermatt, and calling that "Switzerland" loses the only
+  /// part a place search can use.
+  destinations String[] @default([])
   startDate   DateTime?
   endDate     DateTime?
   notes       String?

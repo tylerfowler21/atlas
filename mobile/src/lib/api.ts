@@ -147,6 +147,7 @@ export type FeedTrip = {
   id: string;
   title: string;
   destination: string | null;
+  destinations?: string[];
   startDate: string | null;
   endDate: string | null;
   color: string;
@@ -236,7 +237,9 @@ type ItemPlace = {
 export type Trip = {
   id: string;
   title: string;
+  /// What a trip made before it could go to more than one place still says.
   destination: string | null;
+  destinations: string[];
   startDate: string | null;
   endDate: string | null;
   color: string;

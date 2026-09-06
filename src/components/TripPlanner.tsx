@@ -1,6 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import { tripWhere, searchRegionFor } from "@/lib/trip-where";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
@@ -65,9 +66,9 @@ export default function TripPlanner({
   /// does not happen for most trips.
   const searchRegion = useMemo(
     () =>
-      trip.destination ??
+      searchRegionFor(trip) ??
       tripRegion(items.map((i) => i.place).filter((p) => p !== null)),
-    [trip.destination, items],
+    [trip, items],
   );
 
   const [dropMode, setDropMode] = useState(false);
@@ -460,7 +461,7 @@ export default function TripPlanner({
             {trip.title}
           </h1>
           <p className="text-xs text-muted">
-            {[trip.destination, formatRange(trip)].filter(Boolean).join(" · ")}
+            {[tripWhere(trip), formatRange(trip)].filter(Boolean).join(" · ")}
           </p>
 
           {/* Whether a trip is public should be readable without opening a

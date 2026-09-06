@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import DestinationField from "@/components/DestinationField";
+import { tripRegions } from "@/lib/trip-where";
 import { useState } from "react";
 import { toDateInput } from "@/lib/trips";
 import type { TripDTO } from "@/lib/types";
@@ -24,7 +26,9 @@ export default function TripSettings({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(trip.title);
-  const [destination, setDestination] = useState(trip.destination ?? "");
+  // Seeded from whichever field this trip has: one made before trips could go
+  // to more than one place still has only the old one.
+  const [destinations, setDestinations] = useState<string[]>(() => tripRegions(trip));
   const [startDate, setStartDate] = useState(toDateInput(trip.startDate));
   const [endDate, setEndDate] = useState(toDateInput(trip.endDate));
   const [color, setColor] = useState(trip.color);
@@ -78,7 +82,7 @@ export default function TripSettings({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim(),
-        destination: destination.trim() || null,
+        destinations,
         startDate: startDate || null,
         endDate: endDate || null,
         color,
@@ -116,12 +120,10 @@ export default function TripSettings({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
-      <input
-        className="input"
-        aria-label="Destination"
-        placeholder="Destination"
-        value={destination}
-        onChange={(e) => setDestination(e.target.value)}
+      <DestinationField
+        value={destinations}
+        onChange={setDestinations}
+        placeholder="Where does this trip go?"
       />
 
       <div className="grid grid-cols-2 gap-2">
