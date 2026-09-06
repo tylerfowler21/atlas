@@ -514,13 +514,24 @@ export default function TripImporter({
           </button>
         ))}
       </div>
+      {/* The second way in, and the reason there is now one button on the
+          trips page instead of three: which of these you want depends on
+          whether the trip is already written down somewhere, and that is a
+          question worth asking here rather than in a row of buttons that all
+          look alike. */}
       {destination !== "places" && (
-        <Link
-          href="/trips/import"
-          className="mt-1 inline-block text-xs text-muted hover:underline"
-        >
-          Rather pick dates and click through the days? Use the guided version
-        </Link>
+        <div className="mt-3 rounded-lg border border-line p-3 text-xs">
+          <p className="text-muted">
+            Nothing written down? Pick the dates and click through the days
+            instead — every place you add lands on the map as you go.
+          </p>
+          <Link
+            href="/trips/import"
+            className="mt-1.5 inline-block font-medium text-accent-text hover:underline"
+          >
+            Build it day by day →
+          </Link>
+        </div>
       )}
 
       <div className="mt-6 space-y-3">

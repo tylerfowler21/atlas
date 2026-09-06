@@ -36,10 +36,7 @@ export default async function TripsPage() {
           ✨ Plan one for me
         </Link>
         <Link href="/import" className="btn btn-ghost whitespace-nowrap">
-          Import a file
-        </Link>
-        <Link href="/trips/import" className="btn btn-ghost whitespace-nowrap">
-          Add a past trip
+          Add one I&apos;ve taken
         </Link>
         <NewTripForm />
       </div>
@@ -56,8 +53,8 @@ export default async function TripsPage() {
             <Link href="/import?mode=draft" className="btn btn-primary">
               ✨ Plan one for me
             </Link>
-            <Link href="/trips/import" className="btn btn-ghost">
-              Add a past trip
+            <Link href="/import" className="btn btn-ghost">
+              Add one I&apos;ve taken
             </Link>
           </div>
         </div>
