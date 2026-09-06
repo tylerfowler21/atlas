@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
 import DraftTrip from "@/components/DraftTrip";
+import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import type { SearchResult } from "@/lib/types";
 
 const PLACEHOLDER = `Day 1: Zürich
@@ -92,6 +93,11 @@ export default function TripImporter({
   const [reading, setReading] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /// Bumped when there is a new reason to frame the map: the lookups finishing,
+  /// a hand search landing, a different match chosen. Deriving the token from
+  /// the pins instead does not work — the map mounts in the same render the
+  /// first pin arrives, and asks to be fitted before it has anything on it.
+  const [fitSeq, setFitSeq] = useState(0);
 
   const preview = useMemo(() => parseItinerary(text), [text]);
   const dayCount = parsedDayCount(preview);
@@ -173,6 +179,7 @@ export default function TripImporter({
     }
 
     setBusy(false);
+    setFitSeq((n) => n + 1);
   }
 
   /// Look one row up again, with whatever it is now called.
@@ -211,6 +218,7 @@ export default function TripImporter({
             : r,
         ),
       );
+      if (candidates.length > 0) setFitSeq((n) => n + 1);
     } catch {
       setRows((prev) => prev!.map((r, i) => (i === index ? { ...r, state: "done" } : r)));
     }
@@ -319,6 +327,33 @@ export default function TripImporter({
   const including = (rows ?? []).filter((r) => r.include).length;
   const includingWithPin = (rows ?? []).filter((r) => r.include && r.chosen >= 0).length;
 
+  /// What the import will put on the map, drawn while it can still be
+  /// changed.
+  ///
+  /// A list of matched addresses is a poor way to notice that one of them is
+  /// in the wrong country — the eye that catches it is the one looking at a
+  /// map with a pin out in the sea. Rows left out are drawn faded rather than
+  /// dropped, so unticking one is visibly a decision about a real place.
+  const pins = useMemo<MapPin[]>(() => {
+    if (!rows) return [];
+    return rows.flatMap((row, index) => {
+      const match = row.chosen >= 0 ? row.candidates[row.chosen] : null;
+      if (!match) return [];
+      const meta = categoryOf(row.category);
+      return [
+        {
+          id: String(index),
+          lat: match.lat,
+          lng: match.lng,
+          color: meta.color,
+          icon: meta.icon,
+          badge: destination === "places" ? null : String(row.dayIndex + 1),
+          muted: !row.include,
+        },
+      ];
+    });
+  }, [rows, categoryOf, destination]);
+
   function patchRow(index: number, changes: Partial<Row>) {
     setRows((prev) => prev!.map((r, i) => (i === index ? { ...r, ...changes } : r)));
   }
@@ -356,6 +391,7 @@ export default function TripImporter({
                   category:
                     next >= 0 ? (row.candidates[next]?.category ?? row.category) : row.category,
                 });
+                setFitSeq((n) => n + 1);
               }}
             >
               {row.candidates.map((c, i) => (
@@ -662,6 +698,20 @@ export default function TripImporter({
 
       {rows && (
         <div className="mt-8">
+          {/* Sticky, because the list below it is long and the map is the
+              thing you are checking the list against. */}
+          {/* Only once the run is over. Mounting the map mid-run means
+              creating it with one pin and growing it a pin at a time, and the
+              fit it is asked for lands on a map that is still being built. */}
+          {!busy && pins.length > 0 && (
+            <div className="sticky top-4 z-10 mb-4 h-[38vh] overflow-hidden rounded-xl border border-line">
+              <MapCanvas
+                pins={pins}
+                fitToken={String(fitSeq)}
+              />
+            </div>
+          )}
+
           {/* Two lists, because they ask two different questions. What was
               found needs checking — is this the right Sapori? What was not
               found needs deciding about, and burying those few among thirty
