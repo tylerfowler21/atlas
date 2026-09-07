@@ -211,6 +211,9 @@ export type ItineraryItem = {
   dayIndex: number;
   startTime: string | null;
   endTime: string | null;
+  /// Days later that a journey lands. A flight east across the Atlantic
+  /// leaves at seven and arrives at eight the next morning.
+  endDayOffset: number;
   category: string;
   position: number;
   /// "needed", "booked", or null for the many stops that are not bookings.

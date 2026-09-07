@@ -119,6 +119,9 @@ export default function ItemEditor({
   const [booking, setBooking] = useState<string | null>(existing?.booking ?? null);
   const [startTime, setStartTime] = useState(existing?.startTime ?? "");
   const [endTime, setEndTime] = useState(existing?.endTime ?? "");
+  /// Whether a journey lands the next day. A tick rather than a number,
+  /// because the only case anybody meets is the overnight one.
+  const [nextDay, setNextDay] = useState((existing?.endDayOffset ?? 0) > 0);
   const [travelMode, setTravelMode] = useState(existing?.mode ?? "train");
   const [placeId, setPlaceId] = useState(existing?.placeId ?? null);
   const [toPlaceId, setToPlaceId] = useState(existing?.toPlaceId ?? null);
@@ -227,6 +230,7 @@ export default function ItemEditor({
         category: travel ? "transport" : category,
         startTime: startTime || null,
         endTime: travel ? endTime || null : null,
+        endDayOffset: travel && endTime && nextDay ? 1 : 0,
         mode: travel ? travelMode : null,
         placeId,
         toPlaceId: travel ? toPlaceId : null,
@@ -355,6 +359,23 @@ export default function ItemEditor({
               </View>
             )}
           </View>
+
+          {/* Offered once there is an arrival to qualify. Suggested when the
+              clock appears to run backwards, which is exactly what a flight
+              east across the Atlantic looks like. */}
+          {travel && endTime.trim().length > 0 && (
+            <>
+              <Pressable onPress={() => setNextDay((on) => !on)} style={styles.check}>
+                <Text style={{ fontSize: 18 }}>{nextDay ? "☑️" : "⬜️"}</Text>
+                <Text style={{ color: palette.ink, fontSize: 14 }}>Lands the next day</Text>
+              </Pressable>
+              {!nextDay && startTime.trim() !== "" && endTime.trim() <= startTime.trim() && (
+                <Text style={{ color: "#E07A5F", fontSize: 12, marginTop: 4 }}>
+                  Arrival is before departure — this probably lands the next day.
+                </Text>
+              )}
+            </>
+          )}
 
           <Text style={[styles.label, { color: palette.muted }]}>
             Search anywhere — saves it and attaches it

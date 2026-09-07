@@ -51,8 +51,13 @@ function dayCount(trip: Trip, items: ItineraryItem[]) {
           (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86_400_000,
         ) + 1
       : 0;
-  // Never fewer days than there are entries, or a stop could have nowhere to be.
-  const fromItems = items.reduce((n, i) => Math.max(n, i.dayIndex + 1), 0);
+  // Never fewer days than there are entries, or a stop could have nowhere to
+  // be — including the morning an overnight flight lands, which is a day of
+  // the trip even before anything else is planned on it.
+  const fromItems = items.reduce(
+    (n, i) => Math.max(n, i.dayIndex + (i.endDayOffset ?? 0) + 1),
+    0,
+  );
   return Math.max(1, fromDates, fromItems);
 }
 
@@ -393,6 +398,27 @@ export default function TripScreen() {
                 {dayLabel(data.trip, day)}
               </Text>
 
+              {/* An overnight flight belongs to the evening it left, but the
+                  morning it lands is a real part of this day and the one thing
+                  on it that cannot move. */}
+              {data.items
+                .filter(
+                  (i) =>
+                    i.kind === "travel" &&
+                    i.endDayOffset > 0 &&
+                    i.endTime &&
+                    i.dayIndex + i.endDayOffset === day,
+                )
+                .map((leg) => (
+                  <Text
+                    key={`arrives-${leg.id}`}
+                    style={{ color: palette.accentText, fontSize: 13, marginTop: 6 }}
+                  >
+                    ✈️ Lands {leg.endTime}
+                    {leg.toPlace ? ` · ${leg.toPlace.name}` : ""}
+                  </Text>
+                ))}
+
               {stops.map((entry, index) => {
                 const leg = entry.kind === "travel";
                 const mode = leg ? travelMode(entry.mode) : null;
@@ -456,7 +482,9 @@ export default function TripScreen() {
                           <Text style={[styles.stopMeta, { color: palette.muted }]} numberOfLines={1}>
                             {[
                               entry.startTime && entry.endTime
-                                ? `${entry.startTime}–${entry.endTime}`
+                                ? `${entry.startTime}–${entry.endTime}${
+                                    entry.endDayOffset > 0 ? ` +${entry.endDayOffset}` : ""
+                                  }`
                                 : entry.startTime,
                               entry.notes,
                               entry.booking === BOOKING_BOOKED ? "booked ✓" : null,

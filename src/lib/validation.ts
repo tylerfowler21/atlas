@@ -97,6 +97,10 @@ const itemFields = {
   toPlaceId: optionalText(40),
   mode: z.enum(TRAVEL_MODE_IDS).nullable().optional(),
   endTime: optionalText(5),
+  /// Days later that a journey lands. Two is enough for anything short of a
+  /// cargo ship; the cap is there so a typo cannot push an arrival into a
+  /// different month.
+  endDayOffset: z.number().int().min(0).max(3),
   placeId: optionalText(40),
   notes: optionalText(1000),
   dayIndex: z.number().int().min(0).max(365),
@@ -118,6 +122,8 @@ export const itemCreateSchema = z
     // Everything created before travel legs existed is a stop, and so is
     // anything that does not say otherwise.
     kind: z.enum(["stop", "travel"]).default("stop"),
+    // Same day unless somebody says otherwise, which is nearly always.
+    endDayOffset: z.number().int().min(0).max(3).default(0),
   });
 
 /// A trip's apps, passes and paperwork.

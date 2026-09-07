@@ -6,11 +6,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function dayCount(
   trip: { startDate: string | null; endDate: string | null },
-  items: { dayIndex: number }[],
+  items: { dayIndex: number; endDayOffset?: number }[],
 ): number {
   // A trip is always at least long enough to show every item it already has,
-  // so shortening the dates can never strand a stop on an invisible day.
-  const fromItems = Math.max(1, ...items.map((i) => i.dayIndex + 1));
+  // so shortening the dates can never strand a stop on an invisible day —
+  // including the morning an overnight flight lands, which is a day of the
+  // trip even when nothing else is planned on it yet.
+  const fromItems = Math.max(
+    1,
+    ...items.map((i) => i.dayIndex + (i.endDayOffset ?? 0) + 1),
+  );
 
   if (trip.startDate && trip.endDate) {
     const span = (Date.parse(trip.endDate) - Date.parse(trip.startDate)) / DAY_MS;

@@ -381,8 +381,16 @@ model ItineraryItem {
   /// "HH:mm", local to the destination. Null means "sometime this day".
   /// For travel this is the departure.
   startTime String?
-  /// Only for travel: the arrival time.
+  /// Only for travel: the arrival time, local to where it lands.
   endTime   String?
+  /// Only for travel: how many days later it arrives. A flight east across the
+  /// Atlantic leaves at seven and lands at eight the next morning, which as two
+  /// bare clock times reads as arriving eleven hours before it left.
+  ///
+  /// Days rather than a timestamp, because that is how the two times are read.
+  /// Nobody converts a boarding pass to UTC; they read "out at seven, in at
+  /// eight, next morning".
+  endDayOffset Int    @default(0)
   category  String   @default("other")
   /// Overrides the icon for this stop only, so a place can look one way on the
   /// map and another on a particular day. Also the only emoji a stop with no

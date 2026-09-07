@@ -499,6 +499,14 @@ export default function TripPlanner({
   }
 
   const dayDate = dateForDay(trip, activeDay);
+  /// Journeys that took off earlier and land today.
+  const arrivalsToday = items.filter(
+    (i) =>
+      i.kind === "travel" &&
+      i.endDayOffset > 0 &&
+      i.endTime &&
+      i.dayIndex + i.endDayOffset === activeDay,
+  );
   const toBook = outstanding(items).length;
   /// How many stops each day has, for the dots on the calendar.
   const dayCounts = useMemo(() => {
@@ -644,7 +652,19 @@ export default function TripPlanner({
             )}
           </h2>
 
-          {dayItems.length === 0 ? (
+          {/* An overnight flight belongs to the evening it left, but the
+              morning it lands is a real part of this day and the one thing on
+              it that cannot move. Shown here rather than moved, because the
+              journey itself still belongs to the day it started. */}
+          {arrivalsToday.map((leg) => (
+            <p key={`arrives-${leg.id}`} className="mt-2 text-xs text-accent-text">
+              ✈️ Lands {leg.endTime}
+              {leg.toPlace ? ` · ${leg.toPlace.name}` : ""}
+              <span className="text-muted"> — {leg.title}</span>
+            </p>
+          ))}
+
+          {dayItems.length === 0 && arrivalsToday.length === 0 ? (
             <p className="mt-2 text-xs text-muted">
               Nothing planned for this day yet.
             </p>
@@ -732,6 +752,11 @@ export default function TripPlanner({
                               : ""}
                             {item.startTime && item.endTime
                               ? ` · ${item.startTime}–${item.endTime}`
+                              : ""}
+                            {/* Without this a flight east reads as landing
+                                eleven hours before it took off. */}
+                            {item.endTime && item.endDayOffset > 0
+                              ? ` +${item.endDayOffset}`
                               : ""}
                             {/* A train is a booking like any other, and the
                                 marker was only ever drawn on the stop branch —
@@ -1197,6 +1222,7 @@ function AddTravel({
     mode?: string;
     startTime?: string | null;
     endTime?: string | null;
+    endDayOffset?: number;
   }) => Promise<boolean>;
   busy: boolean;
 }) {
@@ -1206,6 +1232,9 @@ function AddTravel({
   const [toId, setToId] = useState("");
   const [departs, setDeparts] = useState("");
   const [arrives, setArrives] = useState("");
+  /// Days later it lands. Offered as a tick rather than a number because the
+  /// only case anybody meets is the overnight one.
+  const [nextDay, setNextDay] = useState(false);
 
   const from = places.find((p) => p.id === fromId);
   const to = places.find((p) => p.id === toId);
@@ -1296,6 +1325,26 @@ function AddTravel({
         </label>
       </div>
 
+      {/* Only once there is an arrival to qualify, and suggested when the
+          clock appears to run backwards — which is exactly what an overnight
+          flight east looks like. */}
+      {arrives && (
+        <label className="flex items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            className="size-3.5"
+            checked={nextDay}
+            onChange={() => setNextDay((on) => !on)}
+          />
+          Lands the next day
+          {departs && arrives <= departs && !nextDay && (
+            <span className="text-amber-600 dark:text-amber-400">
+              — arrival is before departure, so probably yes
+            </span>
+          )}
+        </label>
+      )}
+
       {places.length < 2 && (
         <p className="text-xs text-amber-600 dark:text-amber-400">
           You need two saved places to travel between. Add them above first.
@@ -1322,6 +1371,7 @@ function AddTravel({
             category: "transport",
             startTime: departs || null,
             endTime: arrives || null,
+            endDayOffset: nextDay ? 1 : 0,
           });
           if (ok) {
             setOpen(false);
@@ -1329,6 +1379,7 @@ function AddTravel({
             setToId("");
             setDeparts("");
             setArrives("");
+            setNextDay(false);
           }
         }}
       >

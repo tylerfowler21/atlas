@@ -52,6 +52,9 @@ export type ItineraryItemDTO = {
   startTime: string | null;
   /// Arrival, for a travel leg
   endTime: string | null;
+  /// Days later that a travel leg lands. 0 for everything that arrives the
+  /// day it left, which is nearly everything.
+  endDayOffset: number;
   category: string;
   position: number;
   /// "needed", "booked", or null for the great majority of stops that are not
