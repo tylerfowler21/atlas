@@ -493,27 +493,44 @@ export default function TripImporter({
 
       {/* What the list becomes. Asked first, because it changes what the rest
           of this page needs to know: a trip has a name and dates, a list of
-          places has neither. */}
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {(
-          [
-            ["trip", "🧳", "A trip I took"],
-            ["places", "📍", "Just places"],
-            ["draft", "✨", "Plan one for me"],
-          ] as const
-        ).map(([id, icon, label]) => (
+          places has neither.
+
+          Drafting is not among them. It is a different question — one asks
+          what to do with something you already have, the other asks for
+          something you do not — and offering it here made "add one I've
+          taken" open a page inviting you to invent one instead. */}
+      {destination === "draft" ? (
+        <p className="mt-4 text-xs text-muted">
+          ✨ Planning a new one.{" "}
           <button
-            key={id}
             type="button"
-            className={`chip ${destination === id ? "is-on" : ""}`}
-            aria-pressed={destination === id}
-            onClick={() => setDestination(id)}
+            className="font-medium text-accent-text hover:underline"
+            onClick={() => setDestination("trip")}
           >
-            <span aria-hidden>{icon}</span>
-            {label}
+            Add one I&apos;ve taken instead
           </button>
-        ))}
-      </div>
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {(
+            [
+              ["trip", "🧳", "A trip I took"],
+              ["places", "📍", "Just places"],
+            ] as const
+          ).map(([id, icon, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={`chip ${destination === id ? "is-on" : ""}`}
+              aria-pressed={destination === id}
+              onClick={() => setDestination(id)}
+            >
+              <span aria-hidden>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {/* The second way in, and the reason there is now one button on the
           trips page instead of three: which of these you want depends on
           whether the trip is already written down somewhere, and that is a
