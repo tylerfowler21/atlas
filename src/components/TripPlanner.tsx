@@ -1,7 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
-import { tripWhere, searchRegionFor } from "@/lib/trip-where";
+import { tripWhere, tripRegions } from "@/lib/trip-where";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
@@ -66,8 +66,11 @@ export default function TripPlanner({
   /// does not happen for most trips.
   const searchRegion = useMemo(
     () =>
-      searchRegionFor(trip) ??
-      tripRegion(items.map((i) => i.place).filter((p) => p !== null)),
+      (tripRegions(trip).length > 0 ? tripRegions(trip) : null) ??
+      // Nothing said, so the stops themselves are asked where this trip is.
+      [tripRegion(items.map((i) => i.place).filter((p) => p !== null))].filter(
+        (r): r is string => r !== null,
+      ),
     [trip, items],
   );
 
@@ -1267,7 +1270,7 @@ function AddStop({
   busy: boolean;
   /// Where the trip is. Searching "Time Out Market" from inside a trip to
   /// Lisbon should not begin with the one in New York.
-  destination: string | null;
+  destination: string[] | string | null;
 }) {
   const { categories, categoryOf, placeIconOf } = useCategories();
   const [query, setQuery] = useState("");

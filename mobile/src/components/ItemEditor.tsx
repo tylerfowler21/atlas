@@ -100,7 +100,7 @@ export default function ItemEditor({
   draft: ItemDraft | null;
   /// Where the trip is, used to narrow the search. Looking for a chain from
   /// inside a trip to Barcelona should not begin with the branch in Chicago.
-  destination: string | null;
+  destination: string[] | string | null;
   places: Place[];
   onClose: () => void;
   onSaved: () => void;

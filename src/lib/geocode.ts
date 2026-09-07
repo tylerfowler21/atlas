@@ -59,7 +59,11 @@ async function fromNominatim(
 
 export async function geocode(
   query: string,
-  region?: string | null,
+  /// Where the caller says they are going. A trip goes to several places, and
+  /// all of them decide the order — only the first gets a query of its own,
+  /// because each extra one costs a second against the geocoder's rate limit
+  /// and the ranking below is free.
+  region?: string | string[] | null,
   /// Answering someone mid-word rather than someone who has finished typing.
   ///
   /// Only Photon is asked. It is built for half-typed queries and answers in
@@ -81,7 +85,11 @@ export async function geocode(
   // phrase no gazetteer knows, which took a search for London from ten results
   // to two. The hint helps when the answer is nearby and must not be able to
   // hide the answer when it is not.
-  const queries = region ? [`${query}, ${region}`, query] : [query];
+  const regions = (Array.isArray(region) ? region : region ? [region] : [])
+    .map((r) => r.trim())
+    .filter(Boolean);
+  const primary = regions[0];
+  const queries = primary ? [`${query}, ${primary}`, query] : [query];
 
   /// What is inside the map's own view, asked for separately and first.
   ///
@@ -121,7 +129,7 @@ export async function geocode(
     merged.push(result);
   }
 
-  if (!region) return merged.slice(0, 10);
+  if (regions.length === 0) return merged.slice(0, 10);
 
   /// Somewhere in the trip's region comes first, and nothing is thrown away.
   ///
@@ -134,9 +142,8 @@ export async function geocode(
   /// So the region decides the order, as it always did, and the fix for the
   /// original complaint is above: both queries are asked, so the answer is
   /// always in the list even when the region does not favour it.
-  const parts = region
-    .toLowerCase()
-    .split(",")
+  const parts = regions
+    .flatMap((r) => r.toLowerCase().split(","))
     .map((part) => part.trim())
     .filter((part) => part.length > 1);
 

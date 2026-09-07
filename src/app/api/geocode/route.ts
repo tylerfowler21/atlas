@@ -6,7 +6,10 @@ export async function GET(request: Request) {
   const q = searchParams.get("q")?.trim() ?? "";
   // The country or region the caller is looking in, used to rank and then
   // narrow results.
-  const region = searchParams.get("region")?.trim() || null;
+  const regions = searchParams
+    .getAll("region")
+    .map((r) => r.trim())
+    .filter(Boolean);
 
   // Type-ahead, which goes to the fast geocoder only and will guess from two
   // letters. Everything else waits for three and asks both.
@@ -24,7 +27,7 @@ export async function GET(request: Request) {
   if (q.length < (suggest ? 2 : 3)) return NextResponse.json({ results: [] });
 
   try {
-    const results = await geocode(q, region, suggest, around);
+    const results = await geocode(q, regions, suggest, around);
     return NextResponse.json({ results });
   } catch {
     return NextResponse.json(

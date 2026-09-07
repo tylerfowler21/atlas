@@ -41,7 +41,10 @@ export type MapCanvasProps = {
   /// Reports the centre of the view whenever panning or zooming settles.
   /// A place search has no idea where you are looking otherwise, and answers
   /// "hilton" with a village in County Durham.
-  onViewport?: (centre: { lat: number; lng: number }) => void;
+  /// `span` is the larger of the two visible spans in degrees, so a caller can
+  /// tell "looking at an island" from "looking at the Atlantic". The centre of
+  /// a world view is a point in the Gulf of Guinea and means nothing.
+  onViewport?: (view: { lat: number; lng: number; span: number }) => void;
   /// Change this string to re-fit the viewport to the current pins.
   fitToken?: string;
   /// Pan to one point without refitting everything. Bump `token` to re-run it.

@@ -5,7 +5,7 @@ import type { SearchResult } from "@/lib/types";
 export async function searchPlaces(
   query: string,
   mode: "suggest" | "full",
-  region?: string | null,
+  region?: string | string[] | null,
   /// Where the map is pointing, when the caller has a map. What is inside the
   /// view is searched separately and put first, which is the difference
   /// between "hilton" meaning the resort on the island in front of you and a
@@ -13,7 +13,9 @@ export async function searchPlaces(
   around?: { lat: number; lng: number } | null,
 ): Promise<SearchResult[]> {
   const params = new URLSearchParams({ q: query });
-  if (region) params.set("region", region);
+  for (const r of Array.isArray(region) ? region : region ? [region] : []) {
+    if (r.trim()) params.append("region", r.trim());
+  }
   if (around) {
     params.set("lat", String(around.lat));
     params.set("lng", String(around.lng));

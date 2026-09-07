@@ -27,6 +27,7 @@ export default function MapLibreCanvas({
   selectedId,
   onSelect,
   onMapClick,
+  onViewport,
   fitToken,
   focus,
   initialCenter = [4, 30],
@@ -47,11 +48,37 @@ export default function MapLibreCanvas({
   // first, so it has already run by the time the map's listeners fire.
   const onSelectRef = useRef(onSelect);
   const onMapClickRef = useRef(onMapClick);
+  const onViewportRef = useRef(onViewport);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
     onMapClickRef.current = onMapClick;
+    onViewportRef.current = onViewport;
   });
+
+  /// Where the view is, whenever it stops moving. Reported on arrival too: a
+  /// map that opens over a city and is never touched is still telling you
+  /// where somebody is looking.
+  useEffect(() => {
+    if (!map) return;
+    const report = () => {
+      const centre = map.getCenter();
+      const bounds = map.getBounds();
+      onViewportRef.current?.({
+        lat: centre.lat,
+        lng: centre.lng,
+        span: Math.max(
+          Math.abs(bounds.getNorth() - bounds.getSouth()),
+          Math.abs(bounds.getEast() - bounds.getWest()),
+        ),
+      });
+    };
+    report();
+    map.on("moveend", report);
+    return () => {
+      map.off("moveend", report);
+    };
+  }, [map]);
 
   // --- create the map once -------------------------------------------------
   useEffect(() => {

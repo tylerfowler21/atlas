@@ -21,7 +21,7 @@ import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
 import { dayLabel } from "@/lib/dates";
-import { searchRegionFor } from "@/lib/trip-where";
+import { tripRegions } from "@/lib/trip-where";
 import {
   API_URL,
   api,
@@ -263,7 +263,9 @@ export default function TripScreen() {
         draft={item}
         destination={
           // What the trip says it is, or what its stops say it is.
-          (data ? searchRegionFor(data.trip) : null) ??
+          // Every place the trip goes to, so a search ranks all of them first
+          // rather than only wherever it starts.
+          (data && tripRegions(data.trip).length > 0 ? tripRegions(data.trip) : null) ??
           tripRegion((data?.items ?? []).map((i) => i.place).filter((p) => p !== null))
         }
         places={placeData?.places ?? []}

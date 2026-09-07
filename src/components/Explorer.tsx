@@ -58,6 +58,11 @@ export default function Explorer({
   });
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [fitSeq, setFitSeq] = useState(0);
+  /// The centre of the map, so a search knows where it is being asked from.
+  /// Held in a ref rather than state: it changes on every pan, and the search
+  /// reads it when somebody types rather than re-running because the map
+  /// drifted a mile.
+  const viewport = useRef<{ lat: number; lng: number } | null>(null);
   const [focus, setFocus] = useState<{ lat: number; lng: number; token: number } | null>(
     // Computed once, from the initial props: a deep link should land centred on
     // its place rather than fitting the whole world and then jumping.
@@ -101,7 +106,9 @@ export default function Explorer({
 
   // --- world search, as you type -------------------------------------------
   const trimmedQuery = query.trim();
-  const { results, searching } = usePlaceSearch(trimmedQuery, searchPlaces);
+  const { results, searching } = usePlaceSearch(trimmedQuery, (q, mode) =>
+    searchPlaces(q, mode, null, viewport.current),
+  );
 
   const groups = useMemo(() => groupPlaces(places), [places]);
 
@@ -671,6 +678,13 @@ export default function Explorer({
         <MapCanvas
           pins={pins}
           selectedId={draft ? DRAFT_PIN_ID : selectedId}
+          onViewport={(view) => {
+            // Only while looking at somewhere in particular. Roughly a country
+            // across; wider than that and the centre of the view is a point in
+            // the ocean that no one is thinking about.
+            viewport.current =
+              view.span <= 8 ? { lat: view.lat, lng: view.lng } : null;
+          }}
           fitToken={String(fitSeq)}
           focus={focus}
           onSelect={(id) => {

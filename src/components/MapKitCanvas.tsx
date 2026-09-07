@@ -113,6 +113,7 @@ export default function MapKitCanvas({
   onSelect,
   onMapClick,
   onPlaceSelect,
+  onViewport,
   fitToken,
   focus,
   initialCenter,
@@ -129,10 +130,10 @@ export default function MapKitCanvas({
 
   // Callbacks live in a ref so the map is not town down and rebuilt every time
   // a parent re-renders with a new inline function.
-  const handlers = useRef({ onSelect, onMapClick, onPlaceSelect });
+  const handlers = useRef({ onSelect, onMapClick, onPlaceSelect, onViewport });
   useEffect(() => {
-    handlers.current = { onSelect, onMapClick, onPlaceSelect };
-  }, [onSelect, onMapClick, onPlaceSelect]);
+    handlers.current = { onSelect, onMapClick, onPlaceSelect, onViewport };
+  }, [onSelect, onMapClick, onPlaceSelect, onViewport]);
 
   useEffect(() => {
     let cancelled = false;
@@ -402,6 +403,32 @@ export default function MapKitCanvas({
     );
     map.showItems(focused.length > 0 ? focused : map.annotations, { animate: true });
   }, [map, fitToken, pins]);
+
+  /// Where the view is, whenever it stops moving.
+  ///
+  /// Reported on arrival too: a map that opens over a city and is never
+  /// touched is still telling you where somebody is looking.
+  useEffect(() => {
+    if (!map) return;
+    const report = () => {
+      const live = instance.current;
+      if (live !== map) return;
+      const span = live.region.span;
+      handlers.current.onViewport?.({
+        lat: live.center.latitude,
+        lng: live.center.longitude,
+        span: Math.max(span.latitudeDelta, span.longitudeDelta),
+      });
+    };
+    report();
+    map.addEventListener("region-change-end", report);
+    return () => {
+      if (instance.current !== map) return;
+      try {
+        map.removeEventListener("region-change-end", report);
+      } catch {}
+    };
+  }, [map]);
 
   /// Pan to one place without disturbing the rest.
   useEffect(() => {

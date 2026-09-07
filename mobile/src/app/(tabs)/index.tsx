@@ -69,6 +69,10 @@ export default function MapScreen() {
   // Asked for when the map opens rather than when somebody presses "I'm here
   // now", so the dot is on the map for everyone who has agreed to it.
   const { granted, locate } = useMyLocation();
+  /// Where the map is looking, so a search knows where it is being asked from.
+  /// A ref, not state: it changes on every pan, and the search should read it
+  /// when somebody types rather than re-run because the map drifted a mile.
+  const viewport = useRef<{ lat: number; lng: number } | null>(null);
 
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   /// What was found under a long press, waiting to be chosen from.
@@ -121,7 +125,9 @@ export default function MapScreen() {
   /// Searched as you type. The hook asks the fast geocoder while you are still
   /// typing and both of them once you stop, so nobody has to press anything to
   /// find out whether the place they mean exists.
-  const { results, searching } = usePlaceSearch(query, searchPlaces);
+  const { results, searching } = usePlaceSearch(query, (q, mode) =>
+    searchPlaces(q, mode, null, viewport.current),
+  );
   // MapView reads initialRegion once, when it mounts, and ignores it after —
   // so recomputing this cannot drag the map out from under someone who has
   // panned away.
@@ -269,6 +275,14 @@ export default function MapScreen() {
       <MapView
         ref={map}
         style={styles.fill}
+        // Only while looking at somewhere in particular — roughly a country
+        // across. Wider than that and the centre of the view is a point in the
+        // ocean nobody is thinking about.
+        onRegionChangeComplete={(r) => {
+          const span = Math.max(r.latitudeDelta, r.longitudeDelta);
+          viewport.current =
+            span <= 8 ? { lat: r.latitude, lng: r.longitude } : null;
+        }}
         initialRegion={initial}
         showsUserLocation={granted}
         // Long press rather than tap: a tap is how you dismiss things and pan,
