@@ -71,6 +71,8 @@ export type TripDocumentDTO = {
   name: string;
   contentType: string;
   size: number;
+  /// The stop it confirms, or null for a file that belongs to the whole trip.
+  itemId: string | null;
   createdAt: string;
 };
 

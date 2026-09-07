@@ -99,6 +99,10 @@ export default function TripPlanner({
   // Places saved from inside the trip go into the library too, so they are
   // available on the map and on every future trip.
   const [library, setLibrary] = useState(places);
+  /// Held here rather than inside the files panel, because the same list is
+  /// read in two places — attached to a stop, and gathered on its own tab —
+  /// and uploading in one must show in the other without a reload.
+  const [files, setFiles] = useState(documents);
 
   const days = dayCount(trip, items) + extraDays;
   const dayItems = useMemo(
@@ -369,6 +373,35 @@ export default function TripPlanner({
     setTrip(body.trip);
   }
 
+  /// Returns null when it worked, or the reason it did not — the caller names
+  /// the file that failed, which it knows and this does not.
+  async function uploadDocument(file: File, itemId: string | null): Promise<string | null> {
+    const body = new FormData();
+    body.append("file", file);
+    if (itemId) body.append("itemId", itemId);
+    try {
+      const res = await fetch(`/api/trips/${trip.id}/documents`, { method: "POST", body });
+      const json = await res.json();
+      if (!res.ok) return json.error ?? "Could not upload that";
+      setFiles((prev) => [json.document, ...prev]);
+      return null;
+    } catch {
+      return "Could not upload that";
+    }
+  }
+
+  async function deleteDocument(id: string) {
+    const gone = files.find((f) => f.id === id);
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+    const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+    if (!res.ok && gone) {
+      setFiles((prev) =>
+        [gone, ...prev].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      );
+      setError("Could not remove that file");
+    }
+  }
+
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
     return mutate<{ item: ItineraryItemDTO }>(
       () =>
@@ -543,7 +576,7 @@ export default function TripPlanner({
             ["days", "Days", 0],
             ["bookings", "Bookings", toBook],
             ["before", "Before you go", toSort],
-            ["files", "Files", documents.length],
+            ["files", "Files", files.length],
           ] as const).map(([id, label, count]) => (
             <button
               key={id}
@@ -874,6 +907,17 @@ export default function TripPlanner({
                             if (next !== item.notes) patchItem(item.id, { notes: next });
                           }}
                         />
+                        {/* The confirmation, on the thing it confirms. The
+                            Files tab still shows it — this is the same list,
+                            read from the day it belongs to. */}
+                        <TripFiles
+                          files={files}
+                          itemId={item.id}
+                          onUpload={uploadDocument}
+                          onRemove={deleteDocument}
+                          busy={busy}
+                        />
+
                         {/* The tick that puts this on the bookings tab, and the
                             one that takes it off again. Nothing is a booking
                             until somebody says so, so the default is neither
@@ -1047,7 +1091,15 @@ export default function TripPlanner({
           <TripResources tripId={trip.id} initial={resources} canEdit />
         )}
 
-        {view === "files" && <TripFiles tripId={trip.id} initial={documents} />}
+        {view === "files" && (
+          <TripFiles
+            files={files}
+            onUpload={uploadDocument}
+            onRemove={deleteDocument}
+            labelFor={(id) => items.find((i) => i.id === id)?.title ?? null}
+            busy={busy}
+          />
+        )}
       </aside>
 
       {/* A real height rather than a minimum: the map fills its box with a

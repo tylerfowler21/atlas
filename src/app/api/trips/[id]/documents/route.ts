@@ -49,6 +49,16 @@ export async function POST(
     );
   }
 
+  // A file can be attached to the stop it confirms. Checked against this trip
+  // rather than trusted: an id from a form is a claim, not a fact.
+  const itemId = typeof form.get("itemId") === "string" ? String(form.get("itemId")) : null;
+  if (itemId) {
+    const item = await prisma.itineraryItem.findUnique({ where: { id: itemId } });
+    if (!item || item.tripId !== tripId) {
+      return NextResponse.json({ error: "No such stop on this trip" }, { status: 400 });
+    }
+  }
+
   const stored = await storeDocument({ tripId, file });
 
   const document = await prisma.tripDocument.create({
@@ -61,6 +71,7 @@ export async function POST(
       name: (file.name || "Untitled").slice(0, 200),
       contentType: file.type,
       size: stored.size,
+      itemId,
     },
   });
 

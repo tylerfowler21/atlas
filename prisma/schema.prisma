@@ -402,9 +402,10 @@ model ItineraryItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  trip    Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  place   Place? @relation("itemFrom", fields: [placeId], references: [id], onDelete: SetNull)
-  toPlace Place? @relation("itemTo", fields: [toPlaceId], references: [id], onDelete: SetNull)
+  trip      Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  place     Place?         @relation("itemFrom", fields: [placeId], references: [id], onDelete: SetNull)
+  toPlace   Place?         @relation("itemTo", fields: [toPlaceId], references: [id], onDelete: SetNull)
+  documents TripDocument[]
 
   @@index([tripId, dayIndex, position])
   @@index([placeId])
@@ -432,11 +433,20 @@ model TripDocument {
   name        String
   contentType String
   size        Int
+  /// The stop this confirms, when it confirms one. Null for a file that
+  /// belongs to the trip at large — the insurance, the packing list.
+  ///
+  /// Cleared rather than cascaded when the stop goes: removing a hotel from
+  /// the plan should not silently destroy the confirmation for the night you
+  /// have already paid for. It falls back to the trip's own pile.
+  itemId      String?
   createdAt   DateTime @default(now())
 
-  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  item ItineraryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   @@index([tripId, createdAt])
+  @@index([itemId])
 }
 
 /// Something you need to have before the trip rather than somewhere you go on

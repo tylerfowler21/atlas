@@ -69,6 +69,7 @@ export default async function TripPage({
         name: d.name,
         contentType: d.contentType,
         size: d.size,
+        itemId: d.itemId,
         createdAt: d.createdAt.toISOString(),
       }))}
       role={access.role}
