@@ -75,12 +75,20 @@ export default function PlaceChooser({
       <input
         className="input mt-1"
         value={query}
-        placeholder="Search your places or anywhere…"
+        placeholder="Search anywhere in the world…"
         onChange={(e) => setQuery(e.target.value)}
       />
 
       {(saved.length > 0 || query.trim().length >= 2) && (
-        <ul className="mt-1 max-h-44 divide-y divide-line overflow-y-auto rounded-lg border border-line">
+        <ul className="mt-1 max-h-56 divide-y divide-line overflow-y-auto rounded-lg border border-line">
+          {/* Labelled, because an unlabelled list of your own places reads as
+              the entire set of choices — you cannot tell from looking at it
+              that the world is one keystroke away. */}
+          {saved.length > 0 && (
+            <li className="bg-foreground/5 px-2 py-1 text-[11px] font-medium tracking-wide text-muted uppercase">
+              Your places
+            </li>
+          )}
           {saved.map((p) => (
             <li key={p.id}>
               <button
@@ -99,6 +107,11 @@ export default function PlaceChooser({
             </li>
           ))}
 
+          {query.trim().length >= 2 && (
+            <li className="bg-foreground/5 px-2 py-1 text-[11px] font-medium tracking-wide text-muted uppercase">
+              {searching && results.length === 0 ? "Searching everywhere…" : "Everywhere"}
+            </li>
+          )}
           {results.map((r) => (
             <li key={r.id}>
               <button
