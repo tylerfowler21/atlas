@@ -700,6 +700,12 @@ export default function TripPlanner({
                             {item.startTime && item.endTime
                               ? ` · ${item.startTime}–${item.endTime}`
                               : ""}
+                            {/* A train is a booking like any other, and the
+                                marker was only ever drawn on the stop branch —
+                                so the one thing on a day that genuinely sells
+                                out was the one thing that never said so. */}
+                            {item.booking === BOOKING_NEEDED && " · to book"}
+                            {item.booking === BOOKING_BOOKED && " · booked ✓"}
                           </p>
                         ) : (
                           <p className="truncate text-xs text-muted">
