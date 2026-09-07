@@ -27,8 +27,10 @@ export async function GET(
     headers: {
       "Content-Type": photo.contentType,
       "Content-Length": String(photo.size),
-      // Private, so a shared cache must never hold it.
-      "Cache-Control": "private, max-age=3600",
+      // Not stored at all. `private` keeps it out of shared caches but not out
+      // of this browser's, and on a shared computer that means the same URL
+      // still serves the last person's photo after they have signed out.
+      "Cache-Control": "private, no-store",
     },
   });
 }
