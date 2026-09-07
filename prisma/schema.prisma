@@ -256,6 +256,7 @@ model Trip {
   share         TripShare?
   collaborators TripCollaborator[]
   resources     TripResource[]
+  documents     TripDocument[]
   copiedFrom    Trip?              @relation("copies", fields: [copiedFromId], references: [id], onDelete: SetNull)
   copies        Trip[]             @relation("copies")
   memories      Memory[]
@@ -408,6 +409,34 @@ model ItineraryItem {
   @@index([tripId, dayIndex, position])
   @@index([placeId])
   @@index([toPlaceId])
+}
+
+/// A file belonging to a trip: the hotel confirmation, the ticket, the
+/// itinerary somebody emailed you.
+///
+/// Stored privately and read back through an authenticated route, the way
+/// photos are — a booking confirmation carries a name, a reference and often
+/// an address, and a public blob URL would be a way in for anyone who guessed
+/// it. Access follows the trip rather than the uploader: whoever can edit the
+/// trip can read its confirmations, which is the point of sharing one.
+model TripDocument {
+  id     String @id @default(cuid())
+  tripId String
+  /// Whoever uploaded it. A scalar rather than a relation: the file belongs to
+  /// the trip, and outliving the person who added it is correct on a shared
+  /// one. Deleting an account still removes these, through its trips.
+  userId String
+  /// Blob pathname, not a URL. Private blobs are fetched by pathname.
+  pathname    String
+  /// The name it had on their computer, which is how they will look for it.
+  name        String
+  contentType String
+  size        Int
+  createdAt   DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, createdAt])
 }
 
 /// Something you need to have before the trip rather than somewhere you go on

@@ -20,11 +20,19 @@ import TripBookings from "@/components/TripBookings";
 import TripCalendar from "@/components/TripCalendar";
 import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
+import TripFiles from "@/components/TripFiles";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
-import type { ItineraryItemDTO, PlaceDTO, TripDTO, TripResourceDTO, SearchResult } from "@/lib/types";
+import type {
+  ItineraryItemDTO,
+  PlaceDTO,
+  TripDTO,
+  TripResourceDTO,
+  TripDocumentDTO,
+  SearchResult,
+} from "@/lib/types";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
@@ -38,11 +46,13 @@ export default function TripPlanner({
   ownerImage,
   people,
   resources,
+  documents,
 }: {
   trip: TripDTO;
   initialItems: ItineraryItemDTO[];
   places: PlaceDTO[];
   resources: TripResourceDTO[];
+  documents: TripDocumentDTO[];
   role: TripRole;
   ownerLabel: string;
   ownerImage: string | null;
@@ -56,7 +66,7 @@ export default function TripPlanner({
   const [activeDay, setActiveDay] = useState(0);
   /// Which of the trip's three lists is showing. Days is the trip as it will
   /// happen; the other two are the trip as it has to be prepared for.
-  const [view, setView] = useState<"days" | "bookings" | "before">("days");
+  const [view, setView] = useState<"days" | "bookings" | "before" | "files">("days");
   const [extraDays, setExtraDays] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -533,6 +543,7 @@ export default function TripPlanner({
             ["days", "Days", 0],
             ["bookings", "Bookings", toBook],
             ["before", "Before you go", toSort],
+            ["files", "Files", documents.length],
           ] as const).map(([id, label, count]) => (
             <button
               key={id}
@@ -1029,6 +1040,8 @@ export default function TripPlanner({
         {view === "before" && (
           <TripResources tripId={trip.id} initial={resources} canEdit />
         )}
+
+        {view === "files" && <TripFiles tripId={trip.id} initial={documents} />}
       </aside>
 
       {/* A real height rather than a minimum: the map fills its box with a

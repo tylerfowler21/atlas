@@ -26,6 +26,7 @@ export default async function TripPage({
         include: { place: true, toPlace: true },
       },
       resources: { orderBy: { position: "asc" } },
+      documents: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -62,6 +63,14 @@ export default async function TripPage({
       initialItems={items}
       places={places.map(serializePlace)}
       resources={trip.resources}
+      documents={trip.documents.map((d) => ({
+        id: d.id,
+        tripId: d.tripId,
+        name: d.name,
+        contentType: d.contentType,
+        size: d.size,
+        createdAt: d.createdAt.toISOString(),
+      }))}
       role={access.role}
       ownerLabel={owner}
       ownerImage={ownerRecord?.image ?? null}

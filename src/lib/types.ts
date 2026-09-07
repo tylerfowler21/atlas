@@ -62,6 +62,18 @@ export type ItineraryItemDTO = {
   toPlace: PlaceDTO | null;
 };
 
+/// A file belonging to a trip — a confirmation, a ticket, an emailed
+/// itinerary. `createdAt` is an ISO string, as everywhere else a date crosses
+/// the wire.
+export type TripDocumentDTO = {
+  id: string;
+  tripId: string;
+  name: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+};
+
 /// Something to have before you go rather than somewhere to be while you are
 /// there — an app, a pass, a document, a link.
 export type TripResourceDTO = {
