@@ -352,6 +352,44 @@ export default function Explorer({
                 placeholder="Search your places or anywhere in the world…"
                 onChange={(e) => setQuery(e.target.value)}
               />
+
+              {/* Directly under the box, not at the foot of the sidebar. They
+                  were last, below every place already saved, so typing
+                  something appeared to do nothing until you scrolled past
+                  fourteen of your own restaurants to find it had worked. */}
+              {trimmedQuery.length >= 3 && (
+                <section>
+                  <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
+                    {searching ? "Searching the world…" : "Search results"}
+                  </h2>
+                  {!searching && results.length === 0 ? (
+                    <p className="text-xs text-muted">Nothing found for that.</p>
+                  ) : (
+                    <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+                      {results.map((r) => (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
+                            onClick={() => pickResult(r)}
+                          >
+                            <span aria-hidden className="text-sm">
+                              {categoryOf(r.category).icon}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm">{r.name}</span>
+                              <span className="block truncate text-xs text-muted">
+                                {r.context}
+                              </span>
+                            </span>
+                            <span className="text-xs text-accent-text">Add</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )}
               <div className="mt-2 flex items-center justify-between gap-2">
                 <button
                   type="button"
@@ -616,39 +654,6 @@ export default function Explorer({
             </section>
             )}
 
-            {trimmedQuery.length >= 3 && (
-              <section>
-                <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
-                  {searching ? "Searching the world…" : "Search results"}
-                </h2>
-                {!searching && results.length === 0 ? (
-                  <p className="text-xs text-muted">Nothing found for that.</p>
-                ) : (
-                  <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
-                    {results.map((r) => (
-                      <li key={r.id}>
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
-                          onClick={() => pickResult(r)}
-                        >
-                          <span aria-hidden className="text-sm">
-                            {categoryOf(r.category).icon}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm">{r.name}</span>
-                            <span className="block truncate text-xs text-muted">
-                              {r.context}
-                            </span>
-                          </span>
-                          <span className="text-xs text-accent-text">Add</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
           </>
         )}
       </aside>
