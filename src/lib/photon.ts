@@ -28,8 +28,18 @@ type PhotonFeature = {
   };
 };
 
-export async function photonSearch(query: string): Promise<SearchResult[]> {
+export async function photonSearch(
+  query: string,
+  /// Where the person is looking. Photon ranks by distance from this when it
+  /// is given, which is the difference between "hilton" meaning the resort on
+  /// the island you are looking at and a village in Stockton-on-Tees.
+  near?: { lat: number; lng: number } | null,
+): Promise<SearchResult[]> {
   const params = new URLSearchParams({ q: query, limit: "8", lang: "en" });
+  if (near) {
+    params.set("lat", String(near.lat));
+    params.set("lon", String(near.lng));
+  }
 
   const res = await fetch(`${ENDPOINT}?${params}`, {
     headers: { "User-Agent": USER_AGENT },

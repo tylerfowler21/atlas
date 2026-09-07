@@ -38,6 +38,10 @@ export type MapCanvasProps = {
   /// tapping one reports it. Apple Maps only: the free basemap draws its own
   /// labels but has no way to say what was underneath a click.
   onPlaceSelect?: (place: SelectedPlace) => void;
+  /// Reports the centre of the view whenever panning or zooming settles.
+  /// A place search has no idea where you are looking otherwise, and answers
+  /// "hilton" with a village in County Durham.
+  onViewport?: (centre: { lat: number; lng: number }) => void;
   /// Change this string to re-fit the viewport to the current pins.
   fitToken?: string;
   /// Pan to one point without refitting everything. Bump `token` to re-run it.

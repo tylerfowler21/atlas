@@ -26,8 +26,29 @@ function near(a: SearchResult, b: SearchResult) {
   );
 }
 
-async function fromNominatim(query: string): Promise<SearchResult[]> {
-  const raw = await nominatimSearch(query);
+/// Roughly fifty kilometres either side, as degrees. Nominatim is given this
+/// as a preference rather than a boundary — `bounded=0` — so somewhere outside
+/// it is ranked lower rather than hidden, which matters when the map happens
+/// to be pointing somewhere else entirely.
+const VIEWBOX_DEGREES = 0.5;
+
+function viewboxAround(centre?: { lat: number; lng: number } | null) {
+  if (!centre) return undefined;
+  const { lat, lng } = centre;
+  return [
+    lng - VIEWBOX_DEGREES,
+    lat + VIEWBOX_DEGREES,
+    lng + VIEWBOX_DEGREES,
+    lat - VIEWBOX_DEGREES,
+  ].join(",");
+}
+
+async function fromNominatim(
+  query: string,
+  viewbox?: string,
+  bounded = false,
+): Promise<SearchResult[]> {
+  const raw = await nominatimSearch(query, viewbox, bounded);
   return raw.map((r) => ({
     id: `osm-${r.place_id}`,
     ...toPlaceFields(r),
@@ -47,6 +68,11 @@ export async function geocode(
   /// would make every suggestion queue behind the last one for no gain: the
   /// thorough search that follows a moment later asks it properly.
   suggest = false,
+  /// Where the map is looking, when anything knows. Both geocoders rank by
+  /// distance from it, softly: the world is still searched, it just stops
+  /// answering "hilton" with a village in County Durham when the map is over
+  /// French Polynesia.
+  around?: { lat: number; lng: number } | null,
 ): Promise<SearchResult[]> {
   // The region is asked for as well as the bare query, never instead of it.
   //
@@ -57,12 +83,27 @@ export async function geocode(
   // hide the answer when it is not.
   const queries = region ? [`${query}, ${region}`, query] : [query];
 
+  /// What is inside the map's own view, asked for separately and first.
+  ///
+  /// This is the only hint either geocoder really acts on. Photon takes a
+  /// lat/lon and appears to weigh it at nothing; Nominatim's viewbox does
+  /// nothing either until it is `bounded`, at which point it answers "hilton"
+  /// over French Polynesia with the resort on Moorea instead of a village in
+  /// County Durham. So the box is asked as its own restricted query, and what
+  /// it finds goes to the top — the unrestricted searches still run, so
+  /// nothing outside the view is lost.
+  const box = viewboxAround(around);
+  const local =
+    box && !suggest
+      ? await fromNominatim(query, box, true).catch(() => [] as SearchResult[])
+      : [];
+
   // Grouped by query rather than flattened, so the ordering below does not
   // depend on counting how many geocoders ran.
   const byQuery = await Promise.all(
     queries.map(async (q) => {
       const [photon, osm] = await Promise.all([
-        photonSearch(q).catch(() => [] as SearchResult[]),
+        photonSearch(q, around).catch(() => [] as SearchResult[]),
         suggest ? [] : fromNominatim(q).catch(() => [] as SearchResult[]),
       ]);
       // Nominatim before Photon: when both know a place, its address is better.
@@ -70,8 +111,8 @@ export async function geocode(
     }),
   );
 
-  // Hinted results first, so the trip's own region still ranks above the rest.
-  const ordered = byQuery;
+  // What the map is looking at first, then the trip's region, then the world.
+  const ordered = [local, ...byQuery];
 
   const merged: SearchResult[] = [];
   for (const result of ordered.flat()) {

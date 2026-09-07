@@ -12,10 +12,19 @@ export async function GET(request: Request) {
   // letters. Everything else waits for three and asks both.
   const suggest = searchParams.get("suggest") === "1";
 
+  // Where the caller's map is pointing. Only used to ask one extra, restricted
+  // question — see the note in geocode() about why a soft hint is worthless.
+  const lat = Number(searchParams.get("lat"));
+  const lng = Number(searchParams.get("lng"));
+  const around =
+    Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
+      ? { lat, lng }
+      : null;
+
   if (q.length < (suggest ? 2 : 3)) return NextResponse.json({ results: [] });
 
   try {
-    const results = await geocode(q, region, suggest);
+    const results = await geocode(q, region, suggest, around);
     return NextResponse.json({ results });
   } catch {
     return NextResponse.json(

@@ -79,12 +79,16 @@ export type NominatimResult = {
   address?: NominatimAddress;
 };
 
-export function search(query: string, viewbox?: string) {
+export function search(query: string, viewbox?: string, bounded = false) {
   return call("/search", {
     q: query,
     addressdetails: "1",
     limit: "8",
-    ...(viewbox ? { viewbox, bounded: "0" } : {}),
+    // `bounded=0` is a preference Nominatim barely acts on: asked for "hilton"
+    // with a viewbox over French Polynesia it still answers with a village in
+    // County Durham. Bounded, it answers with the resort. So the box is either
+    // a real restriction or not worth sending.
+    ...(viewbox ? { viewbox, bounded: bounded ? "1" : "0" } : {}),
   }) as Promise<NominatimResult[]>;
 }
 
