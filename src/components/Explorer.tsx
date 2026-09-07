@@ -58,6 +58,10 @@ export default function Explorer({
   });
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [fitSeq, setFitSeq] = useState(0);
+  /// Whether the list of saved places is expanded. Separate from `listOpen`,
+  /// which hides the whole sidebar: this collapses the long scroll and leaves
+  /// the search and the filters where they are.
+  const [placesOpen, setPlacesOpen] = useState(true);
   /// The centre of the map, so a search knows where it is being asked from.
   /// Held in a ref rather than state: it changes on every pan, and the search
   /// reads it when somebody types rather than re-running because the map
@@ -589,10 +593,22 @@ export default function Explorer({
               </section>
             ) : (
             <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
-              <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
+              {/* Collapsible on its own, separately from hiding the whole
+                  sidebar. Ninety-two places is a long scroll between the
+                  filters above it and anything below, and someone who has just
+                  filtered down to a city wants the map, not the list. */}
+              <button
+                type="button"
+                className="mb-1.5 flex w-full items-center gap-1 text-xs font-medium tracking-wide text-muted uppercase hover:text-foreground"
+                aria-expanded={placesOpen}
+                onClick={() => setPlacesOpen((open) => !open)}
+              >
+                <span aria-hidden className="text-[10px]">
+                  {placesOpen ? "▾" : "▸"}
+                </span>
                 {drilledInto ?? "Your places"} ({localMatches.length})
-              </h2>
-              {localMatches.length === 0 ? (
+              </button>
+              {!placesOpen ? null : localMatches.length === 0 ? (
                 places.length === 0 ? (
                   // A brand-new account lands on an empty world map. Pasting a
                   // trip you have already taken is by far the fastest way to a
