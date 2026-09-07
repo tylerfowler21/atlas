@@ -18,6 +18,7 @@ import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
 import TripBookings from "@/components/TripBookings";
 import TripCalendar from "@/components/TripCalendar";
+import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
@@ -195,7 +196,12 @@ export default function TripPlanner({
   }
 
   /// Saves somewhere new to the user's places and adds it to the current day.
-  async function addNewPlace(input: {
+  /// Saves a searched place into the library and hands it back.
+  ///
+  /// Split out from `addNewPlace` because a journey needs a place without a
+  /// stop: picking "Zermatt" as where a train arrives should not also put
+  /// Zermatt on the day as somewhere you went.
+  async function savePlace(input: {
     name: string;
     lat: number;
     lng: number;
@@ -204,7 +210,7 @@ export default function TripPlanner({
     country: string | null;
     countryCode: string | null;
     category: string;
-  }) {
+  }): Promise<PlaceDTO | null> {
     setBusy(true);
     setError(null);
 
@@ -229,17 +235,30 @@ export default function TripPlanner({
       }),
     });
     const body = await res.json().catch(() => ({}));
+    setBusy(false);
 
     if (!res.ok) {
-      setBusy(false);
       setError(body.error ?? "Could not save that place");
-      return;
+      return null;
     }
 
     const place: PlaceDTO = body.place;
     setLibrary((prev) => [place, ...prev]);
-    setBusy(false);
+    return place;
+  }
 
+  async function addNewPlace(input: {
+    name: string;
+    lat: number;
+    lng: number;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    countryCode: string | null;
+    category: string;
+  }) {
+    const place = await savePlace(input);
+    if (!place) return;
     await addItem({ title: place.name, placeId: place.id, category: place.category });
   }
 
@@ -955,7 +974,25 @@ export default function TripPlanner({
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        <AddTravel places={library} onAdd={addItem} busy={busy} />
+        <AddTravel
+          places={library}
+          onAdd={addItem}
+          region={searchRegion}
+          onSaveNew={async (r) => {
+            const place = await savePlace({
+              name: r.name,
+              lat: r.lat,
+              lng: r.lng,
+              address: r.address,
+              city: r.city,
+              country: r.country,
+              countryCode: r.countryCode,
+              category: r.category,
+            });
+            return place?.id ?? null;
+          }}
+          busy={busy}
+        />
 
         <AddStop
           destination={searchRegion}
@@ -1071,9 +1108,15 @@ export default function TripPlanner({
 function AddTravel({
   places,
   onAdd,
+  onSaveNew,
+  region,
   busy,
 }: {
   places: PlaceDTO[];
+  /// Saves a place found by searching and hands back its id, so a journey can
+  /// start or end somewhere that was never in the library.
+  onSaveNew: (result: SearchResult) => Promise<string | null>;
+  region?: string[] | string | null;
   onAdd: (payload: {
     title: string;
     placeId?: string | null;
@@ -1143,36 +1186,22 @@ function AddTravel({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="text-xs text-muted">
-          From
-          <select
-            className="input mt-1"
-            value={fromId}
-            onChange={(e) => setFromId(e.target.value)}
-          >
-            <option value="">Choose a place…</option>
-            {places.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs text-muted">
-          To
-          <select
-            className="input mt-1"
-            value={toId}
-            onChange={(e) => setToId(e.target.value)}
-          >
-            <option value="">Choose a place…</option>
-            {places.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <PlaceChooser
+          label="From"
+          places={places}
+          value={fromId}
+          onPick={setFromId}
+          onSaveNew={onSaveNew}
+          region={region}
+        />
+        <PlaceChooser
+          label="To"
+          places={places}
+          value={toId}
+          onPick={setToId}
+          onSaveNew={onSaveNew}
+          region={region}
+        />
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
