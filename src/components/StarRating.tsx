@@ -13,7 +13,7 @@ export default function StarRating({ value, onChange, size = "md" }: Props) {
   if (readOnly) {
     if (!value) return null;
     return (
-      <span className={`${cls} tracking-tight`} aria-label={`${value} out of 5`}>
+      <span className={`stars ${cls}`} aria-label={`${value} out of 5`}>
         {"★".repeat(value)}
         <span className="opacity-25">{"★".repeat(5 - value)}</span>
       </span>
@@ -21,7 +21,7 @@ export default function StarRating({ value, onChange, size = "md" }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="stars flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
