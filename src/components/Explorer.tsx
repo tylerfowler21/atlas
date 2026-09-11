@@ -19,6 +19,7 @@ import { STATUSES, status as statusOf } from "@/lib/taxonomy";
 import type { PlaceDTO, PlaceDraft, SearchResult, TripDTO } from "@/lib/types";
 import type { SelectedPlace } from "@/components/map-types";
 import { enrichSelectedPlace } from "@/lib/enrich-place";
+import { useSearch } from "@/components/SearchProvider";
 import { WORLD_SPAN, inView, viewName, viewSubtitle, type Bounds } from "@/lib/map-view";
 
 const DRAFT_PIN_ID = "__draft__";
@@ -56,7 +57,10 @@ export default function Explorer({
 }) {
   const { categories, categoryOf, placeIconOf } = useCategories();
   const [places, setPlaces] = useState(initialPlaces);
-  const [query, setQuery] = useState("");
+  /// What is being searched for lives in the layout above this page, because
+  /// the box that sets it is the one in the top bar. This page keeps a field
+  /// of its own only below `sm`, where the bar has no room for one.
+  const { query, setQuery } = useSearch();
   // Search results are stored with the query they belong to, so "is this
   // stale?" is a comparison rather than another piece of state to keep in sync.
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
@@ -498,7 +502,8 @@ export default function Explorer({
                 </button>
               </div>
               <input
-                className="input"
+                className="input sm:hidden"
+                type="search"
                 value={query}
                 placeholder="Search your places or anywhere in the world…"
                 onChange={(e) => setQuery(e.target.value)}

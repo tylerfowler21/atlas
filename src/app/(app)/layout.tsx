@@ -7,6 +7,7 @@ import { unreadCount } from "@/lib/notifications";
 import NavBar from "@/components/NavBar";
 import MobileTabBar from "@/components/MobileTabBar";
 import CategoriesProvider from "@/components/CategoriesProvider";
+import SearchProvider from "@/components/SearchProvider";
 import { resolvedCategories } from "@/lib/categories";
 
 /// Everything the signed-in owner sees. The auth check lives here rather than
@@ -35,14 +36,16 @@ export default async function AppLayout({
 
   return (
     <CategoriesProvider initial={categories}>
-      <NavBar
-        user={{ name: user.name, email: user.email, image: user.image }}
-        admin={isAdmin(user)}
-        unread={unread}
-        signOutAction={signOutAction}
-      />
-      <main className="min-h-0 flex-1 overflow-auto">{children}</main>
-      <MobileTabBar admin={isAdmin(user)} signOutAction={signOutAction} />
+      <SearchProvider>
+        <NavBar
+          user={{ name: user.name, email: user.email, image: user.image }}
+          admin={isAdmin(user)}
+          unread={unread}
+          signOutAction={signOutAction}
+        />
+        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        <MobileTabBar admin={isAdmin(user)} signOutAction={signOutAction} />
+      </SearchProvider>
     </CategoriesProvider>
   );
 }

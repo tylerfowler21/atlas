@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   JournalIcon,
   MapIcon,
@@ -14,6 +14,7 @@ import {
   YourProfileIcon,
 } from "@/components/nav-icons";
 import { useState } from "react";
+import { useSearch } from "@/components/SearchProvider";
 
 /// The brand's own icons rather than emoji. They are components, not strings,
 /// because their stroke is currentColor — so they take the colour of whatever
@@ -57,6 +58,8 @@ export default function NavBar({
   signOutAction: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { query, setQuery } = useSearch();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const label = user.name ?? user.email ?? "Account";
@@ -97,7 +100,7 @@ export default function NavBar({
       <Link
         href="/notifications"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-        className="relative ml-auto rounded-full p-2 text-sm text-muted hover:bg-foreground/5"
+        className="relative rounded-full p-2 text-sm text-muted hover:bg-foreground/5"
       >
         <NotificationsIcon className="h-5 w-5" />
         {unread > 0 && (
@@ -109,6 +112,51 @@ export default function NavBar({
           </span>
         )}
       </Link>
+
+      {/* Searching from anywhere.
+          
+          The box is up here and the map that answers it is a page below, so
+          what is typed lives in a provider in the layout between them. That
+          also means it survives moving between pages: type on the trips page,
+          press enter, and the map opens already looking for it.
+
+          Below `sm` the bar has no room and the map keeps a field of its own,
+          bound to the same value, so the two can never disagree. */}
+      <form
+        role="search"
+        className="ml-auto hidden max-w-sm flex-1 sm:block"
+        onSubmit={(e) => {
+          e.preventDefault();
+          // Somewhere else on the site, the answer is on the map.
+          if (pathname !== "/") router.push("/");
+        }}
+      >
+        <label className="relative block">
+          <span className="sr-only">Search places or anywhere</span>
+          {/* Inline rather than from nav-icons, which is generated from the
+              shared SVGs by `npm run build:nav-icons` — a magnifier added by
+              hand there would vanish the next time anyone ran it. */}
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m16.5 16.5 4 4" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search places or anywhere"
+            className="w-full rounded-full border border-line bg-surface py-2 pr-4 pl-10 text-sm placeholder:text-muted focus:outline-2 focus:outline-offset-1 focus:outline-[color:var(--brand-active)]"
+          />
+        </label>
+      </form>
 
       {/* The one thing this bar is for beyond getting somewhere: putting
           something on the map. Sun, because it is the only action up here and
