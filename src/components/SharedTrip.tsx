@@ -67,7 +67,8 @@ export default function SharedTrip({
 
   const pins = useMemo<MapPin[]>(() => {
     const numberOf = new Map<string, number>();
-    for (const day of byDay) day.forEach((item, i) => numberOf.set(item.id, i + 1));
+    for (const day of byDay)
+      day.filter((i) => i.kind !== "travel").forEach((item, i) => numberOf.set(item.id, i + 1));
     return sorted
       .filter((item) => item.place)
       .map((item) => ({
@@ -132,7 +133,7 @@ export default function SharedTrip({
           <h1 className="mt-3 text-4xl leading-[1.05] lg:text-5xl">{trip.title}</h1>
           {(trip.notes || tripWhere(trip)) && (
             <p className="mt-3 max-w-prose text-base text-muted">
-              {trip.notes ?? tripWhere(trip)}
+              {trip.notes || tripWhere(trip)}
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-1.5">
@@ -216,13 +217,16 @@ export default function SharedTrip({
                                   .join(" · ")}
                               </p>
                             ) : (
+                              <div
+                                className={`flex items-start gap-1 rounded-2xl transition-colors ${
+                                  selected ? "bg-brand-surface" : "hover:bg-foreground/5"
+                                }`}
+                              >
                               <button
                                 type="button"
                                 onClick={() => setSelectedId(selected ? null : item.id)}
                                 aria-pressed={selected}
-                                className={`flex w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-foreground/5 ${
-                                  selected ? "bg-brand-surface" : ""
-                                }`}
+                                className="flex min-w-0 flex-1 items-start gap-3 px-2 py-2 text-left"
                               >
                                 <span
                                   aria-hidden
@@ -242,24 +246,27 @@ export default function SharedTrip({
                                     <span className="mt-1 block text-sm text-muted">{item.notes}</span>
                                   )}
                                 </span>
-                                {item.place && (
-                                  <a
-                                    href={directionsUrl({
-                                      lat: item.place.lat,
-                                      lng: item.place.lng,
-                                      name: item.place.name,
-                                    })}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    aria-label={`Directions to ${item.place.name}`}
-                                    title="Directions"
-                                    className="shrink-0 rounded-full p-1 hover:bg-foreground/5"
-                                  >
-                                    <DirectionsIcon size={20} />
-                                  </a>
-                                )}
                               </button>
+                              {/* Beside the row rather than inside it: a link
+                                  inside a button is not reachable from a
+                                  keyboard in every browser. */}
+                              {item.place && (
+                                <a
+                                  href={directionsUrl({
+                                    lat: item.place.lat,
+                                    lng: item.place.lng,
+                                    name: item.place.name,
+                                  })}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`Directions to ${item.place.name}`}
+                                  title="Directions"
+                                  className="mt-2 mr-2 shrink-0 rounded-full p-1 hover:bg-foreground/10"
+                                >
+                                  <DirectionsIcon size={20} />
+                                </a>
+                              )}
+                              </div>
                             )}
                           </li>
                         );
@@ -298,7 +305,12 @@ export default function SharedTrip({
                 legs={legs}
                 routeColor={trip.color}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  // A pin on a day that is folded away has to be seen.
+                  const hit = id ? items.find((i) => i.id === id) : null;
+                  if (hit && hit.dayIndex >= DAYS_BEFORE_FOLD) setShowAll(true);
+                }}
                 fitToken={`shared-${activeDay ?? "all"}`}
               />
             </div>

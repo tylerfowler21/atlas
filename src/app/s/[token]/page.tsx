@@ -112,7 +112,7 @@ export default async function SharedTripPage({
               </Link>
             ) : (
               <a href={`/signin?next=${encodeURIComponent(`/s/${token}`)}`} className="btn btn-accent">
-                Save this trip
+                Create your account
               </a>
             )
           }
