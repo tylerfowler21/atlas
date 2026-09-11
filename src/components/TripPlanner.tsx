@@ -21,6 +21,7 @@ import TripCalendar from "@/components/TripCalendar";
 import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
+import AddFromLink from "@/components/AddFromLink";
 import { useTripWeather } from "@/lib/use-trip-weather";
 import { condition } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
@@ -401,6 +402,22 @@ export default function TripPlanner({
         [gone, ...prev].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       );
       setError("Could not remove that file");
+    }
+  }
+
+  /// Re-reads the itinerary after something outside this component added to
+  /// it. A router refresh is no use: the items live in state seeded from
+  /// props, so the server can hand down new ones all it likes and the list
+  /// will not notice.
+  async function reloadItems() {
+    try {
+      const res = await fetch(`/api/trips/${trip.id}`);
+      if (!res.ok) return;
+      const body = (await res.json()) as { items: ItineraryItemDTO[] };
+      setItems(body.items);
+    } catch {
+      // The places are saved either way; the worst case is a stale list until
+      // the next reload, which is better than an error over a successful add.
     }
   }
 
@@ -1096,17 +1113,17 @@ export default function TripPlanner({
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        {/* Starting from the trip, which is where somebody planning one
-            actually is. Going the other way — through an importer labelled
-            "a trip I took" — is the wrong door for a trip that has not
-            happened. The importer still does the work, so the places still go
-            through the same lookup and confirmation. */}
-        <Link
-          href={`/import?into=${trip.id}&link=1`}
-          className="self-start text-xs text-muted hover:underline"
-        >
-          + Add places from a TikTok or Instagram link
-        </Link>
+        {/* Here rather than on the importer. Somebody planning a trip is
+            already looking at it and already on a day; sending them to a page
+            headed "a trip you've taken" to pick both back out of dropdowns was
+            the wrong shape twice over. */}
+        <AddFromLink
+          trip={trip}
+          days={days}
+          activeDay={activeDay}
+          region={searchRegion}
+          onAdded={reloadItems}
+        />
 
         <AddTravel
           places={library}
