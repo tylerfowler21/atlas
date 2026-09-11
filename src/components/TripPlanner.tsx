@@ -421,6 +421,34 @@ export default function TripPlanner({
     }
   }
 
+  /// Filing a stop under a category, and the place it points at with it.
+  ///
+  /// A stop that has a place takes its icon from the place, so setting the
+  /// category on the stop alone leaves a restaurant showing the aeroplane a
+  /// gazetteer guessed. Choosing a category for somewhere with a place means
+  /// that place is a restaurant — the same way its emoji already applies
+  /// everywhere it appears.
+  async function setStopCategory(item: ItineraryItemDTO, category: string) {
+    await patchItem(item.id, { category });
+    if (!item.placeId || item.place?.category === category) return;
+
+    const res = await fetch(`/api/places/${item.placeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category }),
+    });
+    if (!res.ok) {
+      setError("Could not change that category");
+      return;
+    }
+    const body = (await res.json()) as { place: PlaceDTO };
+    // Every stop pointing at this place, and the library behind the map.
+    setItems((prev) =>
+      prev.map((i) => (i.placeId === body.place.id ? { ...i, place: body.place } : i)),
+    );
+    setLibrary((prev) => prev.map((p) => (p.id === body.place.id ? body.place : p)));
+  }
+
   function patchItem(id: string, changes: Partial<ItineraryItemDTO>) {
     return mutate<{ item: ItineraryItemDTO }>(
       () =>
@@ -952,7 +980,7 @@ export default function TripPlanner({
                           aria-label="Category for this stop"
                           className="input text-xs"
                           value={item.category}
-                          onChange={(e) => patchItem(item.id, { category: e.target.value })}
+                          onChange={(e) => void setStopCategory(item, e.target.value)}
                         >
                           {categories.map((c) => (
                             <option key={c.id} value={c.id}>

@@ -123,7 +123,15 @@ export default function ItemEditor({
   const [title, setTitle] = useState(existing?.title ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "");
+  /// What the attached place is currently filed under, so the save can tell
+  /// whether the category actually changed and leave it alone if not.
+  const existingPlaceCategory = existing?.place?.category ?? null;
   const [category, setCategory] = useState(existing?.category ?? "other");
+  /// Whether somebody actually pressed a category, as opposed to the form
+  /// simply having one. Without this, opening a stop and saving it unchanged
+  /// would file its place under whatever the form defaulted to and quietly
+  /// undo what the gazetteer got right.
+  const [categoryChosen, setCategoryChosen] = useState(false);
   /// Whether this is something that has to be booked, and whether it has been.
   /// Null for the great majority of stops, which are not bookings at all.
   const [booking, setBooking] = useState<string | null>(existing?.booking ?? null);
@@ -258,6 +266,18 @@ export default function ItemEditor({
         await api(`/api/items/${draft!.item.id}`, {
           method: "PATCH",
           body: JSON.stringify(body),
+        });
+      }
+
+      // A stop that has a place takes its icon from the place, not from the
+      // stop — so setting the category here and stopping there would leave a
+      // restaurant showing the aeroplane a gazetteer guessed. Picking a
+      // category for somewhere with a place means that place is a restaurant,
+      // the same way its emoji already applies everywhere.
+      if (!travel && placeId && categoryChosen && category !== existingPlaceCategory) {
+        await api(`/api/places/${placeId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ category }),
         });
       }
       onSaved();
@@ -515,7 +535,10 @@ export default function ItemEditor({
                   return (
                     <Pressable
                       key={c.id}
-                      onPress={() => setCategory(c.id)}
+                      onPress={() => {
+                        setCategory(c.id);
+                        setCategoryChosen(true);
+                      }}
                       style={[
                         styles.chip,
                         { backgroundColor: palette.surface, borderColor: palette.border },
