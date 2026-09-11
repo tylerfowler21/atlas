@@ -9,7 +9,6 @@ import {
   MapIcon,
   PeopleIcon,
   TripsIcon,
-  YourProfileIcon,
 } from "@/components/nav-icons";
 
 /// Each card carries the icon of the tab where that thing actually happens, so
@@ -19,24 +18,44 @@ const TOUR = [
   {
     Icon: MapIcon,
     title: "Save places you care about",
-    body: "Search anywhere in the world, or drop a pin on somewhere the map has never heard of. Give it a category, a note, an emoji — 🥐 on that bakery.",
+    body: "Search the world or drop a pin, then add a category, a note and a rating.",
   },
   {
     Icon: TripsIcon,
     title: "Build a trip, day by day",
-    body: "Set the dates and the days appear. Click through them adding what you did, including the trains and ferries between cities.",
+    body: "Set the dates and build each day, trains and ferries included.",
   },
   {
     Icon: BeenIcon,
     title: "Keep a map of everywhere you've been",
-    body: "Anything marked “Been there” lands on your map, counted by place, city and country.",
+    body: "Every place, city and country you mark as been, counted for you.",
   },
   {
     Icon: PeopleIcon,
     title: "Share it, or keep it to yourself",
-    body: "Everything is private by default. Publish a trip to your profile, or send one secret read-only link — and copy anyone else's trip into your own account.",
+    body: "Private by default. Publish a trip, or send one secret read-only link.",
   },
 ];
+
+/// One card, one row per thing the app does, with the icon of the tab where
+/// it happens.
+function Perks({ items }: { items: typeof TOUR }) {
+  return (
+    <ul className="card divide-y divide-line px-4">
+      {items.map((t) => (
+        <li key={t.title} className="flex gap-3 py-3.5">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-tint text-accent-text">
+            <t.Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold">{t.title}</p>
+            <p className="mt-0.5 text-sm text-muted">{t.body}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function Welcome({
   initialUsername,
@@ -80,36 +99,28 @@ export default function Welcome({
     }
   }
 
+  const handle = username.trim().toLowerCase();
+
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center px-5 py-10">
+    <div className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-5 py-10">
       {step === 0 && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div>
-            <Image src="/brand/mark.png" alt="" width={64} height={64} />
-            <h1 className="mt-3 text-2xl font-semibold">
+            <Image src="/brand/mark.png" alt="" width={64} height={64} className="rounded-2xl" />
+            <h1 className="mt-5 text-3xl leading-tight">
               {name ? `Welcome, ${name.split(" ")[0]}` : "Welcome to Roava"}
             </h1>
-            <p className="mt-2 text-sm text-muted">
+            <p className="mt-2 text-base text-muted">
               A map of the places you want to go and the ones you&apos;ve been.
               Two minutes and it&apos;ll feel like yours.
             </p>
           </div>
 
-          <ul className="space-y-3">
-            {TOUR.map((t) => (
-              <li key={t.title} className="card flex gap-3 p-3">
-                <t.Icon className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
-                <div>
-                  <p className="text-sm font-medium">{t.title}</p>
-                  <p className="mt-0.5 text-xs text-muted">{t.body}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <Perks items={TOUR} />
 
           <button
             type="button"
-            className="btn btn-primary w-full justify-center"
+            className="btn btn-primary w-full justify-center py-3 text-base"
             onClick={() => setStep(1)}
           >
             Get started
@@ -118,49 +129,69 @@ export default function Welcome({
       )}
 
       {step === 1 && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div>
-            <YourProfileIcon className="h-9 w-9 text-accent-text" />
-            <h1 className="mt-3 text-2xl font-semibold">Pick a username</h1>
-            <p className="mt-2 text-sm text-muted">
-              It&apos;s how friends find and follow you, and it gives you a profile
-              page. Without one you don&apos;t appear anywhere — which is fine if
+            <Image src="/brand/mark.png" alt="" width={56} height={56} className="rounded-2xl" />
+            <h1 className="mt-5 text-3xl leading-tight">Pick a name friends can find you by</h1>
+            <p className="mt-2 text-base text-muted">
+              It&apos;s how people follow you and open the trips you publish.
+              Without one you don&apos;t appear anywhere — which is fine if
               that&apos;s what you want.
             </p>
           </div>
 
           <div>
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted">/u/</span>
+            <label className="block text-sm font-medium" htmlFor="username">
+              Username
+            </label>
+            <div className="mt-1.5 flex items-center gap-1 rounded-full border-2 border-line bg-surface px-4 py-2.5 text-base focus-within:border-brand-active">
+              <span aria-hidden className="text-muted">@</span>
               <input
-                className="input"
+                id="username"
+                className="min-w-0 flex-1 bg-transparent outline-none"
                 value={username}
                 autoFocus
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="yourname"
                 onChange={(e) => setUsername(e.target.value)}
               />
+              {handle.length >= 3 && (
+                <span aria-hidden className="grid size-5 place-items-center rounded-full bg-brand-active text-[10px] text-white">
+                  ✓
+                </span>
+              )}
             </div>
             <p className="mt-1.5 text-xs text-muted">
-              Lowercase letters, numbers and underscores. You can change it later.
+              {handle.length >= 3 ? (
+                <>
+                  Yours will be <span className="font-medium text-foreground">roava.co/u/{handle}</span>
+                </>
+              ) : (
+                "Lowercase letters, numbers and underscores. You can change it later."
+              )}
             </p>
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          <Perks items={TOUR.slice(0, 3)} />
+
+          {error && <p className="text-xs text-danger">{error}</p>}
 
           <div className="space-y-2">
             <button
               type="button"
-              className="btn btn-primary w-full justify-center"
-              disabled={busy || username.trim().length < 3}
+              className="btn btn-primary w-full justify-center py-3 text-base"
+              disabled={busy || handle.length < 3}
               onClick={async () => {
-                if (await save({ username: username.trim().toLowerCase() })) setStep(2);
+                if (await save({ username: handle })) setStep(2);
               }}
             >
-              {busy ? "Saving…" : "That's my name"}
+              {busy ? "Saving…" : "Continue"}
             </button>
             <button
               type="button"
-              className="w-full text-xs text-muted hover:underline"
+              className="w-full py-1 text-sm text-muted hover:underline"
               disabled={busy}
               onClick={() => setStep(2)}
             >
@@ -178,11 +209,11 @@ export default function Welcome({
       )}
 
       {step === 3 && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div>
-            <TripsIcon className="h-9 w-9 text-accent-text" />
-            <h1 className="mt-3 text-2xl font-semibold">What next?</h1>
-            <p className="mt-2 text-sm text-muted">
+            <TripsIcon className="h-10 w-10 text-accent-text" />
+            <h1 className="mt-5 text-3xl leading-tight">What next?</h1>
+            <p className="mt-2 text-base text-muted">
               The quickest way to a map that feels like yours is a trip
               you&apos;ve already taken — everywhere you went gets found and
               pinned for you. There&apos;s a short list of first steps waiting on
@@ -190,12 +221,12 @@ export default function Welcome({
             </p>
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
 
           <div className="space-y-2">
             <button
               type="button"
-              className="btn btn-primary w-full justify-center"
+              className="btn btn-primary w-full justify-center py-3 text-base"
               disabled={busy}
               onClick={() => finish("/trips/import")}
             >
@@ -203,7 +234,7 @@ export default function Welcome({
             </button>
             <button
               type="button"
-              className="btn btn-ghost w-full justify-center"
+              className="btn btn-ghost w-full justify-center py-3 text-base"
               disabled={busy}
               onClick={() => finish("/")}
             >
@@ -211,7 +242,7 @@ export default function Welcome({
             </button>
             <button
               type="button"
-              className="w-full text-xs text-muted hover:underline"
+              className="w-full py-1 text-sm text-muted hover:underline"
               disabled={busy}
               onClick={() => finish("/discover?view=people")}
             >
@@ -222,7 +253,7 @@ export default function Welcome({
       )}
 
       {step > 0 && (
-        <p className="mt-6 text-center text-xs text-muted">Step {step + 1} of 4</p>
+        <p className="mt-8 text-center text-xs text-muted">Step {step + 1} of 4</p>
       )}
     </div>
   );
