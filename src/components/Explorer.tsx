@@ -113,6 +113,8 @@ export default function Explorer({
     },
   );
   const [notice, setNotice] = useState<string | null>(null);
+  /// Whether the list of your cities is showing.
+  const [citiesOpen, setCitiesOpen] = useState(false);
   // The list is useful, but this is a map — being able to get it out of the
   // way matters most on a phone, where it otherwise fills the screen.
   const [listOpen, setListOpen] = useState(true);
@@ -324,8 +326,35 @@ export default function Explorer({
 
   /// Pan the map to one place. A monotonic token, rather than a timestamp,
   /// keeps this pure enough for the React compiler to reason about.
-  function panTo(lat: number, lng: number) {
-    setFocus((prev) => ({ lat, lng, token: (prev?.token ?? 0) + 1 }));
+  function panTo(lat: number, lng: number, zoom?: number) {
+    setFocus((prev) => ({ lat, lng, zoom, token: (prev?.token ?? 0) + 1 }));
+  }
+
+  /// Where to put the map so a whole city is on it.
+  ///
+  /// A centre is not enough: centring on the middle of Kyoto at a fixed zoom
+  /// showed two of its six places and called the view Kyoto anyway. So this
+  /// measures how far apart the city's places are and hands back a zoom that
+  /// frames them.
+  function frameOf(city: string) {
+    const here = places.filter((p) => p.city === city);
+    if (here.length === 0) return null;
+
+    const lats = here.map((p) => p.lat);
+    const lngs = here.map((p) => p.lng);
+    const spread = Math.max(
+      Math.max(...lats) - Math.min(...lats),
+      Math.max(...lngs) - Math.min(...lngs),
+    );
+    // Half a degree of room around them, and a floor so a single saved place
+    // does not zoom to the individual paving stones.
+    const span = Math.max(spread * 1.6, 0.02);
+
+    return {
+      lat: (Math.max(...lats) + Math.min(...lats)) / 2,
+      lng: (Math.max(...lngs) + Math.min(...lngs)) / 2,
+      zoom: Math.min(16, Math.max(2, Math.log2(360 / span))),
+    };
   }
 
   function pickResult(result: SearchResult) {
@@ -410,7 +439,7 @@ export default function Explorer({
       <aside
         ref={sheetRef}
         style={drag ? { transform: `translateY(${drag}px)` } : undefined}
-        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-96 lg:max-h-none lg:translate-y-0 lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
+        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-[420px] lg:max-h-none lg:translate-y-0 lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
           drag ? "" : "transition-[max-height,transform] duration-200"
         } ${listOpen ? "max-h-[78%] overflow-y-auto" : "overflow-visible lg:hidden"}`}
       >
@@ -491,6 +520,100 @@ export default function Explorer({
           />
         ) : (
           <>
+            {/* Where the map is looking, and a way to look somewhere else.
+                The list under it follows the map, so this menu does not filter
+                anything — it moves the map, and the list follows on its own. */}
+            <div className={`relative ${listOpen ? "" : "hidden lg:block"}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="display truncate text-3xl leading-tight">
+                    {here ?? "Everywhere"}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted">{hereSubtitle}</p>
+                </div>
+                <button
+                  type="button"
+                  className="chip shrink-0"
+                  aria-haspopup="menu"
+                  aria-expanded={citiesOpen}
+                  onClick={() => setCitiesOpen((open) => !open)}
+                >
+                  Change city
+                  <span aria-hidden className="text-[10px]">
+                    {citiesOpen ? "▲" : "▼"}
+                  </span>
+                </button>
+              </div>
+
+              {citiesOpen && (
+                <div
+                  role="menu"
+                  className="card absolute top-full right-0 z-20 mt-1 max-h-80 w-60 overflow-y-auto p-1.5 shadow-lg"
+                >
+                  {groups.cities.length === 0 && (
+                    <p className="px-2 py-1.5 text-xs text-muted">
+                      No cities yet — save somewhere and it will be counted here.
+                    </p>
+                  )}
+                  {groups.cities.map((city) => (
+                    <button
+                      key={city.name}
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5"
+                      aria-label={`${city.name}, ${city.count} ${
+                        city.count === 1 ? "place" : "places"
+                      }`}
+                      onClick={() => {
+                        const frame = frameOf(city.name);
+                        setCitiesOpen(false);
+                        if (frame) panTo(frame.lat, frame.lng, frame.zoom);
+                      }}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{city.name}</span>
+                      <span className="shrink-0 text-xs text-muted tabular-nums">
+                        {city.count}
+                      </span>
+                    </button>
+                  ))}
+
+                  {/* The counts that used to be four chips across the top.
+                      "How many countries have you been to" is answered by
+                      naming them, so these still open into lists. */}
+                  <div className="mt-1 border-t border-line pt-1">
+                    {(
+                      [
+                        [
+                          "cities",
+                          `All ${groups.counts.cities} ${groups.counts.cities === 1 ? "city" : "cities"}`,
+                        ],
+                        [
+                          "countries",
+                          `All ${groups.counts.countries} ${groups.counts.countries === 1 ? "country" : "countries"}`,
+                        ],
+                        ["been", `Everywhere you have been (${groups.counts.been})`],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="menuitem"
+                        className="block w-full rounded-md px-2 py-1.5 text-left text-xs text-accent-text hover:bg-foreground/5"
+                        onClick={() => {
+                          setView(id);
+                          setDrilledInto(null);
+                          setCitiesOpen(false);
+                          setFitSeq((n) => n + 1);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <div className="mb-2 hidden justify-end lg:flex">
                 <button
@@ -549,7 +672,7 @@ export default function Explorer({
               <div className="mt-2 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  className={`chip ${dropMode ? "is-on" : ""}`}
+                  className={`chip ${dropMode ? "is-on" : "sm:hidden"}`}
                   onClick={() => setDropMode(!dropMode)}
                 >
                   📌 {dropMode ? "Click the map…" : "Drop a pin"}
@@ -566,77 +689,57 @@ export default function Explorer({
               </div>
             </div>
 
-            {/* The four counts, which open into lists rather than just reading
-                out a number: "how many countries" is answered by naming them.
-                Been counts where you have actually been; Cities and Countries
-                count spread, including the places you are still planning. */}
-            <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
-              {(
-                [
-                  ["all", groups.counts.total, "Places"],
-                  ["been", groups.counts.been, "Been"],
-                  ["cities", groups.counts.cities, "Cities"],
-                  ["countries", groups.counts.countries, "Countries"],
-                ] as const
-              ).map(([id, count, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`chip ${view === id ? "is-on" : ""}`}
-                  aria-pressed={view === id}
-                  onClick={() => {
-                    setView(id);
-                    setDrilledInto(null);
-                    setFitSeq((n) => n + 1);
-                  }}
-                >
-                  <span className="font-semibold tabular-nums">{count}</span>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
-              {[{ id: "all", label: "All", icon: "•" }, ...STATUSES].map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`chip ${statusFilter === s.id ? "is-on" : ""}`}
-                  onClick={() => {
-                    setStatusFilter(s.id as typeof statusFilter);
-                    setFitSeq((n) => n + 1);
-                  }}
-                >
-                  <span aria-hidden>{s.icon}</span>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-
-            <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
-              {categories.map((c) => {
-                const on = !hidden.has(c.id);
-                return (
+            {/* One row that scrolls, not three that wrap. Three rows of chips
+                pushed the places themselves below the fold on a laptop, so the
+                first thing the map showed you was its own controls. Statuses
+                first because they are the coarser cut, then the categories. */}
+            <div
+              className={`-mx-3 overflow-x-auto px-3 pb-0.5 lg:mx-0 lg:px-0 ${
+                listOpen ? "" : "hidden lg:block"
+              }`}
+            >
+              <div className="flex w-max gap-1.5">
+                {[{ id: "all", label: "All", icon: "•" }, ...STATUSES].map((s) => (
                   <button
-                    key={c.id}
+                    key={s.id}
                     type="button"
-                    aria-pressed={on}
-                    className={`chip ${on ? "is-on" : ""}`}
-                    style={on ? { borderColor: c.color } : { opacity: 0.5 }}
-                    onClick={() =>
-                      setHidden((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(c.id)) next.delete(c.id);
-                        else next.add(c.id);
-                        return next;
-                      })
-                    }
+                    className={`chip shrink-0 ${statusFilter === s.id ? "is-on" : ""}`}
+                    onClick={() => {
+                      setStatusFilter(s.id as typeof statusFilter);
+                      setFitSeq((n) => n + 1);
+                    }}
                   >
-                    <span aria-hidden>{c.icon}</span>
-                    {c.label}
+                    <span aria-hidden>{s.icon}</span>
+                    {s.label}
                   </button>
-                );
-              })}
+                ))}
+
+                <span aria-hidden className="mx-0.5 w-px shrink-0 self-stretch bg-line" />
+
+                {categories.map((c) => {
+                  const on = !hidden.has(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={on}
+                      className={`chip shrink-0 ${on ? "is-on" : ""}`}
+                      style={on ? { borderColor: c.color } : { opacity: 0.5 }}
+                      onClick={() =>
+                        setHidden((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(c.id)) next.delete(c.id);
+                          else next.add(c.id);
+                          return next;
+                        })
+                      }
+                    >
+                      <span aria-hidden>{c.icon}</span>
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {notice && <p className="text-xs text-muted">{notice}</p>}
@@ -738,18 +841,6 @@ export default function Explorer({
               </section>
             ) : (
             <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
-              {/* What the map is looking at. The list under it answers "what is
-                  here", so it is worth saying where "here" is — and saying it
-                  from the places themselves rather than by reverse-geocoding
-                  the centre of the view, which would be a request per pan to
-                  learn a name the places already know. */}
-              {here && (
-                <div className="mb-2.5">
-                  <h2 className="display text-2xl leading-tight">{here}</h2>
-                  <p className="text-xs text-muted">{hereSubtitle}</p>
-                </div>
-              )}
-
               {/* Collapsible on its own, separately from hiding the whole
                   sidebar. Ninety-two places is a long scroll between the
                   filters above it and anything below, and someone who has just
