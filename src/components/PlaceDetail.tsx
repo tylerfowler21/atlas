@@ -2,6 +2,7 @@
 
 import { useCategories } from "@/components/CategoriesProvider";
 
+import Image from "next/image";
 import Link from "next/link";
 import { placeName } from "@/lib/place-name";
 import { useEffect, useState } from "react";
@@ -151,6 +152,41 @@ export default function PlaceDetail({
 
   return (
     <div className="space-y-3">
+      {/* Wikipedia's photograph of the place, and the credit that has to come
+          with it. Most of these are CC BY-SA, which requires naming the
+          author — so the line underneath is not decoration, it is the terms
+          the picture is here under, and it links to the file page where the
+          full licence lives. No credit, no photo: a place whose licence could
+          not be determined never gets a photoUrl in the first place. */}
+      {place.photoUrl && (
+        <figure className="-mx-4 -mt-1 lg:mx-0">
+          <Image
+            src={place.photoUrl}
+            alt={`${place.name}, from Wikipedia`}
+            width={640}
+            height={360}
+            className="h-44 w-full object-cover lg:rounded-2xl"
+          />
+          {place.photoAttribution && (
+            <figcaption className="px-4 pt-1.5 text-[11px] text-muted lg:px-0">
+              {place.photoSourceUrl ? (
+                <a
+                  href={place.photoSourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  {place.photoAttribution}
+                </a>
+              ) : (
+                place.photoAttribution
+              )}{" "}
+              · via Wikipedia
+            </figcaption>
+          )}
+        </figure>
+      )}
+
       {/* Stuck to the top of the scrolling panel. Opening a place from the
           map leaves the panel scrolled part way down, which put this header —
           and the only way out — above the visible area. Opening the same place
@@ -159,8 +195,10 @@ export default function PlaceDetail({
       <div className="sticky top-0 z-10 -mx-4 flex items-start justify-between gap-2 border-b border-line bg-surface px-4 pt-1 pb-2 lg:mx-0 lg:border-0 lg:px-0">
         <div className="min-w-0">
           <p className="text-xs text-muted">
-            {flagEmoji(place.countryCode)}{" "}
-            {[place.city, place.country].filter(Boolean).join(", ") || "Saved place"}
+            {flagEmoji(place.countryCode)} {meta.label}
+            {[place.city, place.country].filter(Boolean).join(", ")
+              ? ` · ${[place.city, place.country].filter(Boolean).join(", ")}`
+              : ""}
           </p>
           <input
             className="input mt-1 font-medium"
@@ -184,16 +222,6 @@ export default function PlaceDetail({
       </div>
 
       {place.address && <p className="text-xs text-muted">{place.address}</p>}
-
-      <a
-        href={directionsUrl({ lat: place.lat, lng: place.lng, name: place.name })}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-ghost w-full justify-center gap-2"
-      >
-        <DirectionsIcon />
-        Directions
-      </a>
 
       <div className="flex flex-wrap gap-1.5">
         {STATUSES.map((s) => (
@@ -243,7 +271,7 @@ export default function PlaceDetail({
       {draft.status !== "wishlist" && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted">Rating</span>
+            <span className="text-xs text-muted">Your rating</span>
             <StarRating
               value={draft.rating}
               onChange={(rating) => setDraft({ ...draft, rating })}
@@ -285,12 +313,24 @@ export default function PlaceDetail({
         onChange={(emoji) => setDraft({ ...draft, emoji })}
       />
 
-      <textarea
-        className="input min-h-20 resize-y"
-        value={draft.notes ?? ""}
-        placeholder="Notes"
-        onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-      />
+      <div className="flex items-start gap-2">
+        <textarea
+          className="input min-h-20 flex-1 resize-y"
+          value={draft.notes ?? ""}
+          placeholder="Notes — what to order, when to go, what to skip"
+          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+        />
+        <a
+          href={directionsUrl({ lat: place.lat, lng: place.lng, name: place.name })}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Directions"
+          title="Directions"
+          className="grid size-11 shrink-0 place-items-center rounded-full border border-line text-muted hover:bg-foreground/5"
+        >
+          <DirectionsIcon />
+        </a>
+      </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}
 
@@ -394,11 +434,11 @@ export default function PlaceDetail({
               </select>
               <button
                 type="button"
-                className="btn btn-ghost"
+                className="btn btn-primary flex-1 justify-center"
                 disabled={busy}
                 onClick={addToTrip}
               >
-                Add to trip
+                <span aria-hidden>+</span> Add to trip
               </button>
             </div>
           )}
