@@ -27,7 +27,7 @@ export default function CopyTripButton({
     return (
       <a
         href={`/signin?next=${encodeURIComponent(returnTo)}`}
-        className="btn btn-ghost"
+        className="btn btn-accent"
       >
         Save this trip
       </a>
@@ -52,10 +52,11 @@ export default function CopyTripButton({
 
   return (
     <div>
-      <button type="button" className="btn btn-primary" disabled={busy} onClick={copy}>
+      <button type="button" className="btn btn-accent" disabled={busy} onClick={copy}>
+        <span aria-hidden>⧉</span>
         {busy ? "Copying…" : "Copy this trip"}
       </button>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );
 }

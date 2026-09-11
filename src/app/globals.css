@@ -34,6 +34,8 @@
   --accent-text: #a64a15;
   --accent-tint: #ffe9db;
   --brand: #12322b;
+  /* Evergreen 700: active text, links on light, the focus ring. */
+  --brand-active: #245247;
   /* Not in the kit — nothing on the boards is wrong or overdue. Mirrors
      SEMANTIC.danger in src/lib/brand.ts. */
   --danger: #d65a4a;
@@ -71,6 +73,7 @@
     --accent-text: #f98746;
     --accent-tint: #245247;
     --brand: #e4ede8;
+    --brand-active: #e4ede8;
     --danger: #e2786a;
   }
 }
@@ -84,6 +87,7 @@
   --color-accent: var(--accent);
   --color-brand: var(--brand);
   --color-brand-surface: var(--brand-surface);
+  --color-brand-active: var(--brand-active);
   --color-accent-text: var(--accent-text);
   --color-primary: var(--primary);
   --color-on-primary: var(--on-primary);
@@ -96,6 +100,13 @@
   --color-paint-ink: var(--paint-ink);
   --color-paint-muted: var(--paint-muted);
   --color-paint-nature: var(--paint-nature);
+  /* The kit's two shadows. Cards are mostly flat on Mist; this is for the
+     few that float — a place card over the map, a menu. */
+  --shadow-card: 0 10px 30px rgba(18, 50, 43, 0.14);
+  --shadow-glass: 0 8px 24px rgba(18, 50, 43, 0.12);
+  --radius-sheet: 28px;
+  --radius-card: 24px;
+  --radius-photo: 14px;
 }
 
 html,
@@ -148,77 +159,92 @@ h1,
 
 /* --- map pins ----------------------------------------------------------- */
 
+/* A disc in the category colour, a white ring, the emoji at half the pin's
+   size. Selected grows to 44 and gets a Sun halo. */
 .roava-pin {
   --pin-color: #737373;
+  position: relative;
   display: grid;
   place-items: center;
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 2px solid #fff;
+  border: 2.5px solid #fff;
   border-radius: 999px;
   background: var(--pin-color);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(18, 50, 43, 0.28);
   transition:
     transform 120ms ease,
     opacity 120ms ease,
     box-shadow 120ms ease;
 }
 
-.roava-pin {
-  position: relative;
-}
-
 .roava-pin-face {
   line-height: 1;
 }
 
-/* The day's running order, small enough to leave the emoji legible. */
+/* The day's running order, top right. */
 .roava-pin-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -7px;
+  right: -7px;
   display: grid;
   place-items: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  border: 1.5px solid #fff;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border: 2px solid #fff;
   border-radius: 999px;
   background: var(--pin-color);
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
 }
 
 .roava-pin:hover {
-  transform: scale(1.15);
+  transform: scale(1.12);
 }
 
 .roava-pin.is-selected {
-  transform: scale(1.3);
+  transform: scale(1.375);
   z-index: 5;
+  border-width: 2px;
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--pin-color) 35%, transparent),
-    0 3px 10px rgba(0, 0, 0, 0.4);
+    0 0 0 5px rgba(249, 135, 70, 0.4),
+    0 6px 16px rgba(18, 50, 43, 0.3);
 }
 
 .roava-pin.is-muted {
-  /* Enough to recede, not so much that it disappears. It was 0.28 here and
-     0.45 on the Apple map — two different answers to the same question, and
-     both too faint over pale terrain. */
-  opacity: 0.72;
+  /* Enough to recede, not so much that it disappears. */
+  opacity: 0.55;
 }
 
 .maplibregl-ctrl-attrib {
   font-size: 10px;
+}
+
+/* The zoom buttons, in the same glass as everything else over the map. */
+.maplibregl-ctrl-group {
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+  box-shadow: var(--shadow-glass) !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--border) !important;
 }
 
 /* --- small shared primitives -------------------------------------------- */
@@ -311,5 +337,76 @@ h1,
     background: var(--brand-surface);
     border-color: color-mix(in srgb, var(--primary) 45%, transparent);
     color: var(--foreground);
+  }
+
+  /* The one chip on a row that is chosen, as opposed to merely not filtered
+     out: solid evergreen. */
+  .chip.is-solid {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+    font-weight: 500;
+  }
+
+  /* "Want to go", chosen: the one chip allowed to be Sun. Sun ink on Sun
+     tint, so it reads as text. */
+  .chip.is-sun {
+    background: var(--accent-tint);
+    border-color: var(--accent);
+    color: var(--accent-text);
+    font-weight: 500;
+  }
+
+  /* Anything floating over the map: search, filter chips, the tab bar.
+
+     ponytail: no backdrop-filter. The kit asks for blur(22px), but Chrome
+     stops painting a WebGL canvas underneath any element that blurs its
+     backdrop, and every one of these sits on the map. A more opaque fill
+     reads the same on pale cartography. Put the blur back if MapLibre or
+     Chrome fix it. */
+  .glass {
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--surface) 95%, transparent);
+    box-shadow: var(--shadow-glass);
+  }
+
+  /* The stand-in for a photograph: a tile in the category colour with the
+     emoji centred. Set --tile-color inline. */
+  .tile {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: var(--radius-photo);
+    background: color-mix(in srgb, var(--tile-color, var(--primary)) 82%, #fff);
+    line-height: 1;
+  }
+
+  .nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted);
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .nav-tab:hover {
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  }
+
+  .nav-tab.is-active {
+    background: var(--brand-surface);
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  /* Ratings are Sun — one of the few places the accent is allowed as ink,
+     because a star is a shape rather than text. */
+  .stars {
+    color: var(--accent);
+    letter-spacing: 0.05em;
   }
 }

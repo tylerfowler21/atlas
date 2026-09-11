@@ -65,7 +65,7 @@ export default function PlaceForm({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-sm font-semibold">Save this place</h2>
+        <h2 className="display text-2xl leading-tight">Save this place</h2>
         {draft.address && (
           <p className="mt-0.5 text-xs text-muted">{draft.address}</p>
         )}

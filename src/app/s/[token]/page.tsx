@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { resolvedCategories } from "@/lib/categories";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -70,6 +71,7 @@ export default async function SharedTripPage({
     startDate: share.trip.startDate?.toISOString() ?? null,
     endDate: share.trip.endDate?.toISOString() ?? null,
     color: share.trip.color,
+    notes: share.trip.notes,
   };
 
   const items: PublicItemDTO[] = share.trip.items.map((item) => ({
@@ -90,33 +92,35 @@ export default async function SharedTripPage({
   }));
 
   const viewer = await getCurrentUser();
+  const author = share.trip.user?.username
+    ? `@${share.trip.user.username}`
+    : (share.trip.user?.name ?? null);
 
   return (
     <div className="h-full overflow-y-auto">
-      {/* min-h-full so a long itinerary scrolls on a phone, and h-full from lg
-          up so the two-column layout has a definite height to fill — the map
-          inside it sizes by percentage and needs something real to resolve
-          against. */}
-      <div className="flex min-h-full flex-col lg:h-full">
+      <div className="flex min-h-full flex-col">
         <SharedTrip
           viewerSignedIn={viewer !== null}
           trip={trip}
           items={items}
           categories={await resolvedCategories(share.trip.userId)}
+          author={author}
+          actions={
+            viewer ? (
+              <Link href="/" className="btn btn-primary">
+                Open in Roava
+              </Link>
+            ) : (
+              <a href={`/signin?next=${encodeURIComponent(`/s/${token}`)}`} className="btn btn-accent">
+                Save this trip
+              </a>
+            )
+          }
         />
 
         {/* A secret link is the one most likely to reach somebody with no
             account: it is what you send a friend. */}
-        {!viewer && (
-          <SignUpInvite
-            author={
-              share.trip.user?.username
-                ? `@${share.trip.user.username}`
-                : (share.trip.user?.name ?? null)
-            }
-            returnTo={`/s/${token}`}
-          />
-        )}
+        {!viewer && <SignUpInvite author={author} returnTo={`/s/${token}`} />}
       </div>
     </div>
   );

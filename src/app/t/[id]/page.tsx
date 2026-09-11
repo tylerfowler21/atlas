@@ -52,61 +52,51 @@ export default async function PublishedTripPage({
     startDate: trip.startDate?.toISOString() ?? null,
     endDate: trip.endDate?.toISOString() ?? null,
     color: trip.color,
+    notes: trip.notes,
   };
+  const author = trip.user.username ? `@${trip.user.username}` : (trip.user.name ?? "Someone");
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-line px-4 py-3">
-        <div className="min-w-0 flex-1">
-          {/* You arrived here by clicking something, and until now there was
-              nothing to click to get back to it. */}
-          <BackLink fallback="/discover" />
-          <p className="text-xs text-muted">
-            {trip.user.username ? (
-              <Link href={`/u/${trip.user.username}`} className="text-accent-text hover:underline">
-                @{trip.user.username}
-              </Link>
-            ) : (
-              (trip.user.name ?? "Someone")
-            )}
-            {trip.copiedFrom?.user.username && (
-              <> · copied from @{trip.copiedFrom.user.username}</>
-            )}
-          </p>
-          <h1 className="truncate text-sm font-semibold">{trip.title}</h1>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <CopyTripButton
-            tripId={trip.id}
-            signedIn={Boolean(viewer)}
-            isOwn={viewer?.id === trip.userId}
-            returnTo={`/t/${trip.id}`}
-          />
-          {viewer?.id !== trip.userId && (
-            <ReportOrBlock
-              tripId={trip.id}
-              username={trip.user.username}
-              signedIn={Boolean(viewer)}
-            />
-          )}
-        </div>
-      </header>
-
-      <div className="lg:min-h-0 lg:flex-1">
-        <SharedTrip
-          viewerSignedIn={viewer !== null}
-          trip={publicTrip}
-          items={items}
-          categories={categories}
-        />
+      <div className="px-5 pt-4 lg:px-10">
+        {/* You arrived here by clicking something, and this is the way back. */}
+        <BackLink fallback="/discover" />
       </div>
 
-      {!viewer && (
-        <SignUpInvite
-          author={trip.user.username ? `@${trip.user.username}` : trip.user.name}
-          returnTo={`/t/${trip.id}`}
-        />
-      )}
+      <SharedTrip
+        viewerSignedIn={viewer !== null}
+        trip={publicTrip}
+        items={items}
+        categories={categories}
+        author={author}
+        actions={
+          <>
+            <CopyTripButton
+              tripId={trip.id}
+              signedIn={Boolean(viewer)}
+              isOwn={viewer?.id === trip.userId}
+              returnTo={`/t/${trip.id}`}
+            />
+            {trip.user.username && (
+              <Link href={`/u/${trip.user.username}`} className="btn btn-ghost">
+                More from {author}
+              </Link>
+            )}
+            {trip.copiedFrom?.user.username && (
+              <span className="text-xs text-muted">copied from @{trip.copiedFrom.user.username}</span>
+            )}
+            {viewer?.id !== trip.userId && (
+              <ReportOrBlock
+                tripId={trip.id}
+                username={trip.user.username}
+                signedIn={Boolean(viewer)}
+              />
+            )}
+          </>
+        }
+      />
+
+      {!viewer && <SignUpInvite author={author} returnTo={`/t/${trip.id}`} />}
     </div>
   );
 }

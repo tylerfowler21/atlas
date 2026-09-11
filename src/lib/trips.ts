@@ -71,3 +71,22 @@ export function relativeLabel(trip: { startDate: string | null; endDate: string 
   const since = Math.round((today - end) / DAY_MS);
   return since <= 1 ? "Just finished" : `${since} days ago`;
 }
+
+/// "18 min" or "2 h 10" between a journey's times, or null without both.
+export function durationLabel(item: {
+  startTime: string | null;
+  endTime: string | null;
+  endDayOffset?: number;
+}): string | null {
+  if (!item.startTime || !item.endTime) return null;
+  const minutesOf = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const minutes =
+    minutesOf(item.endTime) - minutesOf(item.startTime) + (item.endDayOffset ?? 0) * 24 * 60;
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h === 0 ? `${m} min` : m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
+}

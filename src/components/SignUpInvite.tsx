@@ -22,15 +22,15 @@ export default function SignUpInvite({
   returnTo: string;
 }) {
   return (
-    <aside className="border-t border-line px-4 py-5">
-      <div className="mx-auto flex max-w-lg flex-col items-center gap-3 text-center">
+    <aside className="px-5 pb-10 lg:px-10">
+      <div className="card mx-auto flex max-w-lg flex-col items-center gap-3 p-6 text-center">
         <Image src="/brand/mark.png" alt="" width={44} height={44} />
 
         <div>
-          <p className="text-sm font-semibold">
+          <p className="display text-xl">
             {author ? `Make your own, like ${author}'s` : "Make your own"}
           </p>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-sm text-muted">
             Roava is a map of the places you want to go and the ones
             you&apos;ve been, and trips you can plan day by day. It&apos;s free,
             and everything stays private unless you share it.
