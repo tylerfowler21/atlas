@@ -90,6 +90,7 @@ export default async function PublishedTripPage({
 
       <div className="lg:min-h-0 lg:flex-1">
         <SharedTrip
+          viewerSignedIn={viewer !== null}
           trip={publicTrip}
           items={items}
           categories={categories}

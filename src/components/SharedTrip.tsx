@@ -15,9 +15,14 @@ export default function SharedTrip({
   trip,
   items,
   categories = [],
+  viewerSignedIn = false,
 }: {
   trip: PublicTripDTO;
   items: PublicItemDTO[];
+  /// Whether whoever is reading this has an account. Decides the basemap: a
+  /// stranger gets the free one so public traffic cannot exhaust the Apple
+  /// quota, and somebody using the app gets the map the rest of it uses.
+  viewerSignedIn?: boolean;
   /// The categories this trip's own stops use, sent with the page.
   ///
   /// Whoever is reading a shared itinerary is not signed in as the person who
@@ -225,10 +230,14 @@ export default function SharedTrip({
       <div className="relative h-[55vh] lg:h-auto lg:min-h-0 lg:flex-1">
         <MapCanvas
           // A shared itinerary is readable with no account, so this map is
-          // shown to strangers and crawlers. Keeping it on the free basemap
-          // means public traffic can never exhaust the Apple quota and take
-          // the map down for everyone.
-          basemap="free"
+          // shown to strangers and crawlers, and public traffic on the free
+          // basemap can never exhaust the Apple quota and take the map down
+          // for everyone.
+          //
+          // Somebody signed in is not public traffic, though. Reading a trip
+          // from the feed is using the app, and it should look like the rest
+          // of it — so they get the same map they get everywhere else.
+          basemap={viewerSignedIn ? "auto" : "free"}
           pins={pins}
           route={route}
           legs={legs}

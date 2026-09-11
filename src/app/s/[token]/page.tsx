@@ -99,6 +99,7 @@ export default async function SharedTripPage({
           against. */}
       <div className="flex min-h-full flex-col lg:h-full">
         <SharedTrip
+          viewerSignedIn={viewer !== null}
           trip={trip}
           items={items}
           categories={await resolvedCategories(share.trip.userId)}
