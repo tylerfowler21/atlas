@@ -41,7 +41,13 @@
         }
       ],
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-share-extension",
+        {
+          "height": 320
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

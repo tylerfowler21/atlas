@@ -116,7 +116,7 @@ function dayUnder(pageY: number): number | null {
 
 export default function TripScreen() {
   const { stopIconOf } = useCategories();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, shareUrl } = useLocalSearchParams<{ id: string; shareUrl?: string }>();
   const { data, error, loading, reload } = useApi<TripResponse>(`/api/trips/${id}`);
   const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
@@ -131,7 +131,11 @@ export default function TripScreen() {
   /// and the two ways it has to be prepared for.
   const [view, setView] = useState<"days" | "bookings" | "before" | "files">("days");
   /// Which day the link importer is adding to, or null when it is closed.
-  const [linkDay, setLinkDay] = useState<number | null>(null);
+  ///
+  /// A link shared in from TikTok opens it straight away: the person has
+  /// already said which trip, and the day is the one thing the share sheet
+  /// could not ask.
+  const [linkDay, setLinkDay] = useState<number | null>(shareUrl ? 0 : null);
 
   const days = useMemo(
     () => (data ? dayCount(data.trip, data.items) : 0),
@@ -373,6 +377,7 @@ export default function TripScreen() {
           trip={data.trip}
           days={days}
           activeDay={linkDay}
+          initialUrl={shareUrl}
           region={
             (tripRegions(data.trip).length > 0 ? tripRegions(data.trip) : null) ??
             tripRegion(data.items.map((i) => i.place).filter((p) => p !== null))

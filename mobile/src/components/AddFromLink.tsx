@@ -45,6 +45,7 @@ export default function AddFromLink({
   days,
   activeDay,
   region,
+  initialUrl,
   onClose,
   onAdded,
 }: {
@@ -54,14 +55,19 @@ export default function AddFromLink({
   /// mean.
   activeDay: number;
   region: string[] | string | null;
+  /// A link that arrived from the share sheet, already filled in, so the only
+  /// thing left to say is which day it belongs to.
+  initialUrl?: string;
   onClose: () => void;
   onAdded: () => void;
 }) {
   const palette = usePalette();
   const [day, setDay] = useState(Math.max(0, activeDay));
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl ?? "");
   const [caption, setCaption] = useState("");
-  const [needsCaption, setNeedsCaption] = useState(false);
+  const [needsCaption, setNeedsCaption] = useState(
+    initialUrl ? needsPastedCaption(initialUrl) : false,
+  );
   const [rows, setRows] = useState<Found[] | null>(null);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [busy, setBusy] = useState(false);
