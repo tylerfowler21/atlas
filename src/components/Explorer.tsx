@@ -21,6 +21,24 @@ import { enrichSelectedPlace } from "@/lib/enrich-place";
 
 const DRAFT_PIN_ID = "__draft__";
 
+/// A place's own rating, out of five.
+///
+/// Rendered as text rather than as five icons: a screen reader announcing
+/// "star star star star star" tells you nothing about how many are filled.
+function Stars({ value }: { value: number }) {
+  return (
+    <span className="mt-0.5 block text-xs leading-none" aria-label={`Rated ${value} out of 5`}>
+      <span aria-hidden>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span key={n} className={n <= value ? "text-accent" : "text-muted/35"}>
+            ★
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
 export default function Explorer({
   initialPlaces,
   trips,
@@ -637,36 +655,57 @@ export default function Explorer({
                   <p className="text-xs text-muted">No saved places match.</p>
                 )
               ) : (
-                <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+                <ul className="space-y-2">
                   {localMatches.map((p) => {
                     const meta = categoryOf(p.category);
+                    const chosen = p.id === selectedId;
+                    // Category label first, then whatever was written about the
+                    // place. The city is the fallback rather than the default:
+                    // in a list already scoped to somewhere, "Lisbon, Portugal"
+                    // on every row says nothing.
+                    const under =
+                      [meta.label, p.notes?.trim()].filter(Boolean).join(" · ") ||
+                      [p.city, p.country].filter(Boolean).join(", ");
                     return (
                       <li key={p.id}>
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
+                          aria-current={chosen ? "true" : undefined}
+                          className={`flex w-full items-center gap-3 rounded-[18px] border p-2.5 text-left transition-colors ${
+                            chosen
+                              ? "border-accent bg-accent/5"
+                              : "border-line bg-surface hover:border-accent/40"
+                          }`}
                           onClick={() => {
                             setSelectedId(p.id);
                             panTo(p.lat, p.lng);
                           }}
                         >
+                          {/* Where the design has a photograph. Places do not
+                              carry one — photos hang off a journal entry, and
+                              somewhere you only want to go has no entry yet —
+                              so the category tile holds the same space at the
+                              same size rather than leaving a grey rectangle. */}
                           <span
                             aria-hidden
-                            className="grid size-7 shrink-0 place-items-center rounded-full text-xs"
+                            className="grid size-13 shrink-0 place-items-center rounded-[14px] text-xl"
                             style={{ background: `${meta.color}22` }}
                           >
                             {placeIconOf(p)}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm">{p.name}</span>
-                            <span className="block truncate text-xs text-muted">
-                              {[p.city, p.country].filter(Boolean).join(", ") || meta.label}
+                            <span className="block truncate text-sm font-semibold">
+                              {p.name}
                             </span>
+                            <span className="block truncate text-xs text-muted">{under}</span>
+                            {p.rating ? (
+                              <Stars value={p.rating} />
+                            ) : null}
                           </span>
                           <span
                             aria-label={statusOf(p.status).label}
                             title={statusOf(p.status).label}
-                            className="text-xs"
+                            className="shrink-0 self-start text-xs"
                           >
                             {statusOf(p.status).icon}
                           </span>
