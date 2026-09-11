@@ -7,6 +7,7 @@ import { loadPublishedTrip } from "@/lib/social";
 import type { PublicTripDTO } from "@/lib/types";
 import SharedTrip from "@/components/SharedTrip";
 import CopyTripButton from "@/components/CopyTripButton";
+import BackLink from "@/components/BackLink";
 import SignUpInvite from "@/components/SignUpInvite";
 import ReportOrBlock from "@/components/ReportOrBlock";
 import { isBlockedBetween } from "@/lib/moderation";
@@ -57,6 +58,9 @@ export default async function PublishedTripPage({
     <div className="flex h-full flex-col overflow-y-auto">
       <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0 flex-1">
+          {/* You arrived here by clicking something, and until now there was
+              nothing to click to get back to it. */}
+          <BackLink fallback="/discover" />
           <p className="text-xs text-muted">
             {trip.user.username ? (
               <Link href={`/u/${trip.user.username}`} className="text-accent-text hover:underline">
