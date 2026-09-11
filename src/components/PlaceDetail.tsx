@@ -33,6 +33,8 @@ export default function PlaceDetail({
   const { categoryOf } = useCategories();
   const [draft, setDraft] = useState(place);
   const [busy, setBusy] = useState(false);
+  /// Whether the editing half of the card is showing.
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addedTo, setAddedTo] = useState<string | null>(null);
   const [tripId, setTripId] = useState("");
@@ -236,7 +238,7 @@ export default function PlaceDetail({
         ))}
       </div>
 
-      {draft.status === "lived" && (
+      {editing && draft.status === "lived" && (
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-muted">
             Moved in
@@ -297,21 +299,29 @@ export default function PlaceDetail({
         </div>
       )}
 
-      <div>
-        <p className="mb-1.5 text-xs text-muted">
-          Category — currently <span style={{ color: meta.color }}>{meta.label}</span>
-        </p>
-        <CategoryPicker
-          value={draft.category}
-          onChange={(category) => setDraft({ ...draft, category })}
-        />
-      </div>
+      {/* Everything below is editing rather than reading, and the boards show
+          a card you read. Folded away by default: opened as a panel floating
+          over the map, a category picker and a grid of eighty emoji is most of
+          what you can see, and the place itself scrolls off the top. */}
+      {editing && (
+        <>
+          <div>
+            <p className="mb-1.5 text-xs text-muted">
+              Category — currently <span style={{ color: meta.color }}>{meta.label}</span>
+            </p>
+            <CategoryPicker
+              value={draft.category}
+              onChange={(category) => setDraft({ ...draft, category })}
+            />
+          </div>
 
-      <EmojiField
-        emoji={draft.emoji}
-        category={draft.category}
-        onChange={(emoji) => setDraft({ ...draft, emoji })}
-      />
+          <EmojiField
+            emoji={draft.emoji}
+            category={draft.category}
+            onChange={(emoji) => setDraft({ ...draft, emoji })}
+          />
+        </>
+      )}
 
       <div className="flex items-start gap-2">
         <textarea
@@ -362,12 +372,30 @@ export default function PlaceDetail({
         >
           {busy ? "Saving…" : dirty ? "Save changes" : "Saved"}
         </button>
-        <button type="button" className="btn btn-ghost" disabled={busy} onClick={remove}>
-          Delete
+        <button
+          type="button"
+          className="btn btn-ghost"
+          aria-expanded={editing}
+          onClick={() => setEditing((open) => !open)}
+        >
+          {editing ? "Done" : "Edit details"}
         </button>
       </div>
 
-      <Memories placeId={place.id} />
+      {editing && (
+        <>
+          <button
+            type="button"
+            className="btn btn-ghost w-full justify-center text-[color:var(--danger)]"
+            disabled={busy}
+            onClick={remove}
+          >
+            Delete this place
+          </button>
+
+          <Memories placeId={place.id} />
+        </>
+      )}
 
       {trips.length > 0 && (
         <div className="space-y-2 border-t border-line pt-3">

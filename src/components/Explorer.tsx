@@ -441,7 +441,11 @@ export default function Explorer({
         style={drag ? { transform: `translateY(${drag}px)` } : undefined}
         className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 rounded-t-2xl border-t border-line bg-surface p-3 shadow-2xl lg:static lg:order-1 lg:h-full lg:w-[420px] lg:max-h-none lg:translate-y-0 lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none ${
           drag ? "" : "transition-[max-height,transform] duration-200"
-        } ${listOpen ? "max-h-[78%] overflow-y-auto" : "overflow-visible lg:hidden"}`}
+        } ${listOpen ? "max-h-[78%] overflow-y-auto" : "overflow-visible lg:hidden"} ${
+          // On a phone the place card is a sheet over the map, and so is this.
+          // Two sheets on top of each other is one sheet nobody can read.
+          selected ? "max-lg:hidden" : ""
+        }`}
       >
         {/* Drag it or tap it. A short drag counts as a tap, so the sheet never
             feels stuck when a finger moves a few pixels. */}
@@ -503,20 +507,6 @@ export default function Explorer({
               setQuery("");
               setSelectedId(place.id);
             }}
-          />
-        ) : selected ? (
-          <PlaceDetail
-            key={selected.id}
-            place={selected}
-            trips={trips}
-            onUpdated={(updated) =>
-              setPlaces((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-            }
-            onDeleted={(id) => {
-              setPlaces((prev) => prev.filter((p) => p.id !== id));
-              setSelectedId(null);
-            }}
-            onClose={() => setSelectedId(null)}
           />
         ) : (
           <>
@@ -970,6 +960,33 @@ export default function Explorer({
             ☰ Your places ({visiblePlaces.length})
           </button>
         )}
+        {/* The place, floating over the map rather than replacing the list —
+            which is where the boards put it, and it means you can still see
+            what else is nearby while you read about one thing.
+
+            Below lg it is a sheet over the map instead, and the list hides
+            itself, because a 372px card floating on a phone is just a card
+            with no room around it. */}
+        {selected && (
+          <div
+            className="absolute inset-x-0 bottom-0 z-20 max-h-[80%] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 shadow-2xl lg:inset-x-auto lg:top-6 lg:right-6 lg:bottom-auto lg:max-h-[calc(100%-3rem)] lg:w-[372px] lg:rounded-3xl lg:border"
+          >
+            <PlaceDetail
+              key={selected.id}
+              place={selected}
+              trips={trips}
+              onUpdated={(updated) =>
+                setPlaces((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+              }
+              onDeleted={(id) => {
+                setPlaces((prev) => prev.filter((p) => p.id !== id));
+                setSelectedId(null);
+              }}
+              onClose={() => setSelectedId(null)}
+            />
+          </div>
+        )}
+
         <MapCanvas
           pins={pins}
           selectedId={draft ? DRAFT_PIN_ID : selectedId}
