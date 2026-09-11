@@ -15,6 +15,10 @@ export type PlaceDTO = {
   countryCode: string | null;
   notes: string | null;
   rating: number | null;
+  /// A Wikipedia photograph of the place, with the credit it has to carry.
+  photoUrl: string | null;
+  photoAttribution: string | null;
+  photoSourceUrl: string | null;
   website: string | null;
   visitedAt: string | null;
   livedFrom: string | null;

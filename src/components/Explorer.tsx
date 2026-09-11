@@ -8,6 +8,7 @@ import type { FirstSteps as Steps } from "@/lib/first-steps";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
@@ -694,18 +695,28 @@ export default function Explorer({
                             panTo(p.lat, p.lng);
                           }}
                         >
-                          {/* Where the design has a photograph. Places do not
-                              carry one — photos hang off a journal entry, and
-                              somewhere you only want to go has no entry yet —
-                              so the category tile holds the same space at the
-                              same size rather than leaving a grey rectangle. */}
-                          <span
-                            aria-hidden
-                            className="grid size-13 shrink-0 place-items-center rounded-[14px] text-xl"
-                            style={{ background: `${meta.color}22` }}
-                          >
-                            {placeIconOf(p)}
-                          </span>
+                          {/* Wikipedia's photograph of the place when there is
+                              one. Landmarks have one; the bar round the corner
+                              does not, and gets its category tile in the same
+                              space at the same size rather than a grey
+                              rectangle where a picture should be. */}
+                          {p.photoUrl ? (
+                            <Image
+                              src={p.photoUrl}
+                              alt=""
+                              width={52}
+                              height={52}
+                              className="size-13 shrink-0 rounded-[14px] object-cover"
+                            />
+                          ) : (
+                            <span
+                              aria-hidden
+                              className="grid size-13 shrink-0 place-items-center rounded-[14px] text-xl"
+                              style={{ background: `${meta.color}22` }}
+                            >
+                              {placeIconOf(p)}
+                            </span>
+                          )}
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">
                               {p.name}

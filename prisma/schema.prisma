@@ -211,6 +211,17 @@ model Place {
   notes       String?
   /// 1–5, only meaningful once visited
   rating      Int?
+  /// A picture of the place, found on Wikipedia rather than taken by anyone
+  /// here — somewhere you only want to go has no photo of its own yet.
+  photoUrl         String?
+  /// Who took it and under what licence. Most are CC BY-SA, which requires
+  /// naming the author, so this is shown wherever the photo is.
+  photoAttribution String?
+  /// The file's page on Commons, where the full licence lives.
+  photoSourceUrl   String?
+  /// When we last went looking. Set even when nothing was found, so a place
+  /// with no article is not searched for on every load.
+  photoCheckedAt   DateTime?
   website     String?
   visitedAt   DateTime?
   createdAt   DateTime  @default(now())
