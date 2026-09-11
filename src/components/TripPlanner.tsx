@@ -1096,6 +1096,18 @@ export default function TripPlanner({
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
+        {/* Starting from the trip, which is where somebody planning one
+            actually is. Going the other way — through an importer labelled
+            "a trip I took" — is the wrong door for a trip that has not
+            happened. The importer still does the work, so the places still go
+            through the same lookup and confirmation. */}
+        <Link
+          href={`/import?into=${trip.id}&link=1`}
+          className="self-start text-xs text-muted hover:underline"
+        >
+          + Add places from a TikTok or Instagram link
+        </Link>
+
         <AddTravel
           places={library}
           onAdd={addItem}

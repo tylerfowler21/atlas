@@ -16,11 +16,14 @@ import { useState } from "react";
 export default function ImportLink({
   onRead,
   busy,
+  startOpen = false,
 }: {
   onRead: (result: { text: string; region: string | null }) => void;
   busy: boolean;
+  /// Opened already when the trip sent you here to do exactly this.
+  startOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [url, setUrl] = useState("");
   const [caption, setCaption] = useState("");
   const [needsCaption, setNeedsCaption] = useState(false);

@@ -68,10 +68,18 @@ function withoutTrailing(title: string, city: string | null) {
 
 export default function TripImporter({
   initialMode = "trip",
+  initialTrip = null,
+  openLink = false,
 }: {
   /// Which tab to open on, so a link can point straight at drafting rather
   /// than landing somebody on importing and hoping they look along the row.
   initialMode?: "trip" | "places" | "draft";
+  /// The trip this was opened from, when it was. Passed whole rather than as
+  /// an id: the picker has to show its name immediately, and fetching it here
+  /// would mean the picker saying "A new trip" while holding a trip id.
+  initialTrip?: { id: string; title: string; startDate: string | null } | null;
+  /// Whether to open the link panel straight away, for the same reason.
+  openLink?: boolean;
 }) {
   const { categories, categoryOf } = useCategories();
   const router = useRouter();
@@ -85,7 +93,15 @@ export default function TripImporter({
   const [title, setTitle] = useState("");
   const [region, setRegion] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [markVisited, setMarkVisited] = useState(true);
+  const [markVisited, setMarkVisited] = useState(
+    // Opened from a trip means somebody is planning it, and what you add to a
+    // plan is somewhere you want to go rather than somewhere you have been.
+    // Not decided from the clock: reading it during render is the impurity the
+    // compiler refuses, and it would differ between server and browser anyway.
+    // Picking a trip from the dropdown still consults the dates, because that
+    // happens in an event handler where the clock is fair game.
+    !initialTrip,
+  );
   const [text, setText] = useState("");
 
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -104,9 +120,9 @@ export default function TripImporter({
   /// A feed is where the next trip gets planned — somebody sends you a reel of
   /// six places in a city you are going to in March, and those six belong on
   /// the trip that already exists, not on a second trip with the same name.
-  const [intoTripId, setIntoTripId] = useState("");
+  const [intoTripId, setIntoTripId] = useState(initialTrip?.id ?? "");
   const [trips, setTrips] = useState<{ id: string; title: string; startDate: string | null }[]>(
-    [],
+    initialTrip ? [initialTrip] : [],
   );
 
   const preview = useMemo(() => parseItinerary(text), [text]);
@@ -699,6 +715,7 @@ export default function TripImporter({
           {/* A link is another thing somebody already has the list in, and
               everything lands in the same box for the same review. */}
           <ImportLink
+            startOpen={openLink}
             busy={busy || reading}
             onRead={({ text: found, region: where }) => {
               setText((prev) => (prev.trim() ? `${prev.trim()}\n${found}` : found));
