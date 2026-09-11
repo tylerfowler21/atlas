@@ -37,6 +37,7 @@ import TripBookings from "@/components/TripBookings";
 import TripCalendar from "@/components/TripCalendar";
 import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
+import AddFromLink from "@/components/AddFromLink";
 import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
@@ -102,6 +103,8 @@ export default function TripScreen() {
   /// Which of the trip's three lists is showing: the trip as it will happen,
   /// and the two ways it has to be prepared for.
   const [view, setView] = useState<"days" | "bookings" | "before" | "files">("days");
+  /// Which day the link importer is adding to, or null when it is closed.
+  const [linkDay, setLinkDay] = useState<number | null>(null);
 
   const days = useMemo(
     () => (data ? dayCount(data.trip, data.items) : 0),
@@ -279,6 +282,20 @@ export default function TripScreen() {
           ),
         }}
       />
+
+      {linkDay !== null && data && (
+        <AddFromLink
+          trip={data.trip}
+          days={days}
+          activeDay={linkDay}
+          region={
+            (tripRegions(data.trip).length > 0 ? tripRegions(data.trip) : null) ??
+            tripRegion(data.items.map((i) => i.place).filter((p) => p !== null))
+          }
+          onClose={() => setLinkDay(null)}
+          onAdded={reload}
+        />
+      )}
 
       <ItemEditor
         draft={item}
@@ -606,6 +623,11 @@ export default function TripScreen() {
                   style={styles.add}
                 >
                   <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a journey</Text>
+                </Pressable>
+                {/* The reel is on this phone, so the places should go in from
+                    this phone — and onto the day whose button was pressed. */}
+                <Pressable onPress={() => setLinkDay(day)} style={styles.add}>
+                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ From a link</Text>
                 </Pressable>
               </View>
             </View>
