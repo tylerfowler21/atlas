@@ -229,8 +229,7 @@ h1,
 /* The zoom buttons, in the same glass as everything else over the map. */
 .maplibregl-ctrl-group {
   border-radius: 999px !important;
-  background: color-mix(in srgb, var(--surface) 76%, transparent) !important;
-  backdrop-filter: blur(22px) saturate(160%);
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
   box-shadow: var(--shadow-glass) !important;
   overflow: hidden;
 }
@@ -354,12 +353,16 @@ h1,
     font-weight: 500;
   }
 
-  /* Anything floating over the map: search, filter chips, the tab bar. */
+  /* Anything floating over the map: search, filter chips, the tab bar.
+
+     ponytail: no backdrop-filter. The kit asks for blur(22px), but Chrome
+     stops painting a WebGL canvas underneath any element that blurs its
+     backdrop, and every one of these sits on the map. A more opaque fill
+     reads the same on pale cartography. Put the blur back if MapLibre or
+     Chrome fix it. */
   .glass {
-    background: color-mix(in srgb, var(--surface) 76%, transparent);
-    border: 1px solid color-mix(in srgb, var(--surface) 85%, transparent);
-    backdrop-filter: blur(22px) saturate(160%);
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--surface) 95%, transparent);
     box-shadow: var(--shadow-glass);
   }
 

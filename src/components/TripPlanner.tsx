@@ -17,7 +17,6 @@ import ShareTrip from "@/components/ShareTrip";
 import TripPeople from "@/components/TripPeople";
 import TripSettings from "@/components/TripSettings";
 import TripBookings from "@/components/TripBookings";
-import TripCalendar from "@/components/TripCalendar";
 import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
@@ -27,7 +26,7 @@ import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
-import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
+import { dateForDay, dayCount, durationLabel, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type {
   ItineraryItemDTO,
@@ -90,6 +89,9 @@ export default function TripPlanner({
   );
 
   const [dropMode, setDropMode] = useState(false);
+  /// The map shows one day at a time by default; "Whole trip" shows the
+  /// route across every day.
+  const [wholeTrip, setWholeTrip] = useState(false);
   /// A place Apple labelled that has been tapped, waiting to be confirmed.
   ///
   /// Confirmed rather than added outright: the map is also how you pan and
@@ -131,7 +133,7 @@ export default function TripPlanner({
           color: trip.color,
           icon: meta.icon,
           badge: null,
-          muted: !dayItems.some((d) => d.id === i.id),
+          muted: !wholeTrip && !dayItems.some((d) => d.id === i.id),
         };
       });
 
@@ -147,29 +149,38 @@ export default function TripPlanner({
           color: badge ? trip.color : meta.color,
           icon: stopIconOf(item),
           badge: badge ? String(badge) : null,
-          muted: !badge,
+          muted: !wholeTrip && !badge,
         };
       })
       .concat(legEnds);
-  }, [items, dayItems, trip.color, categoryOf, stopIconOf]);
+  }, [items, dayItems, trip.color, categoryOf, stopIconOf, wholeTrip]);
+
+  /// The stops the map draws a line through: today's, or the whole trip's.
+  const routeItems = useMemo(
+    () =>
+      wholeTrip
+        ? [...items].sort((a, b) => a.dayIndex - b.dayIndex || a.position - b.position)
+        : dayItems,
+    [wholeTrip, items, dayItems],
+  );
 
   const legs = useMemo(
     () =>
-      dayItems
+      routeItems
         .filter((i) => i.kind === "travel" && i.place && i.toPlace)
         .map((i) => ({
           from: [i.place!.lng, i.place!.lat] as [number, number],
           to: [i.toPlace!.lng, i.toPlace!.lat] as [number, number],
         })),
-    [dayItems],
+    [routeItems],
   );
 
   const route = useMemo<[number, number][]>(
     () =>
-      dayItems
+      routeItems
         .filter((i) => i.place)
         .map((i) => [i.place!.lng, i.place!.lat] as [number, number]),
-    [dayItems],
+    [routeItems],
   );
 
   async function mutate<T>(
@@ -575,31 +586,31 @@ export default function TripPlanner({
   }, [items, days]);
   const toSort = resources.filter((r) => !r.ready).length;
 
+  const stopCount = items.filter((i) => i.kind !== "travel").length;
+
   return (
     <div className="flex h-full flex-col lg:flex-row">
-      <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-line p-4 lg:h-full lg:w-[26rem] lg:border-r lg:border-b-0">
-        <div>
-          <Link href="/trips" className="text-xs text-muted hover:underline">
-            ← All trips
+      <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-line bg-surface p-5 lg:h-full lg:w-[460px] lg:border-r lg:border-b-0 xl:w-[580px]">
+        {/* The cover. A photograph would go here; until there is one, the
+            trip's own colour fading into evergreen. */}
+        <div
+          className="relative -mx-5 -mt-5 flex min-h-44 flex-col justify-end px-5 pt-14 pb-5 text-[color:var(--paint-card)] lg:mx-0 lg:mt-0 lg:rounded-3xl"
+          style={{
+            background: `linear-gradient(160deg, ${trip.color} 0%, var(--paint-evergreen-900) 75%)`,
+          }}
+        >
+          <Link
+            href="/trips"
+            className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium"
+          >
+            ‹ Trips
           </Link>
-          <h1 className="mt-1 flex items-center gap-2 text-lg font-semibold">
-            <span
-              aria-hidden
-              className="size-3 rounded-full"
-              style={{ background: trip.color }}
-            />
-            {trip.title}
-          </h1>
-          <p className="text-xs text-muted">
-            {[tripWhere(trip), formatRange(trip)].filter(Boolean).join(" · ")}
-          </p>
-
           {/* Whether a trip is public should be readable without opening a
               panel — it is the one setting where not knowing is a problem. */}
           {role === "owner" ? (
             <button
               type="button"
-              className={`chip mt-2 ${trip.publishedAt ? "is-on" : ""}`}
+              className="absolute top-4 right-4 rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium disabled:opacity-60"
               disabled={busy}
               onClick={() => setPublished(trip.publishedAt === null)}
               title={
@@ -611,32 +622,46 @@ export default function TripPlanner({
               {trip.publishedAt ? "🌍 Published" : "🔒 Private"}
             </button>
           ) : (
-            <span className="chip mt-2">✏️ Shared with you</span>
+            <span className="absolute top-4 right-4 rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium">
+              ✏️ Shared with you
+            </span>
           )}
+          <h1 className="text-3xl leading-tight xl:text-4xl">{trip.title}</h1>
+          <p className="mt-1.5 text-sm text-white/80">
+            {[
+              tripWhere(trip),
+              formatRange(trip),
+              `${days} ${days === 1 ? "day" : "days"}`,
+              stopCount > 0 ? `${stopCount} ${stopCount === 1 ? "stop" : "stops"}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         </div>
 
-        {/* Renaming, sharing and deleting stay with the owner; an editor gets
-            the itinerary and nothing else. */}
-        {role === "owner" && (
-          <>
-            <TripSettings trip={trip} onUpdated={setTrip} />
-            <ShareTrip tripId={trip.id} />
-          </>
-        )}
-
-        <TripPeople
-          tripId={trip.id}
-          role={role}
-          ownerLabel={ownerLabel}
-          ownerImage={ownerImage}
-          initialPeople={people}
-        />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <TripPeople
+            tripId={trip.id}
+            role={role}
+            ownerLabel={ownerLabel}
+            ownerImage={ownerImage}
+            initialPeople={people}
+          />
+          {/* Renaming, sharing and deleting stay with the owner; an editor
+              gets the itinerary and nothing else. */}
+          {role === "owner" && (
+            <>
+              <TripSettings trip={trip} onUpdated={setTrip} />
+              <ShareTrip tripId={trip.id} />
+            </>
+          )}
+        </div>
 
         {/* Three lists, not three pages: the trip's days, what still has to be
             booked, and what has to be sorted before leaving. The counts are on
             the tabs because an unbooked thing you have forgotten about is the
             only one that costs anything. */}
-        <div className="flex gap-1.5 border-b border-line pb-2">
+        <div className="flex flex-wrap gap-1.5">
           {([
             ["days", "Days", 0],
             ["bookings", "Bookings", toBook],
@@ -646,71 +671,89 @@ export default function TripPlanner({
             <button
               key={id}
               type="button"
-              className={`chip ${view === id ? "is-on" : ""}`}
+              className={`chip px-3 py-1.5 text-[13px] ${view === id ? "is-solid" : ""}`}
+              aria-pressed={view === id}
               onClick={() => setView(id)}
             >
               {label}
-              {count > 0 && <span className="text-muted">{count}</span>}
+              {count > 0 && (
+                <span className={`tabular-nums ${view === id ? "opacity-70" : "text-muted"}`}>
+                  {count}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {view === "days" && (
           <>
-        {/* On a calendar when the trip has dates, because "day 3" is a number
-            you have to convert before it tells you anything — and the answer
-            people want from it is which Saturday it is. A trip with no dates
-            yet has nothing to align to, so it keeps the chips. */}
-        {trip.startDate ? (
-          <TripCalendar
-            startDate={trip.startDate}
-            days={days}
-            color={trip.color}
-            activeDay={activeDay}
-            counts={dayCounts}
-            onPick={setActiveDay}
-          />
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {Array.from({ length: days }, (_, i) => (
+        {/* One pill a day, the weekday over the date, so "day 3" never has to
+            be converted into which Saturday it is. */}
+        <div className="-mx-5 flex shrink-0 gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+          {Array.from({ length: days }, (_, i) => {
+            const date = dateForDay(trip, i);
+            const on = activeDay === i;
+            const has = (dayCounts[i] ?? 0) > 0;
+            return (
               <button
                 key={i}
                 type="button"
-                className={`chip ${activeDay === i ? "is-on" : ""}`}
+                aria-label={`Day ${i + 1}`}
+                aria-pressed={on}
                 onClick={() => setActiveDay(i)}
+                className={`flex w-14 shrink-0 flex-col items-center rounded-2xl border py-2 leading-none transition-colors ${
+                  on
+                    ? "border-primary bg-primary text-on-primary"
+                    : "border-line bg-surface hover:bg-foreground/5"
+                }`}
               >
-                Day
-                <span className="text-muted">{i + 1}</span>
+                <span className={`text-[11px] ${on ? "opacity-80" : "text-muted"}`}>
+                  {date ? formatDay(date, { month: undefined, day: undefined }) : "Day"}
+                </span>
+                <span className="mt-1 text-lg font-semibold tabular-nums">
+                  {date ? date.getUTCDate() : i + 1}
+                </span>
+                <span
+                  aria-hidden
+                  className={`mt-1 size-1 rounded-full ${
+                    has ? (on ? "bg-on-primary" : "bg-accent") : "bg-transparent"
+                  }`}
+                />
               </button>
-            ))}
-          </div>
-        )}
-
-        {!trip.endDate && (
-          <button
-            type="button"
-            className="chip self-start"
-            onClick={() => {
-              setExtraDays((n) => n + 1);
-              setActiveDay(days);
-            }}
-          >
-            ＋ Day
-          </button>
-        )}
+            );
+          })}
+          {!trip.endDate && (
+            <button
+              type="button"
+              aria-label="Add a day"
+              className="flex w-14 shrink-0 items-center justify-center rounded-2xl border border-dashed border-line text-lg text-muted hover:bg-foreground/5"
+              onClick={() => {
+                setExtraDays((n) => n + 1);
+                setActiveDay(days);
+              }}
+            >
+              ＋
+            </button>
+          )}
+        </div>
 
         <div>
-          <h2 className="flex flex-wrap items-baseline gap-2 text-sm font-semibold">
-            <span>Day {activeDay + 1}</span>
-            {dayDate && (
-              <span className="text-xs font-normal text-muted">{formatDay(dayDate)}</span>
-            )}
+          <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="display text-xl leading-tight">Day {activeDay + 1}</span>
+            <span className="text-sm text-muted">
+              {[
+                `${dayItems.length} ${dayItems.length === 1 ? "stop" : "stops"}`,
+                dayDate ? formatDay(dayDate) : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
             {/* Only when there is something real to say. A day beyond the
                 forecast, or one the archive has not caught up with, shows
                 nothing rather than a number somebody might pack from. */}
             {todayWeather && (
               <span
-                className="text-xs font-normal text-muted"
+                className="text-sm text-muted"
                 title={`${condition(todayWeather.code).label}${
                   todayWeather.kind === "recorded" ? " — what it did" : ""
                 }`}
@@ -736,34 +779,35 @@ export default function TripPlanner({
           ))}
 
           {dayItems.length === 0 && arrivalsToday.length === 0 ? (
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-3 text-sm text-muted">
               Nothing planned for this day yet.
             </p>
           ) : (
-            <ol ref={listRef} className="mt-2 space-y-2">
-              {dayItems.length > 1 && (
-                // Only where dragging works. Touch does not fire the HTML drag
-                // events, and the arrows are still there for that — and for
-                // anybody doing this from a keyboard.
-                <li className="text-xs text-muted">
-                  Drag a stop by its number to reorder the day.
-                </li>
-              )}
+            <ol ref={listRef} className="mt-3 space-y-2">
               {dayItems.map((item, index) => {
                 const meta = categoryOf(item.category);
+                const open = selectedId === item.id;
+                const leg = item.kind === "travel";
                 return (
                   <li
                     key={item.id}
                     data-stop
-                    className={`card p-2.5 transition-colors ${
-                      selectedId === item.id ? "ring-2 ring-accent" : ""
-                    } ${dragOver === index ? "ring-2 ring-accent/60" : ""}`}
+                    className={`transition-colors ${
+                      leg ? "rounded-2xl bg-background p-2.5" : "card p-3"
+                    } ${open ? "ring-2 ring-accent" : ""} ${
+                      dragOver === index ? "ring-2 ring-accent/60" : ""
+                    }`}
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-center gap-3">
+                      {/* The time column. A stop with no time keeps the
+                          column so the cards line up. */}
+                      <span className="w-11 shrink-0 text-xs tabular-nums text-muted">
+                        {item.startTime ?? ""}
+                      </span>
                       <span
                         title="Drag to reorder"
                         aria-label={`Stop ${index + 1}. Drag to reorder.`}
-                        className="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-full text-xs font-semibold text-white select-none active:cursor-grabbing"
+                        className="grid size-6 shrink-0 cursor-grab touch-none place-items-center rounded-full text-[11px] font-semibold text-white select-none active:cursor-grabbing"
                         style={{ background: trip.color }}
                         onPointerDown={(e) => {
                           if (busy) return;
@@ -798,11 +842,10 @@ export default function TripPlanner({
                         type="button"
                         aria-label={`Change the emoji for ${item.title}`}
                         title="Change emoji"
-                        className={`grid size-7 shrink-0 place-items-center rounded-full border text-sm transition-colors ${
-                          emojiFor === item.id
-                            ? "border-accent bg-accent/10"
-                            : "border-line hover:bg-foreground/5"
-                        }`}
+                        className={`tile shrink-0 transition-shadow ${
+                          leg ? "size-8 rounded-full text-sm" : "size-11 text-lg"
+                        } ${emojiFor === item.id ? "ring-2 ring-accent" : ""}`}
+                        style={{ "--tile-color": leg ? "#5F7C8C" : meta.color } as React.CSSProperties}
                         onClick={() =>
                           setEmojiFor((cur) => (cur === item.id ? null : item.id))
                         }
@@ -812,50 +855,48 @@ export default function TripPlanner({
                       <button
                         type="button"
                         className="min-w-0 flex-1 text-left"
-                        onClick={() => setSelectedId(item.id)}
+                        aria-expanded={open}
+                        onClick={() => setSelectedId(open ? null : item.id)}
                       >
-                        <p className="truncate text-sm font-medium">{item.title}</p>
-                        {item.kind === "travel" ? (
-                          <p className="truncate text-xs text-muted">
-                            {travelMode(item.mode).label}
-                            {item.place && item.toPlace
-                              ? ` · ${item.place.name} → ${item.toPlace.name}`
-                              : ""}
-                            {item.startTime && item.endTime
-                              ? ` · ${item.startTime}–${item.endTime}`
-                              : ""}
-                            {/* Without this a flight east reads as landing
-                                eleven hours before it took off. */}
-                            {item.endTime && item.endDayOffset > 0
-                              ? ` +${item.endDayOffset}`
-                              : ""}
-                            {/* A train is a booking like any other, and the
-                                marker was only ever drawn on the stop branch —
-                                so the one thing on a day that genuinely sells
-                                out was the one thing that never said so. */}
-                            {item.booking === BOOKING_NEEDED && " · to book"}
-                            {item.booking === BOOKING_BOOKED && " · booked ✓"}
-                          </p>
-                        ) : (
-                          <p className="truncate text-xs text-muted">
-                            {meta.label}
-                            {item.place?.city ? ` · ${item.place.city}` : ""}
-                            {item.booking === BOOKING_NEEDED && " · to book"}
-                            {item.booking === BOOKING_BOOKED && " · booked ✓"}
-                          </p>
-                        )}
+                        <p className={`truncate ${leg ? "text-sm" : "text-[15px] font-semibold"}`}>
+                          {leg
+                            ? [travelMode(item.mode).label, durationLabel(item)].filter(Boolean).join(" · ")
+                            : item.title}
+                        </p>
+                        <p className="truncate text-xs text-muted">
+                          {leg ? (
+                            <>
+                              {item.title}
+                              {item.place && item.toPlace
+                                ? ` · ${item.place.name} → ${item.toPlace.name}`
+                                : ""}
+                              {item.endTime && item.endDayOffset > 0
+                                ? ` · lands +${item.endDayOffset}`
+                                : ""}
+                            </>
+                          ) : (
+                            <>
+                              {meta.label}
+                              {item.place?.city ? ` · ${item.place.city}` : ""}
+                            </>
+                          )}
+                          {/* A train is a booking like any other, so the
+                              marker is on both branches. */}
+                          {item.booking === BOOKING_NEEDED && " · to book"}
+                          {item.booking === BOOKING_BOOKED && " · booked ✓"}
+                        </p>
                       </button>
                       <div className="flex shrink-0 items-center gap-1">
                         <input
                           type="time"
-                          aria-label={item.kind === "travel" ? "Departure time" : "Start time"}
-                          className="input w-24 px-1.5 py-1 text-xs"
+                          aria-label={leg ? "Departure time" : "Start time"}
+                          className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
                           value={item.startTime ?? ""}
                           onChange={(e) =>
                             patchItem(item.id, { startTime: e.target.value || null })
                           }
                         />
-                        {item.kind === "travel" && (
+                        {leg && (
                           <>
                             <span aria-hidden className="text-xs text-muted">
                               →
@@ -863,7 +904,7 @@ export default function TripPlanner({
                             <input
                               type="time"
                               aria-label="Arrival time"
-                              className="input w-24 px-1.5 py-1 text-xs"
+                              className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
                               value={item.endTime ?? ""}
                               onChange={(e) =>
                                 patchItem(item.id, { endTime: e.target.value || null })
@@ -874,10 +915,13 @@ export default function TripPlanner({
                       </div>
                     </div>
 
+                    {/* Moving, removing and directions, shown for the stop
+                        being looked at rather than on every card. */}
+                    {open && (
                     <div className="mt-2 flex items-center gap-1 text-xs">
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-muted hover:bg-foreground/5 disabled:opacity-30"
+                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5 disabled:opacity-30"
                         disabled={busy || index === 0}
                         onClick={() => move(index, -1)}
                         aria-label="Move earlier"
@@ -886,7 +930,7 @@ export default function TripPlanner({
                       </button>
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-muted hover:bg-foreground/5 disabled:opacity-30"
+                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5 disabled:opacity-30"
                         disabled={busy || index === dayItems.length - 1}
                         onClick={() => move(index, 1)}
                         aria-label="Move later"
@@ -895,7 +939,7 @@ export default function TripPlanner({
                       </button>
                       <select
                         aria-label="Move to day"
-                        className="ml-auto rounded border border-line bg-surface px-1.5 py-0.5 text-xs"
+                        className="ml-auto rounded-full border border-line bg-surface px-2 py-1 text-xs"
                         value={item.dayIndex}
                         onChange={(e) =>
                           patchItem(item.id, { dayIndex: Number(e.target.value) })
@@ -909,16 +953,12 @@ export default function TripPlanner({
                       </select>
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-muted hover:bg-foreground/5"
+                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5"
                         disabled={busy}
                         onClick={() => removeItem(item.id)}
                       >
                         Remove
                       </button>
-                      {/* On the row itself, not only inside an expanded stop.
-                          Directions are what you want while standing in the
-                          street, and having to open a stop first to reach them
-                          is one tap too many at exactly the wrong moment. */}
                       {item.place && (
                         <a
                           href={directionsUrl({
@@ -931,12 +971,13 @@ export default function TripPlanner({
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`Directions to ${item.place.name}`}
                           title={`Directions to ${item.place.name}`}
-                          className="ml-auto rounded px-1.5 py-0.5 hover:bg-foreground/5"
+                          className="rounded-full px-2 py-1 hover:bg-foreground/5"
                         >
                           <DirectionsIcon />
                         </a>
                       )}
                     </div>
+                    )}
 
                     {emojiFor === item.id && (
                       <div className="mt-2 border-t border-line pt-2">
@@ -1156,7 +1197,7 @@ export default function TripPlanner({
           )}
         </div>
 
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
 
         {/* Here rather than on the importer. Somebody planning a trip is
             already looking at it and already on a day; sending them to a page
@@ -1250,12 +1291,35 @@ export default function TripPlanner({
           onSelect={setSelectedId}
           onMapClick={dropMode ? dropPin : undefined}
           onPlaceSelect={setTapped}
-          fitToken={`trip-${trip.id}-${activeDay}`}
+          fitToken={`trip-${trip.id}-${wholeTrip ? "all" : activeDay}`}
         />
+
+        <div className="pointer-events-none absolute top-4 left-4 flex flex-wrap items-center gap-2">
+          <span className="glass rounded-full px-3.5 py-2 text-sm font-medium">
+            Day {activeDay + 1}
+            {dayDate ? <span className="text-muted"> · {formatDay(dayDate, { weekday: undefined })}</span> : null}
+          </span>
+          <div className="glass pointer-events-auto flex rounded-full p-1 text-xs font-medium" role="group" aria-label="What the map shows">
+            {([["day", "This day"], ["all", "Whole trip"]] as const).map(([id, label]) => {
+              const on = wholeTrip === (id === "all");
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={on}
+                  className={`rounded-full px-3 py-1.5 ${on ? "bg-primary text-on-primary" : "text-muted hover:text-foreground"}`}
+                  onClick={() => setWholeTrip(id === "all")}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {tapped && (
           <div className="absolute inset-x-0 bottom-3 flex justify-center px-3">
-            <div className="card flex max-w-sm items-center gap-3 p-3 shadow-lg">
+            <div className="card flex max-w-sm items-center gap-3 p-3 shadow-card">
               <span aria-hidden className="text-lg">
                 {categoryOf(tapped.category).icon}
               </span>
@@ -1290,15 +1354,15 @@ export default function TripPlanner({
           </div>
         )}
         {dropMode && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
-            <p className="card px-3 py-1.5 text-xs shadow-lg">
+          <div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center">
+            <p className="glass rounded-full px-4 py-2 text-sm">
               Click the map to add a stop to day {activeDay + 1}
             </p>
           </div>
         )}
         {pins.length === 0 && (
-          <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
-            <p className="card px-3 py-1.5 text-xs shadow-lg">
+          <div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center">
+            <p className="glass rounded-full px-4 py-2 text-sm">
               Add saved places to this trip to see them on the map
             </p>
           </div>
