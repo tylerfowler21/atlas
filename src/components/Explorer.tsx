@@ -9,7 +9,7 @@ import type { FirstSteps as Steps } from "@/lib/first-steps";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
@@ -59,8 +59,21 @@ export default function Explorer({
   // stale?" is a comparison rather than another piece of state to keep in sync.
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
-  const [dropMode, setDropMode] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  /// Drop-a-pin lives in the address rather than in state, because "Add place"
+  /// in the top bar is a link and a link to a page you are already on does not
+  /// remount anything. Read the mode from the URL and the button works the
+  /// second time as well as the first.
+  const dropMode = searchParams.get("add") === "pin";
+  function setDropMode(on: boolean) {
+    const next = new URLSearchParams(searchParams.toString());
+    if (on) next.set("add", "pin");
+    else next.delete("add");
+    const query = next.toString();
+    router.replace(query ? `/?${query}` : "/", { scroll: false });
+  }
 
   /// Read from the address so ?status=visited is a link to "everywhere I have
   /// been" — which is what the retired /been page redirects to. It also widens
@@ -425,7 +438,7 @@ export default function Explorer({
                 <button
                   type="button"
                   className={`chip ${dropMode ? "is-on" : ""}`}
-                  onClick={() => setDropMode((v) => !v)}
+                  onClick={() => setDropMode(!dropMode)}
                 >
                   📌 {dropMode ? "Click the map…" : "Drop a pin"}
                 </button>

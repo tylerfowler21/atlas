@@ -63,28 +63,31 @@ export default function NavBar({
   const initial = label.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <header className="relative flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
-      <Link href="/" className="mr-3 flex items-center gap-2 px-1 text-sm font-semibold">
-        <Image src="/brand/mark-64.png" alt="" width={22} height={22} />
+    <header className="relative flex shrink-0 items-center gap-3 border-b border-line px-4 py-2.5">
+      <Link href="/" className="flex items-center gap-2.5 text-base font-semibold">
+        <Image src="/brand/mark-64.png" alt="" width={28} height={28} className="rounded-lg" />
         <span>Roava</span>
       </Link>
 
-      <nav className="hidden items-center gap-1 sm:flex">
+      {/* One group rather than four loose links, with the current page raised
+          out of it. The old version tinted the active label and left it flat,
+          which at a glance read as "this one is a different kind of link"
+          rather than "you are here". */}
+      <nav className="hidden items-center gap-1 rounded-full bg-foreground/5 p-1 sm:flex">
         {LINKS.map((link) => {
-          const active =
-            link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+          const active = isActive(pathname, link.href);
           return (
             <Link
               key={link.href}
               href={link.href}
               aria-current={active ? "page" : undefined}
-              className={`rounded-md px-2.5 py-1.5 text-sm ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
                 active
-                  ? "bg-accent/12 font-medium text-accent-text"
-                  : "text-muted hover:bg-foreground/5"
+                  ? "bg-surface font-medium text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               }`}
             >
-              <link.Icon className="mr-1.5 h-4 w-4 shrink-0" />
+              <link.Icon className="h-4 w-4 shrink-0" />
               {link.label}
             </Link>
           );
@@ -94,7 +97,7 @@ export default function NavBar({
       <Link
         href="/notifications"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-        className="relative ml-auto rounded-md px-2 py-1.5 text-sm text-muted hover:bg-foreground/5"
+        className="relative ml-auto rounded-full p-2 text-sm text-muted hover:bg-foreground/5"
       >
         <NotificationsIcon className="h-5 w-5" />
         {unread > 0 && (
@@ -107,10 +110,22 @@ export default function NavBar({
         )}
       </Link>
 
+      {/* The one thing this bar is for beyond getting somewhere: putting
+          something on the map. Sun, because it is the only action up here and
+          the design gives it the loudest colour in the kit. */}
+      <Link
+        href="/?add=pin"
+        className="btn btn-accent hidden shrink-0 sm:inline-flex"
+      >
+        <span aria-hidden>+</span>
+        Add place
+      </Link>
+
       <div className="relative">
         <button
           type="button"
-          className="flex items-center gap-2 rounded-full p-0.5 pr-2 hover:bg-foreground/5"
+          aria-label="Your account"
+          className="flex items-center gap-2 rounded-full p-0.5 hover:bg-foreground/5"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
@@ -131,9 +146,6 @@ export default function NavBar({
               {initial}
             </span>
           )}
-          <span className="hidden max-w-32 truncate text-xs text-muted md:block">
-            {label}
-          </span>
         </button>
 
         {menuOpen && (
