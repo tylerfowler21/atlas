@@ -29,22 +29,27 @@ function BookmarkIcon({ className }: { className?: string }) {
 
 /// The photograph beside the sign-in, and the place card floating over it.
 ///
-/// Decorative and hidden from screen readers: it says the same thing the
-/// headline beside it says, and read aloud it would just be furniture between
-/// somebody and the button they came for.
+/// A real photograph of a real place, under a licence that names its author.
+/// The mockups used AI-generated stand-ins, and the brief that came with them
+/// says not to ship those as photographs of real places — which is exactly
+/// what the card beside it does, since it names Oeschinensee and Kandersteg.
+/// So the picture is Oeschinensee, and the credit sits at the foot of it.
+///
+/// Mostly decorative and hidden from screen readers: it says the same thing
+/// the headline beside it says, and read aloud it would be furniture between
+/// somebody and the button they came for. The credit is the exception — it is
+/// a condition of using the photograph, so it stays readable.
 ///
 /// Gone below `lg`. On a phone this panel would push the two buttons under the
 /// fold, and a sign-in screen you have to scroll is a worse screen however
 /// good the photograph is.
 function Hero() {
   return (
-    <div
-      aria-hidden
-      className="relative hidden overflow-hidden rounded-[28px] lg:block lg:flex-1"
-    >
+    <div className="relative hidden overflow-hidden rounded-[28px] lg:block lg:flex-1">
       <Image
         src="/brand/signin-hero.jpg"
         alt=""
+        aria-hidden
         fill
         sizes="(min-width: 1024px) 50vw, 0px"
         className="object-cover"
@@ -53,16 +58,16 @@ function Hero() {
 
       {/* Dark at the foot only, so the headline has something to sit on
           without dulling the light the photograph was chosen for. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/15" />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/15" />
 
-      <div className="absolute top-7 left-7 flex items-center gap-2.5">
+      <div aria-hidden className="absolute top-7 left-7 flex items-center gap-2.5">
         <Image src="/brand/mark-64.png" alt="" width={32} height={32} className="rounded-lg" />
         <span className="text-lg font-semibold text-white">Roava</span>
       </div>
 
       {/* A saved place, mid-air: what the product does, shown rather than
           described. */}
-      <div className="absolute top-1/3 right-10 left-10 flex flex-col items-center gap-3">
+      <div aria-hidden className="absolute top-1/3 right-10 left-10 flex flex-col items-center gap-3">
         <div className="flex w-full max-w-sm items-center gap-3 rounded-full bg-paint-card/85 p-2 pr-3 shadow-lg backdrop-blur-md">
           <Image
             src="/brand/signin-place.jpg"
@@ -92,7 +97,7 @@ function Hero() {
         </span>
       </div>
 
-      <div className="absolute right-10 bottom-10 left-10">
+      <div aria-hidden className="absolute right-10 bottom-16 left-10">
         <h2 className="text-4xl leading-[1.1] font-bold text-white xl:text-5xl">
           Every place you want to go, on one map.
         </h2>
@@ -101,6 +106,19 @@ function Hero() {
           everywhere you&apos;ve been.
         </p>
       </div>
+
+      {/* CC BY-SA requires the author's name travel with the picture. */}
+      <p className="absolute right-10 bottom-6 left-10 text-[11px] text-white/55">
+        Oeschinensee, Kandersteg ·{" "}
+        <a
+          href="https://commons.wikimedia.org/wiki/File:Oeschinensee_D8A_8808.jpg"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:underline"
+        >
+          Orest Svirchevskyi, CC BY-SA 4.0
+        </a>
+      </p>
     </div>
   );
 }
