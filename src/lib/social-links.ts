@@ -6,8 +6,10 @@
 ///
 /// - TikTok publishes an oEmbed endpoint that needs no key and returns the
 ///   caption, which on a travel video is usually the list itself.
-/// - Instagram's oEmbed requires a Facebook app token; without one it answers
-///   400 for everything. Scraping the page instead is against their terms and
+/// - Instagram's oEmbed without an app token does not fail loudly — it answers
+///   200 with `html`, `provider_name`, `type`, `version` and `width`, and no
+///   caption, no author, nothing. A placeholder embed for their own script to
+///   fill in a browser. Scraping the page instead is against their terms and
 ///   breaks whenever they reshuffle their markup, so it is not attempted.
 ///
 /// Anything unreadable falls back to asking for the caption, which the person
@@ -27,6 +29,23 @@ export function sourceOf(url: string): LinkSource {
   }
 }
 
+/// The short links both apps hand you when you press Share, which is what
+/// people actually paste. oEmbed wants the long one.
+const SHORTENED = /^(vm|vt)\.tiktok\.com$/;
+
+async function resolveShortLink(url: string): Promise<string> {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    if (!SHORTENED.test(host)) return url;
+    // Followed rather than parsed: a share link is opaque and only the
+    // redirect knows which video it means.
+    const res = await fetch(url, { redirect: "follow", cache: "no-store" });
+    return res.url || url;
+  } catch {
+    return url;
+  }
+}
+
 export type LinkContent = {
   source: LinkSource;
   /// The caption, when the platform will part with it.
@@ -40,8 +59,9 @@ export async function readLink(url: string): Promise<LinkContent> {
 
   if (source === "tiktok") {
     try {
+      const full = await resolveShortLink(url);
       const res = await fetch(
-        `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
+        `https://www.tiktok.com/oembed?url=${encodeURIComponent(full)}`,
         { cache: "no-store" },
       );
       if (res.ok) {
