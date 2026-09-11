@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DateRangePicker from "@/components/DateRangePicker";
 import DestinationField from "@/components/DestinationField";
 import { tripRegions } from "@/lib/trip-where";
 import {
@@ -25,11 +26,6 @@ import { usePalette } from "@/lib/use-palette";
 /// "2026-09-18" is one. It is also what the website's date input produces, so
 /// the two agree about what a date looks like. Empty is allowed: a trip is
 /// allowed to exist before anyone has decided when it happens.
-const DATE_HINT = "YYYY-MM-DD";
-
-function isDate(value: string) {
-  return value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
 
 export default function TripEditor({
   trip,
@@ -62,8 +58,8 @@ export default function TripEditor({
       Alert.alert("Give the trip a title");
       return;
     }
-    if (!isDate(start) || !isDate(end)) {
-      Alert.alert("Check the dates", `Use ${DATE_HINT}, or leave them empty.`);
+    if (start && end && end < start) {
+      Alert.alert("Check the dates", "The trip ends before it starts.");
       return;
     }
     setBusy(true);
@@ -149,32 +145,18 @@ export default function TripEditor({
           <Text style={[styles.label, { color: palette.muted }]}>Where it goes</Text>
           <DestinationField value={destinations} onChange={setDestinations} />
 
-          <View style={styles.dates}>
-            <View style={styles.dateField}>
-              <Text style={[styles.label, { color: palette.muted }]}>Starts</Text>
-              <TextInput
-                value={start}
-                onChangeText={setStart}
-                placeholder={DATE_HINT}
-                placeholderTextColor={palette.muted}
-                autoCapitalize="none"
-                keyboardType="numbers-and-punctuation"
-                style={[styles.input, field]}
-              />
-            </View>
-            <View style={styles.dateField}>
-              <Text style={[styles.label, { color: palette.muted }]}>Ends</Text>
-              <TextInput
-                value={end}
-                onChangeText={setEnd}
-                placeholder={DATE_HINT}
-                placeholderTextColor={palette.muted}
-                autoCapitalize="none"
-                keyboardType="numbers-and-punctuation"
-                style={[styles.input, field]}
-              />
-            </View>
-          </View>
+          <Text style={[styles.label, { color: palette.muted }]}>When</Text>
+          {/* Pointed at rather than typed. A trip with no dates is still a
+              trip, so nothing here is required — leave it untouched and the
+              trip simply has none. */}
+          <DateRangePicker
+            start={start}
+            end={end}
+            onChange={({ start: nextStart, end: nextEnd }) => {
+              setStart(nextStart);
+              setEnd(nextEnd);
+            }}
+          />
 
           <Text style={[styles.label, { color: palette.muted }]}>Colour</Text>
           <View style={styles.colors}>
@@ -233,8 +215,6 @@ const styles = StyleSheet.create({
   body: { padding: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 18, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  dates: { flexDirection: "row", gap: 12 },
-  dateField: { flex: 1 },
   colors: { flexDirection: "row", gap: 12 },
   swatch: { width: 38, height: 38, borderRadius: 19, borderWidth: 0, borderColor: "transparent" },
   publish: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 24 },

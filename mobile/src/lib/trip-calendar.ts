@@ -45,6 +45,37 @@ export function weekdayLabels(weekStartsOn = 0): string[] {
 /// A trip that runs from the 29th to the 3rd spans two months and gets two
 /// grids, because splicing them into one would put two different 1sts in the
 /// same square.
+/// One month as weeks of squares, with no trip attached.
+///
+/// The same grid serves two jobs: showing where a trip's days fall, and
+/// picking dates in the first place. Typing a date into a box is a poor way to
+/// answer "when are you going" on a phone.
+export function monthGrid(year: number, month: number, weekStartsOn = 0): CalendarMonth {
+  const firstOfMonth = Date.UTC(year, month, 1);
+  // Day 0 of the next month is the last day of this one.
+  const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+
+  const cells: CalendarCell[] = [];
+  const lead = (new Date(firstOfMonth).getUTCDay() - weekStartsOn + 7) % 7;
+  for (let i = 0; i < lead; i += 1) {
+    cells.push({ time: null, dayOfMonth: null, dayIndex: null });
+  }
+
+  for (let d = 1; d <= length; d += 1) {
+    cells.push({ time: Date.UTC(year, month, d), dayOfMonth: d, dayIndex: null });
+  }
+
+  // Padded to whole weeks so every row has seven squares and the columns line
+  // up under their headings.
+  while (cells.length % 7 !== 0) {
+    cells.push({ time: null, dayOfMonth: null, dayIndex: null });
+  }
+
+  const weeks: CalendarCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return { label: monthLabel(firstOfMonth), weeks };
+}
+
 export function tripCalendar(
   startDate: string,
   days: number,
@@ -61,35 +92,21 @@ export function tripCalendar(
   let month = first.getUTCMonth();
 
   for (;;) {
-    const firstOfMonth = Date.UTC(year, month, 1);
-    // Day 0 of the next month is the last day of this one.
-    const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-
-    const cells: CalendarCell[] = [];
-    const lead = (new Date(firstOfMonth).getUTCDay() - weekStartsOn + 7) % 7;
-    for (let i = 0; i < lead; i += 1) {
-      cells.push({ time: null, dayOfMonth: null, dayIndex: null });
-    }
-
-    for (let d = 1; d <= length; d += 1) {
-      const time = Date.UTC(year, month, d);
-      const offset = Math.round((time - start) / DAY_MS);
-      cells.push({
-        time,
-        dayOfMonth: d,
-        dayIndex: offset >= 0 && offset < days ? offset : null,
-      });
-    }
-
-    // Padded to whole weeks so every row has seven squares and the columns
-    // line up under their headings.
-    while (cells.length % 7 !== 0) {
-      cells.push({ time: null, dayOfMonth: null, dayIndex: null });
-    }
-
-    const weeks: CalendarCell[][] = [];
-    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-    months.push({ label: monthLabel(firstOfMonth), weeks });
+    const grid = monthGrid(year, month, weekStartsOn);
+    months.push({
+      label: grid.label,
+      // The grid knows the dates; only the trip knows which of them are its.
+      weeks: grid.weeks.map((week) =>
+        week.map((cell) => {
+          if (cell.time === null) return cell;
+          const offset = Math.round((cell.time - start) / DAY_MS);
+          return {
+            ...cell,
+            dayIndex: offset >= 0 && offset < days ? offset : null,
+          };
+        }),
+      ),
+    });
 
     if (year === last.getUTCFullYear() && month === last.getUTCMonth()) break;
     month += 1;
