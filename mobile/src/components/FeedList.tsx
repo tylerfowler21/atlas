@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { tripWhere } from "@/lib/trip-where";
 import {
   ActionSheetIOS,
@@ -29,29 +29,6 @@ export default function FeedList() {
   const { data, error, loading, reload } = useApi<{ trips: FeedTrip[] }>("/api/feed");
   const palette = usePalette();
   const router = useRouter();
-  const [copying, setCopying] = useState<string | null>(null);
-
-  /// Copying takes someone else's itinerary and makes it yours to change,
-  /// which is what the feed is for. It opens straight into the copy: landing
-  /// back on the feed leaves you wondering whether it worked.
-  const copy = useCallback(
-    async (tripId: string, title: string) => {
-      setCopying(tripId);
-      try {
-        const { tripId: mine } = await api<{ tripId: string }>(
-          `/api/trips/${tripId}/copy`,
-          { method: "POST" },
-        );
-        router.push({ pathname: "/trip/[id]", params: { id: mine } });
-      } catch (e) {
-        Alert.alert(`Could not copy "${title}"`, e instanceof Error ? e.message : "Try again");
-      } finally {
-        setCopying(null);
-      }
-    },
-    [router],
-  );
-
   /// Reporting the trip itself, not only whoever published it.
   ///
   /// A published itinerary is somebody else's writing appearing on your phone,
@@ -130,18 +107,18 @@ export default function FeedList() {
                     .join(" · ")}
                 </Text>
                 <View style={styles.actions}>
+                  {/* Read it first. Copying somebody's trip is a decision
+                      about its contents, and the feed shows a title and a
+                      stop count — not enough to make it on. */}
                   <Pressable
-                    onPress={() => copy(item.id, item.title)}
-                    disabled={copying === item.id}
+                    onPress={() =>
+                      router.push({ pathname: "/published/[id]", params: { id: item.id } })
+                    }
                     style={[styles.copy, { borderColor: palette.border }]}
                   >
-                    {copying === item.id ? (
-                      <ActivityIndicator />
-                    ) : (
-                      <Text style={{ color: palette.accentText, fontSize: 13, fontWeight: "600" }}>
-                        Copy into my trips
-                      </Text>
-                    )}
+                    <Text style={{ color: palette.accentText, fontSize: 13, fontWeight: "600" }}>
+                      View trip
+                    </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => report(item)}
