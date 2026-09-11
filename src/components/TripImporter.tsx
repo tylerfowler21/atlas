@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
 import DraftTrip from "@/components/DraftTrip";
+import ImportLink from "@/components/ImportLink";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import type { SearchResult } from "@/lib/types";
 
@@ -626,6 +627,15 @@ export default function TripImporter({
             Everything lands in the same box, so what gets imported is always
             something they have read first. */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* A link is another thing somebody already has the list in, and
+              everything lands in the same box for the same review. */}
+          <ImportLink
+            busy={busy || reading}
+            onRead={({ text: found, region: where }) => {
+              setText((prev) => (prev.trim() ? `${prev.trim()}\n${found}` : found));
+              if (where && !region.trim()) setRegion(where);
+            }}
+          />
           <label className="btn btn-ghost cursor-pointer text-xs">
             {reading ? "Reading…" : "Upload a file"}
             <input
