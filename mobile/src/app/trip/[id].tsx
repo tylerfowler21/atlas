@@ -22,6 +22,8 @@ import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
 import { dayLabel } from "@/lib/dates";
 import { tripRegions } from "@/lib/trip-where";
+import { useTripWeather } from "@/lib/use-trip-weather";
+import { condition } from "@/lib/weather";
 import {
   API_URL,
   api,
@@ -106,6 +108,24 @@ export default function TripScreen() {
     [data],
   );
   const toBook = outstanding(data?.items ?? []).length;
+
+  /// Where to ask about. The first placed stop of the trip: a trip's days are
+  /// usually within a few miles of each other, and the alternative is a
+  /// request per day for an answer that barely differs.
+  const weatherAt = useMemo(() => {
+    const placed = (data?.items ?? []).find((i) => i.place);
+    return placed?.place ? { lat: placed.place.lat, lng: placed.place.lng } : null;
+  }, [data]);
+
+  const weather = useTripWeather(
+    weatherAt,
+    data?.trip.startDate ? data.trip.startDate.slice(0, 10) : null,
+    data?.trip.startDate
+      ? new Date(Date.parse(data.trip.startDate) + (days - 1) * 86_400_000)
+          .toISOString()
+          .slice(0, 10)
+      : null,
+  );
   /// Stops per day, for the dots on the calendar.
   const dayCounts = useMemo(() => {
     const counts = Array.from({ length: days }, () => 0);
@@ -398,14 +418,32 @@ export default function TripScreen() {
           const stops = data.items.filter((i) => i.dayIndex === day);
           return (
             <View key={day} style={styles.day}>
-              <Text
-                style={[
-                  styles.dayLabel,
-                  { color: mapDay === day ? palette.accentText : palette.muted },
-                ]}
-              >
-                {dayLabel(data.trip, day)}
-              </Text>
+              <View style={styles.dayHeading}>
+                <Text
+                  style={[
+                    styles.dayLabel,
+                    { color: mapDay === day ? palette.accentText : palette.muted },
+                  ]}
+                >
+                  {dayLabel(data.trip, day)}
+                </Text>
+                {/* Only when there is something real to say. A day beyond the
+                    forecast shows nothing rather than a number to pack from. */}
+                {(() => {
+                  const date = data.trip.startDate
+                    ? new Date(Date.parse(data.trip.startDate) + day * 86_400_000)
+                        .toISOString()
+                        .slice(0, 10)
+                    : null;
+                  const sky = date ? weather.get(date) : undefined;
+                  if (!sky) return null;
+                  return (
+                    <Text style={{ color: palette.muted, fontSize: 12 }}>
+                      {condition(sky.code).icon} {sky.high}°/{sky.low}°
+                    </Text>
+                  );
+                })()}
+              </View>
 
               {/* An overnight flight belongs to the evening it left, but the
                   morning it lands is a real part of this day and the one thing
@@ -603,6 +641,7 @@ const styles = StyleSheet.create({
   dayChips: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingVertical: 12 },
   dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   day: { paddingHorizontal: 12, paddingTop: 16 },
+  dayHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   dayLabel: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
   stop: {
     flexDirection: "row",

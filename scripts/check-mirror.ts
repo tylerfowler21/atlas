@@ -16,6 +16,7 @@ const PAIRS = [
   ["src/lib/resources.ts", "mobile/src/lib/resources.ts"],
   ["src/lib/trip-calendar.ts", "mobile/src/lib/trip-calendar.ts"],
   ["src/lib/trip-where.ts", "mobile/src/lib/trip-where.ts"],
+  ["src/lib/weather.ts", "mobile/src/lib/weather.ts"],
 ] as const;
 
 /// The mirror carries an explanatory header the original does not. Everything

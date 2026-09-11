@@ -21,6 +21,8 @@ import TripCalendar from "@/components/TripCalendar";
 import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
+import { useTripWeather } from "@/lib/use-trip-weather";
+import { condition } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
@@ -499,6 +501,26 @@ export default function TripPlanner({
   }
 
   const dayDate = dateForDay(trip, activeDay);
+
+  /// Where to ask about. The first placed stop of the trip: a trip's days are
+  /// usually within a few miles of each other, and the alternative is a
+  /// request per day for an answer that barely differs.
+  const weatherAt = useMemo(() => {
+    const placed = items.find((i) => i.place);
+    return placed?.place ? { lat: placed.place.lat, lng: placed.place.lng } : null;
+  }, [items]);
+
+  const weather = useTripWeather(
+    weatherAt,
+    trip.startDate ? trip.startDate.slice(0, 10) : null,
+    // A trip with no end still has days; ask to the last one it has.
+    trip.startDate
+      ? new Date(Date.parse(trip.startDate) + (days - 1) * 86400000)
+          .toISOString()
+          .slice(0, 10)
+      : null,
+  );
+  const todayWeather = dayDate ? weather.get(dayDate.toISOString().slice(0, 10)) : undefined;
   /// Journeys that took off earlier and land today.
   const arrivalsToday = items.filter(
     (i) =>
@@ -643,11 +665,25 @@ export default function TripPlanner({
         )}
 
         <div>
-          <h2 className="text-sm font-semibold">
-            Day {activeDay + 1}
+          <h2 className="flex flex-wrap items-baseline gap-2 text-sm font-semibold">
+            <span>Day {activeDay + 1}</span>
             {dayDate && (
-              <span className="ml-2 text-xs font-normal text-muted">
-                {formatDay(dayDate)}
+              <span className="text-xs font-normal text-muted">{formatDay(dayDate)}</span>
+            )}
+            {/* Only when there is something real to say. A day beyond the
+                forecast, or one the archive has not caught up with, shows
+                nothing rather than a number somebody might pack from. */}
+            {todayWeather && (
+              <span
+                className="text-xs font-normal text-muted"
+                title={`${condition(todayWeather.code).label}${
+                  todayWeather.kind === "recorded" ? " — what it did" : ""
+                }`}
+              >
+                {condition(todayWeather.code).icon} {todayWeather.high}°/{todayWeather.low}°
+                {todayWeather.rain !== null && todayWeather.rain >= 30
+                  ? ` · ${todayWeather.rain}% rain`
+                  : ""}
               </span>
             )}
           </h2>

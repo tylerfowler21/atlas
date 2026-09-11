@@ -12,6 +12,7 @@ const PAIRS = [
   ["src/lib/resources.ts", "mobile/src/lib/resources.ts"],
   ["src/lib/trip-calendar.ts", "mobile/src/lib/trip-calendar.ts"],
   ["src/lib/trip-where.ts", "mobile/src/lib/trip-where.ts"],
+  ["src/lib/weather.ts", "mobile/src/lib/weather.ts"],
 ] as const;
 
 for (const [source, mirror] of PAIRS) {
