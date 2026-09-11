@@ -52,6 +52,8 @@ export async function GET(
     })),
     items: trip.items.map((item) => ({
       ...item,
+      // A date crosses the wire as a string, like every other one here.
+      bookBy: item.bookBy?.toISOString() ?? null,
       place: item.place ? serializePlace(item.place) : null,
       toPlace: item.toPlace ? serializePlace(item.toPlace) : null,
     })),

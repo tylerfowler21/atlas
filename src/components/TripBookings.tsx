@@ -1,6 +1,7 @@
 "use client";
 
 import { BOOKING_BOOKED, outstanding, tracked } from "@/lib/bookings";
+import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import { dateForDay, formatDay } from "@/lib/trips";
 import type { ItineraryItemDTO, TripDTO } from "@/lib/types";
 
@@ -25,9 +26,15 @@ export default function TripBookings({
   onRef: (item: ItineraryItemDTO, ref: string | null) => void;
   onOpen: (item: ItineraryItemDTO) => void;
 }) {
-  const all = tracked(items).sort(
-    (a, b) => a.dayIndex - b.dayIndex || a.position - b.position,
-  );
+  /// Soonest deadline first, then by where they fall in the trip. A list of
+  /// things to book is read for what is about to lapse, not for what happens
+  /// first on the itinerary.
+  const all = tracked(items).sort((a, b) => {
+    if (a.bookBy && b.bookBy && a.bookBy !== b.bookBy) return a.bookBy < b.bookBy ? -1 : 1;
+    if (a.bookBy && !b.bookBy) return -1;
+    if (!a.bookBy && b.bookBy) return 1;
+    return a.dayIndex - b.dayIndex || a.position - b.position;
+  });
   const todo = outstanding(all);
   const done = all.filter((i) => i.booking === BOOKING_BOOKED);
 
@@ -73,6 +80,21 @@ export default function TripBookings({
                 {item.startTime ? ` · ${item.startTime}` : ""}
                 {item.place?.city ? ` · ${item.place.city}` : ""}
               </p>
+              {/* The deadline, once there is one and it still matters. A
+                  booked thing has no deadline left to miss. */}
+              {!isBooked && item.bookBy && (
+                <p
+                  className={`truncate text-xs font-medium ${
+                    urgencyOf(item.bookBy) === "overdue"
+                      ? "text-red-600"
+                      : urgencyOf(item.bookBy) === "soon"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-muted"
+                  }`}
+                >
+                  {deadlineLabel(item.bookBy)}
+                </p>
+              )}
             </button>
             {isBooked && (
               <input

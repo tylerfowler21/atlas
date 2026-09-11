@@ -407,6 +407,18 @@ model ItineraryItem {
   /// the door. Free text: airlines, restaurants and cable cars all disagree
   /// about what a booking reference looks like.
   bookingRef String?
+  /// When this has to be booked by, if it has a deadline.
+  ///
+  /// The spreadsheet this app grew out of carried these as notes — "book 3
+  /// days before", "book 1-3 days before" — which is a deadline written where
+  /// nothing can act on it. A date can be sorted by, coloured, and reminded
+  /// about; a sentence in a notes field can only be re-read.
+  ///
+  /// Absolute rather than "three days before", because the thing wanting it is
+  /// a reminder, and a reminder needs a date. A stop that moves leaves its
+  /// deadline behind, which is the honest behaviour: the tour did not change
+  /// its cut-off because you rearranged your Tuesday.
+  bookBy     DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

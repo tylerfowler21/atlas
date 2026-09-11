@@ -232,6 +232,8 @@ export type ItineraryItem = {
   /// "needed", "booked", or null for the many stops that are not bookings.
   booking: string | null;
   bookingRef: string | null;
+  /// When it has to be booked by, as an ISO date, or null for no deadline.
+  bookBy: string | null;
   /// Carries emoji and category because the icon for a stop resolves through
   /// them — the stop's own override, then the place's, then the category's.
   /// Without those a saved place would show a different icon on the phone than

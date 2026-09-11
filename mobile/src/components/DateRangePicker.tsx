@@ -22,11 +22,14 @@ export default function DateRangePicker({
   start,
   end,
   onChange,
+  single = false,
 }: {
   /// "2026-09-18", or "" for unset.
   start: string;
   end: string;
   onChange: (next: { start: string; end: string }) => void;
+  /// One date rather than a range — a deadline has no second end.
+  single?: boolean;
 }) {
   const palette = usePalette();
 
@@ -46,6 +49,12 @@ export default function DateRangePicker({
   const endTime = end ? Date.parse(`${end}T00:00:00Z`) : null;
 
   function pick(time: number) {
+    if (single) {
+      // Tapping the chosen day again takes it off, which is the only way to
+      // say "no deadline after all" without a button for it.
+      onChange({ start: startTime === time ? "" : iso(time), end: "" });
+      return;
+    }
     // First tap sets the start. Second extends to a range. A third starts
     // again — which is what someone reaching for a different week means, and
     // is cheaper than a "clear" button nobody looks for.
@@ -128,7 +137,11 @@ export default function DateRangePicker({
       </View>
 
       <Text style={{ color: palette.muted, fontSize: 12, marginTop: 6 }}>
-        {!start
+        {single
+          ? start
+            ? `${start} · tap again to clear`
+            : "Tap a day, or leave it for no deadline."
+          : !start
           ? "Tap the first day."
           : !end
             ? "Tap the last day, or leave it for a single day."

@@ -25,6 +25,7 @@ import AddFromLink from "@/components/AddFromLink";
 import { useTripWeather } from "@/lib/use-trip-weather";
 import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
+import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
@@ -1046,6 +1047,33 @@ export default function TripPlanner({
                             </label>
                           )}
                         </div>
+
+                        {item.booking === BOOKING_NEEDED && (
+                          <label className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                            Book by
+                            <input
+                              type="date"
+                              className="input w-40 px-1.5 py-1 text-xs"
+                              value={item.bookBy ? item.bookBy.slice(0, 10) : ""}
+                              onChange={(e) =>
+                                patchItem(item.id, { bookBy: e.target.value || null })
+                              }
+                            />
+                            {item.bookBy && (
+                              <span
+                                className={
+                                  urgencyOf(item.bookBy) === "overdue"
+                                    ? "text-red-600"
+                                    : urgencyOf(item.bookBy) === "soon"
+                                      ? "text-amber-600 dark:text-amber-400"
+                                      : "text-muted"
+                                }
+                              >
+                                {deadlineLabel(item.bookBy)}
+                              </span>
+                            )}
+                          </label>
+                        )}
 
                         {item.booking === BOOKING_BOOKED && (
                           <input

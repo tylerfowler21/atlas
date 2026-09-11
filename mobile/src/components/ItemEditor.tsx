@@ -1,4 +1,6 @@
 import { useState } from "react";
+import DateRangePicker from "@/components/DateRangePicker";
+import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import TripFiles from "@/components/TripFiles";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
@@ -142,6 +144,7 @@ export default function ItemEditor({
   /// Whether this is something that has to be booked, and whether it has been.
   /// Null for the great majority of stops, which are not bookings at all.
   const [booking, setBooking] = useState<string | null>(existing?.booking ?? null);
+  const [bookBy, setBookBy] = useState(existing?.bookBy?.slice(0, 10) ?? "");
   const [startTime, setStartTime] = useState(existing?.startTime ?? "");
   const [endTime, setEndTime] = useState(existing?.endTime ?? "");
   /// Whether a journey lands the next day. A tick rather than a number,
@@ -260,6 +263,10 @@ export default function ItemEditor({
         placeId,
         toPlaceId: travel ? toPlaceId : null,
         booking,
+        // A deadline only means anything while something is still to be
+        // booked. Booked, or no longer a booking at all, and it is a date to
+        // be reminded about for no reason.
+        bookBy: booking === BOOKING_NEEDED && bookBy ? bookBy : null,
         // Clearing the booking clears what was booked with it; a reference to
         // a reservation nobody is making any more is just a stale number.
         ...(booking === null ? { bookingRef: null } : {}),
@@ -609,6 +616,36 @@ export default function ItemEditor({
               </Text>
               <Text style={{ color: palette.ink, fontSize: 14 }}>Booked</Text>
             </Pressable>
+          )}
+
+          {/* The deadline the spreadsheet used to carry as "book 3 days
+              before" — a note nothing could act on. */}
+          {booking === BOOKING_NEEDED && (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>Book by</Text>
+              <DateRangePicker
+                single
+                start={bookBy}
+                end=""
+                onChange={({ start }) => setBookBy(start)}
+              />
+              {bookBy !== "" && (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    marginTop: 4,
+                    color:
+                      urgencyOf(bookBy) === "overdue"
+                        ? "#E07A5F"
+                        : urgencyOf(bookBy) === "soon"
+                          ? "#D9A441"
+                          : palette.muted,
+                  }}
+                >
+                  {deadlineLabel(bookBy)}
+                </Text>
+              )}
+            </>
           )}
 
           <Text style={[styles.label, { color: palette.muted }]}>Which day</Text>

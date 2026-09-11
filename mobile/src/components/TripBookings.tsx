@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BOOKING_BOOKED, nextState, outstanding, tracked } from "@/lib/bookings";
+import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import { api, type ItineraryItem, type Trip } from "@/lib/api";
 import { usePalette } from "@/lib/use-palette";
 import { dayLabel } from "@/lib/dates";
@@ -25,9 +26,15 @@ export default function TripBookings({
   /// text, so the value has to be held to be saved on the way out.
   const [refs, setRefs] = useState<Record<string, string>>({});
 
-  const all = tracked(items).sort(
-    (a, b) => a.dayIndex - b.dayIndex || a.position - b.position,
-  );
+  /// Soonest deadline first, then by where they fall in the trip. A list of
+  /// things to book is read for what is about to lapse, not for what happens
+  /// first on the itinerary.
+  const all = tracked(items).sort((a, b) => {
+    if (a.bookBy && b.bookBy && a.bookBy !== b.bookBy) return a.bookBy < b.bookBy ? -1 : 1;
+    if (a.bookBy && !b.bookBy) return -1;
+    if (!a.bookBy && b.bookBy) return 1;
+    return a.dayIndex - b.dayIndex || a.position - b.position;
+  });
   const todo = outstanding(all);
   const done = all.filter((i) => i.booking === BOOKING_BOOKED);
 
@@ -91,6 +98,24 @@ export default function TripBookings({
               .filter(Boolean)
               .join(" · ")}
           </Text>
+
+          {/* A booked thing has no deadline left to miss. */}
+          {!isBooked && item.bookBy && (
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color:
+                  urgencyOf(item.bookBy) === "overdue"
+                    ? "#E07A5F"
+                    : urgencyOf(item.bookBy) === "soon"
+                      ? "#D9A441"
+                      : palette.muted,
+              }}
+            >
+              {deadlineLabel(item.bookBy)}
+            </Text>
+          )}
 
           {isBooked && (
             <TextInput

@@ -61,6 +61,8 @@ export type ItineraryItemDTO = {
   /// bookings at all.
   booking: string | null;
   bookingRef: string | null;
+  /// When it has to be booked by, as an ISO date, or null for no deadline.
+  bookBy: string | null;
   place: PlaceDTO | null;
   toPlace: PlaceDTO | null;
 };

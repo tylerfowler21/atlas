@@ -111,6 +111,9 @@ const itemFields = {
   /// to take off the list as it was to put on.
   booking: z.enum(BOOKING_STATES).nullable().optional(),
   bookingRef: optionalText(120),
+  /// Coerced from a date string, and nullable: a deadline can be taken off
+  /// again once the thing is booked or turns out not to need one.
+  bookBy: z.coerce.date().nullable().optional(),
 };
 
 export const itemCreateSchema = z
