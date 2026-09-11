@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuthHeaders } from "@/lib/use-auth-headers";
 import {
   ActivityIndicator,
   Alert,
@@ -45,6 +46,7 @@ export default function MemoryEditor({
   const [tripId, setTripId] = useState(memory?.trip?.id ?? null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const authHeaders = useAuthHeaders();
   const [photos, setPhotos] = useState(memory?.photos ?? []);
 
   if (!open) return null;
@@ -221,7 +223,8 @@ export default function MemoryEditor({
             {photos.map((photo) => (
               <Image
                 key={photo.id}
-                source={{ uri: `${API_URL}/api/photos/${photo.id}` }}
+                // The token, or the request goes out bare and comes back 401.
+                source={{ uri: `${API_URL}/api/photos/${photo.id}`, headers: authHeaders }}
                 style={styles.thumb}
               />
             ))}
