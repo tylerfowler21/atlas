@@ -87,6 +87,32 @@ function rowsMoved(day: number, index: number, dy: number) {
   return Math.round(dy / unit);
 }
 
+/// Where each day's section sits down the page, and how tall it is. Needed to
+/// answer the only question a cross-day drag asks: which day is under the
+/// finger now.
+const dayBounds: Record<number, { y: number; height: number }> = {};
+
+function recordDayBounds(day: number, y: number, height: number) {
+  dayBounds[day] = { y, height };
+}
+
+/// Where a row sits within its own day, so a drag can be turned into a
+/// position on the page rather than only a distance.
+const rowOffsets: Record<number, number[]> = {};
+
+function recordRowOffset(day: number, index: number, y: number) {
+  (rowOffsets[day] ??= [])[index] = y;
+}
+
+/// Which day the finger is over, or null when it is over none — past the last
+/// day, or over a gap nothing has measured yet.
+function dayUnder(pageY: number): number | null {
+  for (const [day, bounds] of Object.entries(dayBounds)) {
+    if (pageY >= bounds.y && pageY < bounds.y + bounds.height) return Number(day);
+  }
+  return null;
+}
+
 export default function TripScreen() {
   const { stopIconOf } = useCategories();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -179,6 +205,30 @@ export default function TripScreen() {
     [data, reload],
   );
 
+  /// Moving a stop to another day.
+  ///
+  /// It lands at the end of the day it arrives on, which is where the API puts
+  /// anything whose position is not stated — and is the right guess, since a
+  /// stop dropped on a day has no opinion about what it comes before.
+  const moveToDay = useCallback(
+    async (item: ItineraryItem, dayIndex: number) => {
+      if (item.dayIndex === dayIndex) return;
+      const last = (data?.items ?? [])
+        .filter((i) => i.dayIndex === dayIndex)
+        .reduce((n, i) => Math.max(n, i.position + 1), 0);
+      try {
+        await api(`/api/items/${item.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ dayIndex, position: last }),
+        });
+        reload();
+      } catch (e) {
+        Alert.alert("Could not move that", e instanceof Error ? e.message : "Try again");
+      }
+    },
+    [data?.items, reload],
+  );
+
   /// Dragging a stop up or down its day.
   ///
   /// PanResponder rather than a gesture library: it is part of React Native, so
@@ -192,7 +242,13 @@ export default function TripScreen() {
   /// The drag in progress. State because the rows are drawn from it, and
   /// mirrored into a ref because the gesture's release handler runs long after
   /// the render that created it and would otherwise close over an old value.
-  const [drag, setDrag] = useState<{ day: number; from: number; to: number } | null>(null);
+  const [drag, setDrag] = useState<{
+    day: number;
+    from: number;
+    to: number;
+    /// Another day being dragged onto, when the finger has left this one.
+    onto: number | null;
+  } | null>(null);
 
 
   const moveTo = useCallback(
@@ -308,6 +364,7 @@ export default function TripScreen() {
         }
         places={placeData?.places ?? []}
         documents={data?.documents ?? []}
+        days={days}
         onClose={() => setItem(null)}
         onSaved={reload}
       />
@@ -427,15 +484,25 @@ export default function TripScreen() {
         {(mapDay === null ? Array.from({ length: days }, (_, d) => d) : [mapDay]).map((day) => {
           const stops = data.items.filter((i) => i.dayIndex === day);
           return (
-            <View key={day} style={styles.day}>
+            <View
+              key={day}
+              style={styles.day}
+              onLayout={(e) =>
+                recordDayBounds(day, e.nativeEvent.layout.y, e.nativeEvent.layout.height)
+              }
+            >
               <View style={styles.dayHeading}>
                 <Text
                   style={[
                     styles.dayLabel,
                     { color: mapDay === day ? palette.accentText : palette.muted },
+                    // The day under the finger, so a drop is aimed rather than
+                    // hoped for.
+                    drag?.onto === day && { color: palette.accentText },
                   ]}
                 >
                   {dayLabel(data.trip, day)}
+                  {drag?.onto === day ? "  · drop here" : ""}
                 </Text>
                 {/* Only when there is something real to say. A day beyond the
                     forecast shows nothing rather than a number to pack from. */}
@@ -486,20 +553,40 @@ export default function TripScreen() {
                 const landingIndex = (dy: number) =>
                   Math.max(0, Math.min(stops.length - 1, index + rowsMoved(day, index, dy)));
 
+                /// Where the finger is down the page, from where this row
+                /// started plus how far it has travelled.
+                const pageY = (dy: number) =>
+                  (dayBounds[day]?.y ?? 0) + (rowOffsets[day]?.[index] ?? 0) + dy;
+
+                /// The day being dragged over, when it is a different one.
+                /// Dragging within a day is a reorder and stays that way.
+                const overDay = (dy: number) => {
+                  const found = dayUnder(pageY(dy));
+                  return found === null || found === day ? null : found;
+                };
+
                 const pan = PanResponder.create({
                   onStartShouldSetPanResponder: () => true,
                   onMoveShouldSetPanResponder: () => true,
-                  onPanResponderGrant: () => setDrag({ day, from: index, to: index }),
+                  onPanResponderGrant: () =>
+                    setDrag({ day, from: index, to: index, onto: null }),
                   onPanResponderMove: (_event, gesture) => {
-                    const to = landingIndex(gesture.dy);
-                    setDrag({ day, from: index, to });
+                    const onto = overDay(gesture.dy);
+                    setDrag({
+                      day,
+                      from: index,
+                      to: onto === null ? landingIndex(gesture.dy) : index,
+                      onto,
+                    });
                   },
                   // The final distance comes with the release, so where it
                   // lands is worked out from the gesture rather than read back
                   // out of state written by an earlier render.
                   onPanResponderRelease: (_event, gesture) => {
                     setDrag(null);
-                    void moveTo(day, index, landingIndex(gesture.dy));
+                    const onto = overDay(gesture.dy);
+                    if (onto !== null) void moveToDay(entry, onto);
+                    else void moveTo(day, index, landingIndex(gesture.dy));
                   },
                   onPanResponderTerminate: () => setDrag(null),
                 });
@@ -512,6 +599,7 @@ export default function TripScreen() {
                     key={entry.id}
                     onLayout={(e) => {
                       recordRowHeight(day, index, e.nativeEvent.layout.height);
+                      recordRowOffset(day, index, e.nativeEvent.layout.y);
                     }}
                     style={[
                       styles.stop,

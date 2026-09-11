@@ -102,6 +102,7 @@ export default function ItemEditor({
   destination,
   places,
   documents,
+  days,
   onClose,
   onSaved,
 }: {
@@ -112,6 +113,9 @@ export default function ItemEditor({
   places: Place[];
   /// The trip's files, so a stop can show the ones attached to it.
   documents: TripDocument[];
+  /// How many days the trip has, for moving this to another one. Dragging
+  /// reaches the days on screen; this reaches the rest.
+  days: number;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -123,6 +127,9 @@ export default function ItemEditor({
   const [title, setTitle] = useState(existing?.title ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "");
+  const [dayIndex, setDayIndex] = useState(
+    existing?.dayIndex ?? (draft?.mode === "create" ? draft.dayIndex : 0),
+  );
   /// What the attached place is currently filed under, so the save can tell
   /// whether the category actually changed and leave it alone if not.
   const existingPlaceCategory = existing?.place?.category ?? null;
@@ -260,12 +267,14 @@ export default function ItemEditor({
       if (draft!.mode === "create") {
         await api(`/api/trips/${draft!.tripId}/items`, {
           method: "POST",
-          body: JSON.stringify({ ...body, dayIndex: draft!.dayIndex }),
+          body: JSON.stringify({ ...body, dayIndex }),
         });
       } else {
         await api(`/api/items/${draft!.item.id}`, {
           method: "PATCH",
-          body: JSON.stringify(body),
+          // Sent on every save, so changing the day here is all it takes. The
+          // API drops it at the end of whichever day it arrives on.
+          body: JSON.stringify({ ...body, dayIndex }),
         });
       }
 
@@ -602,6 +611,22 @@ export default function ItemEditor({
             </Pressable>
           )}
 
+          <Text style={[styles.label, { color: palette.muted }]}>Which day</Text>
+          <View style={styles.dayChips}>
+            {Array.from({ length: Math.max(days, dayIndex + 1) }, (_, i) => (
+              <Pressable
+                key={i}
+                onPress={() => setDayIndex(i)}
+                style={[
+                  styles.dayChip,
+                  { borderColor: dayIndex === i ? palette.accent : palette.border },
+                ]}
+              >
+                <Text style={{ fontSize: 13, color: palette.ink }}>Day {i + 1}</Text>
+              </Pressable>
+            ))}
+          </View>
+
           <Text style={[styles.label, { color: palette.muted }]}>Notes</Text>
           <TextInput
             value={notes}
@@ -633,6 +658,8 @@ const styles = StyleSheet.create({
   emoji: { width: 90, fontSize: 22 },
   notes: { minHeight: 80, textAlignVertical: "top" },
   check: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16 },
+  dayChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   times: { flexDirection: "row", gap: 12 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingRight: 8 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
