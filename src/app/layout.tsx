@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Geist } from "next/font/google";
 import "./globals.css";
 
-/// The brand guide's pairing: a display serif for headings — its "editorial
-/// serif moments" — and Inter for everything else. Self-hosted by next/font,
-/// so no request leaves for Google's servers at render time.
-const display = DM_Serif_Display({
-  weight: "400",
+/// The brand kit's pairing: Bricolage Grotesque for titles, Geist for
+/// everything else. Both self-hosted by next/font, so no request leaves for
+/// Google's servers at render time.
+///
+/// This replaces DM Serif Display and Inter. The serif is gone entirely — the
+/// kit sets its display type in a heavy grotesque, so the "editorial serif
+/// moment" the old guide asked for is now a weight, not a face.
+const display = Bricolage_Grotesque({
+  // Variable across the range; 800 is what the kit's titles are set in.
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
 });
 
-const ui = Inter({
+const ui = Geist({
   subsets: ["latin"],
   variable: "--font-ui",
   display: "swap",

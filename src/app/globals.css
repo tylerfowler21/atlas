@@ -111,15 +111,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* The display serif is for page titles only. The guide asks for editorial
-   serif *moments*; applying it to every h2 put a tiny uppercase list label
-   ("YOUR PLACES (10)") in a display face, which reads as a mistake rather than
-   as a moment. Add .display to opt anything else in. */
+/* The display face is for page titles only. Applying it to every h2 put a tiny
+   uppercase list label ("YOUR PLACES (10)") in a display face, which reads as a
+   mistake rather than as emphasis. Add .display to opt anything else in.
+
+   Weight 800 and tight tracking: the kit sets its titles in Bricolage
+   Grotesque ExtraBold, and at 400 the face just reads as a slightly odd
+   Geist. The fallback is a sans now — the old stack fell back to Georgia,
+   which would land a serif on anyone whose font request failed. */
 h1,
 .display {
-  font-family: var(--font-display), Georgia, "Times New Roman", serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* iOS Safari zooms the page whenever a focused field has text smaller than
