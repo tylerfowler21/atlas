@@ -9,6 +9,7 @@
 /// grants access, and the email only tells them about it. Losing the second
 /// must not lose the first.
 import { Resend } from "resend";
+import { colors } from "@/lib/brand";
 
 export const mailConfigured = Boolean(
   process.env.RESEND_API_KEY && process.env.MAIL_FROM,
@@ -82,21 +83,21 @@ export function invitationEmail(options: {
   ].join("\n");
 
   const html = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;color:#14212B;max-width:520px">
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;color:${colors.light.ink};max-width:520px">
       <p style="font-size:16px">
         <strong>${escape(inviterName)}</strong> has invited you to help plan
         <strong>${escape(tripTitle)}</strong>.
       </p>
-      <p style="color:#55677A">
+      <p style="color:${colors.light.muted}">
         You can add places, days and journeys, and see theirs.
       </p>
       <p style="margin:28px 0">
         <a href="${escape(url)}"
-           style="background:#14B8A6;color:#14212B;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;display:inline-block">
+           style="background:${colors.light.primary};color:${colors.light.onPrimary};text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;display:inline-block">
           Open the trip
         </a>
       </p>
-      <p style="color:#55677A;font-size:13px">
+      <p style="color:${colors.light.muted};font-size:13px">
         If you don't have a Roava account, opening the link will set one up.
       </p>
     </div>

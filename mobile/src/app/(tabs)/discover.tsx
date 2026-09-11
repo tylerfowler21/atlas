@@ -28,13 +28,13 @@ export default function DiscoverScreen() {
             <Pressable
               key={id}
               onPress={() => setSegment(id)}
-              style={[styles.segment, on && { backgroundColor: palette.accent }]}
+              style={[styles.segment, on && { backgroundColor: palette.primary }]}
             >
               <Text
                 style={{
                   fontSize: 14,
                   fontWeight: on ? "600" : "400",
-                  color: on ? palette.onAccent : palette.muted,
+                  color: on ? palette.onPrimary : palette.muted,
                 }}
               >
                 {label}

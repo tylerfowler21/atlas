@@ -22,7 +22,7 @@ function styleFor(dark: boolean) {
 export default function MapLibreCanvas({
   pins,
   route,
-  routeColor = "#0F2D4A",
+  routeColor = "#12322B",
   legs,
   selectedId,
   onSelect,

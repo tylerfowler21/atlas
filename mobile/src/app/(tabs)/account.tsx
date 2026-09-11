@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import CategoryManager from "@/components/CategoryManager";
 import {
   ActivityIndicator,
@@ -117,12 +118,12 @@ export default function AccountScreen() {
           <Pressable
             onPress={saveProfile}
             disabled={saving}
-            style={[styles.save, { backgroundColor: palette.accent }]}
+            style={[styles.save, { backgroundColor: palette.primary }]}
           >
             {saving ? (
               <ActivityIndicator />
             ) : (
-              <Text style={{ color: palette.onAccent, fontWeight: "600" }}>Save</Text>
+              <Text style={{ color: palette.onPrimary, fontWeight: "600" }}>Save</Text>
             )}
           </Pressable>
         </View>
@@ -197,7 +198,7 @@ export default function AccountScreen() {
           <Text style={{ color: palette.ink, fontWeight: "500" }}>Sign out</Text>
         </Pressable>
 
-        <Text style={[styles.danger, { color: "#E07A5F" }]}>Delete account</Text>
+        <Text style={[styles.danger, { color: SEMANTIC.danger }]}>Delete account</Text>
         <Text style={[styles.hint, { color: palette.muted }]}>
           Removes your places, trips, journal entries and photos. This cannot be
           undone. Type your username to confirm.
@@ -218,7 +219,7 @@ export default function AccountScreen() {
           <Pressable
             onPress={deleteAccount}
             disabled={deleting}
-            style={[styles.save, { backgroundColor: "#E07A5F" }]}
+            style={[styles.save, { backgroundColor: SEMANTIC.danger }]}
           >
             {deleting ? <ActivityIndicator /> : <Text style={{ color: "#fff", fontWeight: "600" }}>Delete</Text>}
           </Pressable>

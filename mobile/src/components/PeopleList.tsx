@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -197,14 +198,14 @@ export default function PeopleList() {
                   styles.follow,
                   following
                     ? { borderColor: palette.border }
-                    : { backgroundColor: palette.accent, borderColor: palette.accent },
+                    : { backgroundColor: palette.primary, borderColor: palette.primary },
                 ]}
               >
                 <Text
                   style={{
                     fontSize: 13,
                     fontWeight: "600",
-                    color: following ? palette.muted : palette.onAccent,
+                    color: following ? palette.muted : palette.onPrimary,
                   }}
                 >
                   {following ? "Following" : "Follow"}
@@ -221,7 +222,7 @@ export default function PeopleList() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#E07A5F", paddingHorizontal: 16 },
+  error: { color: SEMANTIC.danger, paddingHorizontal: 16 },
   empty: { textAlign: "center", padding: 32 },
   search: {
     margin: 12,

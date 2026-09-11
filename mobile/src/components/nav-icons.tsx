@@ -23,7 +23,7 @@ export function BeenIcon({ size = 24, color = INK }: IconProps) {
 export function FeedIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Rect x="13" y="10" width="38" height="44" rx="6" stroke={color} strokeWidth="3"/><Circle cx="22" cy="20" r="3.5" fill="#14B8A6" stroke={color} strokeWidth="2"/><Path d="M29 20h10" stroke={color} strokeWidth="2.5"/><Path d="m18 41 9-10 8 8 5-5 7 7" stroke={color} strokeWidth="3"/><Circle cx="43" cy="25" r="3" fill="#F2A07B"/><Path d="M20 47h22" stroke={color} strokeWidth="2.5"/>
+      <Rect x="13" y="10" width="38" height="44" rx="6" stroke={color} strokeWidth="3"/><Circle cx="22" cy="20" r="3.5" fill="#F98746" stroke={color} strokeWidth="2"/><Path d="M29 20h10" stroke={color} strokeWidth="2.5"/><Path d="m18 41 9-10 8 8 5-5 7 7" stroke={color} strokeWidth="3"/><Circle cx="43" cy="25" r="3" fill="#F98746"/><Path d="M20 47h22" stroke={color} strokeWidth="2.5"/>
     </Svg>
   );
 }
@@ -31,7 +31,7 @@ export function FeedIcon({ size = 24, color = INK }: IconProps) {
 export function JournalIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Path d="M10 14c0-3 2-5 5-5h15c4 0 7 2 8 5v38c-2-2-5-3-8-3H15c-3 0-5-2-5-5V14Z" stroke={color} strokeWidth="3"/><Path d="M54 14c0-3-2-5-5-5H34c-4 0-7 2-8 5v38c2-2 5-3 8-3h15c3 0 5-2 5-5V14Z" stroke={color} strokeWidth="3"/><Path d="M17 22h10M17 29h10M17 36h8" stroke={color} strokeWidth="2.5"/><Rect x="37" y="22" width="11" height="13" rx="1" stroke={color} strokeWidth="2.5"/><Path d="m39 33 3-4 2 2 4-5" stroke="#A7B49E" strokeWidth="2.2"/><Circle cx="46" cy="24" r="2" fill="#F2A07B"/>
+      <Path d="M10 14c0-3 2-5 5-5h15c4 0 7 2 8 5v38c-2-2-5-3-8-3H15c-3 0-5-2-5-5V14Z" stroke={color} strokeWidth="3"/><Path d="M54 14c0-3-2-5-5-5H34c-4 0-7 2-8 5v38c2-2 5-3 8-3h15c3 0 5-2 5-5V14Z" stroke={color} strokeWidth="3"/><Path d="M17 22h10M17 29h10M17 36h8" stroke={color} strokeWidth="2.5"/><Rect x="37" y="22" width="11" height="13" rx="1" stroke={color} strokeWidth="2.5"/><Path d="m39 33 3-4 2 2 4-5" stroke="#245247" strokeWidth="2.2"/><Circle cx="46" cy="24" r="2" fill="#F98746"/>
     </Svg>
   );
 }
@@ -39,7 +39,7 @@ export function JournalIcon({ size = 24, color = INK }: IconProps) {
 export function MapIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Path d="M8 16 22 10l20 8 14-6v36l-14 6-20-8-14 6V16Z" stroke={color} strokeWidth="3"/><Path d="M22 10v36M42 18v36" stroke={color} strokeWidth="3"/><Path d="M18 36c6 4 10-2 16-2 7 0 8 7 14 4" stroke={color} strokeWidth="2.5" strokeDasharray="4 5"/><Path d="M50 8c-6 0-11 5-11 11 0 8 11 19 11 19s11-11 11-19C61 13 56 8 50 8Z" fill="#14B8A6" stroke={color} strokeWidth="3"/><Circle cx="50" cy="19" r="4" fill="#F4EDE1" stroke={color} strokeWidth="2"/>
+      <Path d="M8 16 22 10l20 8 14-6v36l-14 6-20-8-14 6V16Z" stroke={color} strokeWidth="3"/><Path d="M22 10v36M42 18v36" stroke={color} strokeWidth="3"/><Path d="M18 36c6 4 10-2 16-2 7 0 8 7 14 4" stroke={color} strokeWidth="2.5" strokeDasharray="4 5"/><Path d="M50 8c-6 0-11 5-11 11 0 8 11 19 11 19s11-11 11-19C61 13 56 8 50 8Z" fill="#F98746" stroke={color} strokeWidth="3"/><Circle cx="50" cy="19" r="4" fill="#E4EDE8" stroke={color} strokeWidth="2"/>
     </Svg>
   );
 }
@@ -47,7 +47,7 @@ export function MapIcon({ size = 24, color = INK }: IconProps) {
 export function NotificationsIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Path d="M32 8c-1.7 0-3 1.3-3 3v2.3C21.5 14.7 16 21.2 16 29v9.5l-3.4 5.1A2 2 0 0 0 14.3 47h35.4a2 2 0 0 0 1.7-3.4L48 38.5V29c0-7.8-5.5-14.3-13-15.7V11c0-1.7-1.3-3-3-3Z" fill="#F4EDE1" stroke={color} strokeWidth="3"/><Path d="M38 22.5c2.6 2 4.2 5 4.4 8.3" stroke="#14B8A6" strokeWidth="2.5"/><Path d="M25 47a7 7 0 0 0 14 0" fill="#14B8A6" stroke={color} strokeWidth="3"/>
+      <Path d="M32 8c-1.7 0-3 1.3-3 3v2.3C21.5 14.7 16 21.2 16 29v9.5l-3.4 5.1A2 2 0 0 0 14.3 47h35.4a2 2 0 0 0 1.7-3.4L48 38.5V29c0-7.8-5.5-14.3-13-15.7V11c0-1.7-1.3-3-3-3Z" fill="#E4EDE8" stroke={color} strokeWidth="3"/><Path d="M38 22.5c2.6 2 4.2 5 4.4 8.3" stroke="#F98746" strokeWidth="2.5"/><Path d="M25 47a7 7 0 0 0 14 0" fill="#F98746" stroke={color} strokeWidth="3"/>
     </Svg>
   );
 }
@@ -55,7 +55,7 @@ export function NotificationsIcon({ size = 24, color = INK }: IconProps) {
 export function PeopleIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Circle cx="24" cy="22" r="7" stroke={color} strokeWidth="3"/><Path d="M12 47c1-10 6-15 12-15s11 5 12 15H12Z" stroke={color} strokeWidth="3"/><Circle cx="43" cy="26" r="5" fill="#A7B49E" fillOpacity=".75" stroke={color} strokeWidth="2.5"/><Path d="M36 47c1-7 4-11 9-11s8 4 9 11H36Z" fill="#A7B49E" fillOpacity=".4" stroke={color} strokeWidth="2.5"/>
+      <Circle cx="24" cy="22" r="7" stroke={color} strokeWidth="3"/><Path d="M12 47c1-10 6-15 12-15s11 5 12 15H12Z" stroke={color} strokeWidth="3"/><Circle cx="43" cy="26" r="5" fill="#245247" fillOpacity=".75" stroke={color} strokeWidth="2.5"/><Path d="M36 47c1-7 4-11 9-11s8 4 9 11H36Z" fill="#245247" fillOpacity=".4" stroke={color} strokeWidth="2.5"/>
     </Svg>
   );
 }
@@ -63,7 +63,7 @@ export function PeopleIcon({ size = 24, color = INK }: IconProps) {
 export function PlacesIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Path d="M31 11v42" stroke={color} strokeWidth="3"/><Path d="M17 17h28l7 7-7 7H17V17Z" fill="#14B8A6" fillOpacity=".55" stroke={color} strokeWidth="3"/><Path d="M47 36H19l-7 7 7 7h28V36Z" fill="#F4EDE1" stroke={color} strokeWidth="3"/>
+      <Path d="M31 11v42" stroke={color} strokeWidth="3"/><Path d="M17 17h28l7 7-7 7H17V17Z" fill="#F98746" fillOpacity=".55" stroke={color} strokeWidth="3"/><Path d="M47 36H19l-7 7 7 7h28V36Z" fill="#E4EDE8" stroke={color} strokeWidth="3"/>
     </Svg>
   );
 }
@@ -71,7 +71,7 @@ export function PlacesIcon({ size = 24, color = INK }: IconProps) {
 export function SignOutIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Path d="M34 12H18c-3 0-5 2-5 5v30c0 3 2 5 5 5h16" stroke={color} strokeWidth="3"/><Path d="M30 32h24" stroke="#14B8A6" strokeWidth="4"/><Path d="m47 24 8 8-8 8" stroke="#14B8A6" strokeWidth="4"/>
+      <Path d="M34 12H18c-3 0-5 2-5 5v30c0 3 2 5 5 5h16" stroke={color} strokeWidth="3"/><Path d="M30 32h24" stroke="#F98746" strokeWidth="4"/><Path d="m47 24 8 8-8 8" stroke="#F98746" strokeWidth="4"/>
     </Svg>
   );
 }
@@ -79,7 +79,7 @@ export function SignOutIcon({ size = 24, color = INK }: IconProps) {
 export function TripsIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Rect x="14" y="18" width="36" height="34" rx="6" stroke={color} strokeWidth="3"/><Path d="M24 18v-5c0-2 2-4 4-4h8c2 0 4 2 4 4v5" stroke={color} strokeWidth="3"/><Path d="M20 18v34M44 18v34" stroke={color} strokeWidth="2.5"/><Circle cx="27" cy="32" r="4" fill="#14B8A6"/><Path d="m34 38 8-5 5 7-8 5-5-7Z" fill="#F4EDE1"/>
+      <Rect x="14" y="18" width="36" height="34" rx="6" stroke={color} strokeWidth="3"/><Path d="M24 18v-5c0-2 2-4 4-4h8c2 0 4 2 4 4v5" stroke={color} strokeWidth="3"/><Path d="M20 18v34M44 18v34" stroke={color} strokeWidth="2.5"/><Circle cx="27" cy="32" r="4" fill="#F98746"/><Path d="m34 38 8-5 5 7-8 5-5-7Z" fill="#E4EDE8"/>
     </Svg>
   );
 }
@@ -87,7 +87,7 @@ export function TripsIcon({ size = 24, color = INK }: IconProps) {
 export function WhosUsingRoavaIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Circle cx="32" cy="32" r="24" fill="#F4EDE1"/><Circle cx="32" cy="24" r="6" fill={color}/><Path d="M22 46c1-9 5-14 10-14s9 5 10 14" fill={color}/><Circle cx="18" cy="29" r="5" fill="#14B8A6"/><Path d="M10 46c1-7 4-11 8-11s7 4 8 11" fill="#14B8A6"/><Circle cx="46" cy="29" r="5" fill="#F2A07B"/><Path d="M38 46c1-7 4-11 8-11s7 4 8 11" fill="#F2A07B"/>
+      <Circle cx="32" cy="32" r="24" fill="#E4EDE8"/><Circle cx="32" cy="24" r="6" fill={color}/><Path d="M22 46c1-9 5-14 10-14s9 5 10 14" fill={color}/><Circle cx="18" cy="29" r="5" fill="#F98746"/><Path d="M10 46c1-7 4-11 8-11s7 4 8 11" fill="#F98746"/><Circle cx="46" cy="29" r="5" fill="#F98746"/><Path d="M38 46c1-7 4-11 8-11s7 4 8 11" fill="#F98746"/>
     </Svg>
   );
 }
@@ -95,7 +95,7 @@ export function WhosUsingRoavaIcon({ size = 24, color = INK }: IconProps) {
 export function YourProfileIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <Circle cx="32" cy="32" r="23" stroke={color} strokeWidth="3"/><Circle cx="32" cy="25" r="7" fill={color}/><Path d="M18 48c2-9 7-14 14-14s12 5 14 14" fill="#A7B49E" fillOpacity=".7" stroke={color} strokeWidth="3"/>
+      <Circle cx="32" cy="32" r="23" stroke={color} strokeWidth="3"/><Circle cx="32" cy="25" r="7" fill={color}/><Path d="M18 48c2-9 7-14 14-14s12 5 14 14" fill="#245247" fillOpacity=".7" stroke={color} strokeWidth="3"/>
     </Svg>
   );
 }

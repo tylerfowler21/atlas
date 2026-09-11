@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import { useCategories } from "@/lib/categories";
 import {
   ActivityIndicator,
@@ -222,10 +223,10 @@ export default function PlaceEditor({
                   style={[
                     styles.chip,
                     { backgroundColor: palette.surface, borderColor: palette.border },
-                    on && { backgroundColor: palette.accent, borderColor: palette.accent },
+                    on && { backgroundColor: palette.primary, borderColor: palette.primary },
                   ]}
                 >
-                  <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
+                  <Text style={{ fontSize: 13, color: on ? palette.onPrimary : palette.muted }}>
                     {s.label}
                   </Text>
                 </Pressable>
@@ -249,7 +250,7 @@ export default function PlaceEditor({
                     <Text
                       style={[
                         styles.star,
-                        { color: rating && n <= rating ? "#D9A441" : palette.border },
+                        { color: rating && n <= rating ? SEMANTIC.warning : palette.border },
                       ]}
                     >
                       ★
@@ -354,7 +355,7 @@ export default function PlaceEditor({
 
           {editing && (
             <Pressable onPress={remove} style={styles.remove}>
-              <Text style={{ color: "#E07A5F", fontWeight: "500" }}>Remove this place</Text>
+              <Text style={{ color: SEMANTIC.danger, fontWeight: "500" }}>Remove this place</Text>
             </Pressable>
           )}
         </ScrollView>

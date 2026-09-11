@@ -441,11 +441,11 @@ export default function TripScreen() {
                 onPress={() => setView(id)}
                 style={[
                   styles.viewTab,
-                  { borderColor: on ? palette.accent : palette.border },
-                  on && { backgroundColor: palette.accent },
+                  { borderColor: on ? palette.primary : palette.border },
+                  on && { backgroundColor: palette.primary },
                 ]}
               >
-                <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
+                <Text style={{ fontSize: 13, color: on ? palette.onPrimary : palette.muted }}>
                   {label}
                   {count > 0 ? ` ${count}` : ""}
                 </Text>
@@ -499,10 +499,10 @@ export default function TripScreen() {
                   style={[
                     styles.dayChip,
                     { backgroundColor: palette.surface, borderColor: palette.border },
-                    on && { backgroundColor: palette.accent, borderColor: palette.accent },
+                    on && { backgroundColor: palette.primary, borderColor: palette.primary },
                   ]}
                 >
-                  <Text style={{ fontSize: 13, color: on ? palette.onAccent : palette.muted }}>
+                  <Text style={{ fontSize: 13, color: on ? palette.onPrimary : palette.muted }}>
                     {d === null ? "Whole trip" : `Day ${d + 1}`}
                   </Text>
                 </Pressable>
@@ -639,11 +639,11 @@ export default function TripScreen() {
                       styles.stop,
                       { backgroundColor: palette.surface, borderColor: palette.border },
                       held && { opacity: 0.4 },
-                      target && !held && { borderColor: palette.accent, borderWidth: 2 },
+                      target && !held && { borderColor: palette.primary, borderWidth: 2 },
                       // A journey is drawn differently from a stop: the day
                       // reads as a sequence, and the thing that moves you
                       // between places should not look like another place.
-                      leg && { borderStyle: "dashed", borderColor: palette.accent },
+                      leg && { borderStyle: "dashed", borderColor: palette.primary },
                     ]}
                   >
                     <Pressable

@@ -143,7 +143,7 @@ export default function TripResources({
             onPress={() => setKind(k.id)}
             style={[
               styles.chip,
-              { borderColor: kind === k.id ? palette.accent : palette.border },
+              { borderColor: kind === k.id ? palette.primary : palette.border },
             ]}
           >
             <Text style={{ fontSize: 12, color: palette.ink }}>
@@ -174,10 +174,10 @@ export default function TripResources({
         disabled={busy || !label.trim()}
         style={[
           styles.add,
-          { backgroundColor: palette.accent, opacity: busy || !label.trim() ? 0.5 : 1 },
+          { backgroundColor: palette.primary, opacity: busy || !label.trim() ? 0.5 : 1 },
         ]}
       >
-        <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 14 }}>Add</Text>
+        <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 14 }}>Add</Text>
       </Pressable>
     </View>
   );

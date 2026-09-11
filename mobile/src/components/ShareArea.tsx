@@ -116,10 +116,10 @@ export default function ShareArea({
               {link}
             </Text>
             <Pressable
-              style={[styles.primary, { backgroundColor: palette.accent }]}
+              style={[styles.primary, { backgroundColor: palette.primary }]}
               onPress={() => void Share.share({ message: link })}
             >
-              <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+              <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
                 Send it
               </Text>
             </Pressable>
@@ -175,7 +175,7 @@ export default function ShareArea({
                   style={[
                     styles.chip,
                     {
-                      borderColor: statuses.has(s.id) ? palette.accent : palette.border,
+                      borderColor: statuses.has(s.id) ? palette.primary : palette.border,
                       opacity: statuses.has(s.id) ? 1 : 0.45,
                     },
                   ]}
@@ -227,12 +227,12 @@ export default function ShareArea({
               style={[
                 styles.primary,
                 {
-                  backgroundColor: palette.accent,
+                  backgroundColor: palette.primary,
                   opacity: busy || statuses.size === 0 ? 0.5 : 1,
                 },
               ]}
             >
-              <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+              <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
                 {busy ? "Making the link…" : "Make a link"}
               </Text>
             </Pressable>

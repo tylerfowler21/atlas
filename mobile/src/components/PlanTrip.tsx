@@ -211,7 +211,7 @@ export default function PlanTrip({
                   onPress={() => setPace(id)}
                   style={[
                     styles.chip,
-                    { borderColor: pace === id ? palette.accent : palette.border },
+                    { borderColor: pace === id ? palette.primary : palette.border },
                   ]}
                 >
                   <Text style={{ color: palette.ink, fontSize: 13, textTransform: "capitalize" }}>
@@ -226,10 +226,10 @@ export default function PlanTrip({
               disabled={where.trim().length < 2}
               style={[
                 styles.primary,
-                { backgroundColor: palette.accent, opacity: where.trim().length < 2 ? 0.5 : 1 },
+                { backgroundColor: palette.primary, opacity: where.trim().length < 2 ? 0.5 : 1 },
               ]}
             >
-              <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+              <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
                 Draft me an itinerary
               </Text>
             </Pressable>
@@ -272,7 +272,7 @@ export default function PlanTrip({
                 }
                 style={[
                   styles.row,
-                  { borderColor: c.keep && c.match ? palette.accent : palette.border },
+                  { borderColor: c.keep && c.match ? palette.primary : palette.border },
                   !c.match && { opacity: 0.55 },
                 ]}
               >
@@ -297,10 +297,10 @@ export default function PlanTrip({
               disabled={saving || keeping === 0}
               style={[
                 styles.primary,
-                { backgroundColor: palette.accent, opacity: saving || keeping === 0 ? 0.5 : 1 },
+                { backgroundColor: palette.primary, opacity: saving || keeping === 0 ? 0.5 : 1 },
               ]}
             >
-              <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+              <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
                 {saving ? "Saving…" : `Create trip with ${keeping} stops`}
               </Text>
             </Pressable>

@@ -205,7 +205,7 @@ export default function AddFromLink({
             <Pressable
               key={i}
               onPress={() => setDay(i)}
-              style={[styles.dayChip, { borderColor: day === i ? palette.accent : palette.border }]}
+              style={[styles.dayChip, { borderColor: day === i ? palette.primary : palette.border }]}
             >
               <Text style={{ fontSize: 13, color: palette.ink }}>{dayLabel(trip, i)}</Text>
             </Pressable>
@@ -248,12 +248,12 @@ export default function AddFromLink({
           style={[
             styles.primary,
             {
-              backgroundColor: palette.accent,
+              backgroundColor: palette.primary,
               opacity: busy || (!url.trim() && !caption.trim()) ? 0.5 : 1,
             },
           ]}
         >
-          <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+          <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
             {busy ? "Reading…" : needsCaption ? "Read this caption" : "Read this link"}
           </Text>
         </Pressable>
@@ -276,7 +276,7 @@ export default function AddFromLink({
             }
             style={[
               styles.row,
-              { borderColor: row.keep && row.match ? palette.accent : palette.border },
+              { borderColor: row.keep && row.match ? palette.primary : palette.border },
               !row.match && { opacity: 0.55 },
             ]}
           >
@@ -300,10 +300,10 @@ export default function AddFromLink({
             disabled={busy || keeping === 0}
             style={[
               styles.primary,
-              { backgroundColor: palette.accent, opacity: busy || keeping === 0 ? 0.5 : 1 },
+              { backgroundColor: palette.primary, opacity: busy || keeping === 0 ? 0.5 : 1 },
             ]}
           >
-            <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+            <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
               Add {keeping} to {dayLabel(trip, day)}
             </Text>
           </Pressable>

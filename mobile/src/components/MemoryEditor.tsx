@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import { useAuthHeaders } from "@/lib/use-auth-headers";
 import {
   ActivityIndicator,
@@ -239,7 +240,7 @@ export default function MemoryEditor({
 
           {editing && (
             <Pressable onPress={remove} style={styles.remove}>
-              <Text style={{ color: "#E07A5F", fontWeight: "500" }}>Delete this entry</Text>
+              <Text style={{ color: SEMANTIC.danger, fontWeight: "500" }}>Delete this entry</Text>
             </Pressable>
           )}
         </ScrollView>
@@ -268,7 +269,7 @@ function Picker({
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Pressable
           onPress={() => onSelect(null)}
-          style={[styles.chip, { backgroundColor: palette.surface, borderColor: selected ? palette.border : palette.accent }]}
+          style={[styles.chip, { backgroundColor: palette.surface, borderColor: selected ? palette.border : palette.primary }]}
         >
           <Text style={{ fontSize: 13, color: palette.muted }}>None</Text>
         </Pressable>
@@ -278,7 +279,7 @@ function Picker({
             onPress={() => onSelect(o.id)}
             style={[
               styles.chip,
-              { backgroundColor: palette.surface, borderColor: selected === o.id ? palette.accent : palette.border },
+              { backgroundColor: palette.surface, borderColor: selected === o.id ? palette.primary : palette.border },
             ]}
           >
             <Text style={{ fontSize: 13, color: selected === o.id ? palette.ink : palette.muted }} numberOfLines={1}>

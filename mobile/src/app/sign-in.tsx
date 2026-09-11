@@ -1,4 +1,5 @@
 import * as AppleAuthentication from "expo-apple-authentication";
+import { SEMANTIC } from "@/lib/brand";
 import GoogleIcon from "@/components/GoogleIcon";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   mark: { width: 76, height: 76, borderRadius: 18 },
   title: { fontSize: 28, fontWeight: "600", marginTop: 12 },
   blurb: { marginTop: 8, marginBottom: 28, textAlign: "center", lineHeight: 20 },
-  error: { color: "#ef4444", marginBottom: 12, textAlign: "center" },
+  error: { color: SEMANTIC.danger, marginBottom: 12, textAlign: "center" },
   button: { width: 260, height: 48 },
   google: {
     width: 260,

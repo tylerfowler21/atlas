@@ -3,6 +3,7 @@
 /// The same thing the website's settings page does, because a category made in
 /// one has to be usable in the other — they are the same list.
 import { useState } from "react";
+import { BUILT_IN_CATEGORIES } from "@/lib/taxonomy";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "@/lib/api";
 import { useCategories } from "@/lib/categories";
@@ -11,10 +12,7 @@ import { type Category } from "@/lib/taxonomy";
 
 /// Enough to tell pins apart at a glance, and all from the brand palette so a
 /// map full of custom categories still looks like one map.
-const COLORS = [
-  "#14B8A6", "#0F2D4A", "#ef4444", "#f59e0b", "#a855f7",
-  "#10b981", "#0ea5e9", "#ec4899", "#6366f1", "#b45309",
-];
+const COLORS = BUILT_IN_CATEGORIES.map((c) => c.color);
 
 export default function CategoryManager() {
   const palette = usePalette();
@@ -167,10 +165,10 @@ export default function CategoryManager() {
               disabled={!label.trim() || busy}
               style={[
                 styles.button,
-                { backgroundColor: palette.accent, opacity: !label.trim() || busy ? 0.5 : 1 },
+                { backgroundColor: palette.primary, opacity: !label.trim() || busy ? 0.5 : 1 },
               ]}
             >
-              <Text style={{ color: palette.onAccent, fontWeight: "600" }}>Add</Text>
+              <Text style={{ color: palette.onPrimary, fontWeight: "600" }}>Add</Text>
             </Pressable>
             <Pressable onPress={reset} style={styles.button}>
               <Text style={{ color: palette.muted }}>Cancel</Text>

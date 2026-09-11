@@ -12,7 +12,7 @@ import { type Category } from "@/lib/taxonomy";
 /// somebody who wants "Dive sites" or "Grandma's" gets it without anyone having
 /// to agree that those belong in everybody's app.
 
-const DEFAULT_COLOR = "#14B8A6";
+const DEFAULT_COLOR = "#12322B";
 
 export default function CategorySettings() {
   const { everyCategory, setCustom } = useCategories();

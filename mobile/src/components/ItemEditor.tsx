@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import DateRangePicker from "@/components/DateRangePicker";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import TripFiles from "@/components/TripFiles";
@@ -71,7 +72,7 @@ function PlacePicker({
           style={[
             styles.chip,
             { backgroundColor: palette.surface, borderColor: palette.border },
-            !selected && { borderColor: palette.accent },
+            !selected && { borderColor: palette.primary },
           ]}
         >
           <Text style={{ fontSize: 13, color: palette.muted }}>None</Text>
@@ -85,7 +86,7 @@ function PlacePicker({
               style={[
                 styles.chip,
                 { backgroundColor: palette.surface, borderColor: palette.border },
-                on && { borderColor: palette.accent },
+                on && { borderColor: palette.primary },
               ]}
             >
               <Text style={{ fontSize: 13, color: on ? palette.ink : palette.muted }} numberOfLines={1}>
@@ -364,7 +365,7 @@ export default function ItemEditor({
                       style={[
                         styles.chip,
                         { backgroundColor: palette.surface, borderColor: palette.border },
-                        on && { borderColor: palette.accent },
+                        on && { borderColor: palette.primary },
                       ]}
                     >
                       <Text style={{ fontSize: 13, color: on ? palette.ink : palette.muted }}>
@@ -416,7 +417,7 @@ export default function ItemEditor({
                 <Text style={{ color: palette.ink, fontSize: 14 }}>Lands the next day</Text>
               </Pressable>
               {!nextDay && startTime.trim() !== "" && endTime.trim() <= startTime.trim() && (
-                <Text style={{ color: "#E07A5F", fontSize: 12, marginTop: 4 }}>
+                <Text style={{ color: SEMANTIC.danger, fontSize: 12, marginTop: 4 }}>
                   Arrival is before departure — this probably lands the next day.
                 </Text>
               )}
@@ -636,9 +637,9 @@ export default function ItemEditor({
                     marginTop: 4,
                     color:
                       urgencyOf(bookBy) === "overdue"
-                        ? "#E07A5F"
+                        ? SEMANTIC.danger
                         : urgencyOf(bookBy) === "soon"
-                          ? "#D9A441"
+                          ? SEMANTIC.warning
                           : palette.muted,
                   }}
                 >
@@ -656,7 +657,7 @@ export default function ItemEditor({
                 onPress={() => setDayIndex(i)}
                 style={[
                   styles.dayChip,
-                  { borderColor: dayIndex === i ? palette.accent : palette.border },
+                  { borderColor: dayIndex === i ? palette.primary : palette.border },
                 ]}
               >
                 <Text style={{ fontSize: 13, color: palette.ink }}>Day {i + 1}</Text>

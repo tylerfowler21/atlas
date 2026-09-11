@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import { tripWhere } from "@/lib/trip-where";
 import {
   ActivityIndicator,
@@ -56,15 +57,15 @@ export default function TripsScreen() {
       <View style={styles.actions}>
         <Pressable
           onPress={() => setCreating(true)}
-          style={[styles.new, { backgroundColor: palette.accent }]}
+          style={[styles.new, { backgroundColor: palette.primary }]}
         >
-          <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+          <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
             + New trip
           </Text>
         </Pressable>
         <Pressable
           onPress={() => setPlanning(true)}
-          style={[styles.new, styles.secondary, { borderColor: palette.accent }]}
+          style={[styles.new, styles.secondary, { borderColor: palette.primary }]}
         >
           <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 15 }}>
             ✨ Plan one for me
@@ -107,7 +108,7 @@ export default function TripsScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#ef4444", padding: 16 },
+  error: { color: SEMANTIC.danger, padding: 16 },
   empty: { textAlign: "center", padding: 32 },
   actions: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 4 },
   new: { flex: 1, borderRadius: 10, alignItems: "center", paddingVertical: 12 },

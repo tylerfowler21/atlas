@@ -164,9 +164,9 @@ export default function PublishedTripScreen() {
         <Pressable
           onPress={copy}
           disabled={copying}
-          style={[styles.copy, { backgroundColor: palette.accent }]}
+          style={[styles.copy, { backgroundColor: palette.primary }]}
         >
-          <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+          <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
             {copying ? "Copying…" : "Copy into my trips"}
           </Text>
         </Pressable>

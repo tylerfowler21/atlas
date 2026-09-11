@@ -51,7 +51,7 @@ export default function DestinationField({
               key={name}
               onPress={() => onChange(value.filter((n) => n !== name))}
               accessibilityLabel={`Remove ${name}`}
-              style={[styles.chip, { borderColor: palette.accent }]}
+              style={[styles.chip, { borderColor: palette.primary }]}
             >
               <Text style={{ fontSize: 13, color: palette.ink }}>{name}</Text>
               <Text style={{ fontSize: 13, color: palette.muted }}>✕</Text>

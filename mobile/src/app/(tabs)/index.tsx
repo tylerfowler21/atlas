@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { STATUS, SEMANTIC } from "@/lib/brand";
 import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
@@ -55,11 +56,7 @@ function regionFor(places: Place[]): Region | undefined {
 }
 
 /// Status rings, matching the website's pins so a place looks the same in both.
-const RING = {
-  visited: "#14B8A6",
-  lived: "#D9A441",
-  wishlist: "#E07A5F",
-} as const;
+const RING = STATUS;
 
 export default function MapScreen() {
   const { placeIconOf, categoryOf } = useCategories();
@@ -396,10 +393,10 @@ export default function MapScreen() {
               style={[
                 styles.statusChip,
                 { backgroundColor: palette.surface, borderColor: palette.border },
-                on && { backgroundColor: palette.accent, borderColor: palette.accent },
+                on && { backgroundColor: palette.primary, borderColor: palette.primary },
               ]}
             >
-              <Text style={{ fontSize: 12, color: on ? palette.onAccent : palette.muted }}>
+              <Text style={{ fontSize: 12, color: on ? palette.onPrimary : palette.muted }}>
                 {s.label}
               </Text>
             </Pressable>
@@ -485,7 +482,7 @@ export default function MapScreen() {
                     style={[
                       styles.tile,
                       { backgroundColor: palette.background, borderColor: palette.border },
-                      on && { borderColor: palette.accent },
+                      on && { borderColor: palette.primary },
                     ]}
                   >
                     <Text style={[styles.tileNumber, { color: palette.ink }]}>{n}</Text>
@@ -622,7 +619,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#ef4444", padding: 24, textAlign: "center" },
+  error: { color: SEMANTIC.danger, padding: 24, textAlign: "center" },
   pin: {
     width: 34,
     height: 34,

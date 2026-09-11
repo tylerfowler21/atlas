@@ -23,10 +23,10 @@ export default function ShareTarget({ url, text }: InitialProps) {
             {shared}
           </Text>
           <Pressable
-            style={[styles.primary, { backgroundColor: palette.accent }]}
+            style={[styles.primary, { backgroundColor: palette.primary }]}
             onPress={() => openHostApp(`/share?url=${encodeURIComponent(shared)}`)}
           >
-            <Text style={[styles.primaryText, { color: palette.onAccent }]}>Choose a trip</Text>
+            <Text style={[styles.primaryText, { color: palette.onPrimary }]}>Choose a trip</Text>
           </Pressable>
         </>
       ) : (

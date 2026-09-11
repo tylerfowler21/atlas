@@ -3,15 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import DestinationField from "@/components/DestinationField";
-
-const COLORS = [
-  "#0F2D4A", // deep ocean
-  "#14B8A6", // coastal teal
-  "#4A6B8A", // slate
-  "#E07A5F", // coral
-  "#D9A441", // amber
-  "#7A946B", // sage
-];
+import { TRIP_COLORS as COLORS } from "@/lib/brand";
 
 export default function NewTripForm() {
   const router = useRouter();

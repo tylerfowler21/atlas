@@ -93,7 +93,7 @@ export default function TripBuilder() {
         id: s.key,
         lat: s.place!.lat,
         lng: s.place!.lng,
-        color: badge ? "#0F2D4A" : meta.color,
+        color: badge ? "#12322B" : meta.color,
         icon: meta.icon,
         badge: badge ? String(badge) : null,
         muted: !badge,

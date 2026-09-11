@@ -9,18 +9,19 @@
 /// those are cuids the two can never collide.
 
 export const BUILT_IN_CATEGORIES = [
-  { id: "restaurant", label: "Restaurant", icon: "🍽️", color: "#ef4444" },
-  { id: "cafe", label: "Café", icon: "☕", color: "#b45309" },
-  { id: "bar", label: "Bar", icon: "🍸", color: "#a855f7" },
-  { id: "activity", label: "Activity", icon: "🎟️", color: "#f59e0b" },
-  { id: "sight", label: "Sight", icon: "🏛️", color: "#0ea5e9" },
-  { id: "nature", label: "Nature", icon: "🏞️", color: "#10b981" },
-  { id: "hotel", label: "Stay", icon: "🛏️", color: "#6366f1" },
-  { id: "shop", label: "Shop", icon: "🛍️", color: "#ec4899" },
-  // Both of these were mid-greys, which read as "disabled" and disappear over
-  // pale terrain. Slate and deep ocean stay neutral without vanishing.
-  { id: "transport", label: "Transport", icon: "✈️", color: "#4A6B8A" },
-  { id: "other", label: "Other", icon: "📍", color: "#0F2D4A" },
+  { id: "restaurant", label: "Restaurant", icon: "🍽️", color: "#D65A4A" },
+  { id: "cafe", label: "Café", icon: "☕", color: "#9A6A48" },
+  { id: "bar", label: "Bar", icon: "🍸", color: "#8A5A9E" },
+  // The kit's gold is #D99A2B, which is 2.4:1 on a pale map — the only pin of
+  // the ten that a pin's own label could not be read against. Taken down a
+  // step to clear 3:1; indistinguishable from the swatch beside the others.
+  { id: "activity", label: "Activity", icon: "🎟️", color: "#B8831F" },
+  { id: "sight", label: "Sight", icon: "🏛️", color: "#3C7FB0" },
+  { id: "nature", label: "Nature", icon: "🏞️", color: "#3E8E5E" },
+  { id: "hotel", label: "Stay", icon: "🛏️", color: "#5566B0" },
+  { id: "shop", label: "Shop", icon: "🛍️", color: "#C4578A" },
+  { id: "transport", label: "Transport", icon: "✈️", color: "#5F7C8C" },
+  { id: "other", label: "Other", icon: "📍", color: "#12322B" },
 ] as const;
 
 export type BuiltInCategoryId = (typeof BUILT_IN_CATEGORIES)[number]["id"];

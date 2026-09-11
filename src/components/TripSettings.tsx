@@ -2,19 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import DestinationField from "@/components/DestinationField";
+import { TRIP_COLORS as COLORS } from "@/lib/brand";
 import { tripRegions } from "@/lib/trip-where";
 import { useState } from "react";
 import { toDateInput } from "@/lib/trips";
 import type { TripDTO } from "@/lib/types";
-
-const COLORS = [
-  "#0F2D4A", // deep ocean
-  "#14B8A6", // coastal teal
-  "#4A6B8A", // slate
-  "#E07A5F", // coral
-  "#D9A441", // amber
-  "#7A946B", // sage
-];
 
 export default function TripSettings({
   trip,

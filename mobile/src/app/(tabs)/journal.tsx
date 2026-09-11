@@ -12,6 +12,7 @@ import type { Memory, Place, Trip } from "@/lib/api";
 import MemoryEditor from "@/components/MemoryEditor";
 import { formatDay } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
+import { SEMANTIC } from "@/lib/brand";
 import { usePalette } from "@/lib/use-palette";
 
 /// When it happened, which is rarely when it was written — so the date shown
@@ -59,9 +60,9 @@ export default function JournalScreen() {
 
       <Pressable
         onPress={() => setWriting(true)}
-        style={[styles.new, { backgroundColor: palette.accent }]}
+        style={[styles.new, { backgroundColor: palette.primary }]}
       >
-        <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>
+        <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
           + Write something
         </Text>
       </Pressable>
@@ -107,7 +108,7 @@ export default function JournalScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#E07A5F", padding: 16 },
+  error: { color: SEMANTIC.danger, padding: 16 },
   empty: { textAlign: "center", padding: 32, lineHeight: 20 },
   new: { margin: 12, borderRadius: 10, alignItems: "center", paddingVertical: 12 },
   entry: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },

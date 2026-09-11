@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import { tripWhere } from "@/lib/trip-where";
 import {
   ActionSheetIOS,
@@ -141,7 +142,7 @@ export default function FeedList() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#E07A5F", padding: 16 },
+  error: { color: SEMANTIC.danger, padding: 16 },
   empty: { textAlign: "center", padding: 32, lineHeight: 20 },
   card: {
     flexDirection: "row",

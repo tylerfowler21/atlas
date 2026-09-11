@@ -101,7 +101,7 @@ export default function NavBar({
           // Ink on the coral, not white. White on it is 2.9:1 and on the teal
           // this used to be it was 2.5:1 — a count nobody can read is worse
           // than no count, and this is the smallest text in the interface.
-          <span className="absolute -top-1 -right-0.5 grid min-w-4 place-items-center rounded-full bg-[#E07A5F] px-1 text-[10px] font-bold text-[#14212B]">
+          <span className="absolute -top-1 -right-0.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-[color:var(--accent-contrast)]">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 
 const PAIRS = [
+  ["src/lib/brand.ts", "mobile/src/lib/brand.ts"],
   ["src/lib/taxonomy.ts", "mobile/src/lib/taxonomy.ts"],
   ["src/lib/report-reasons.ts", "mobile/src/lib/report-reasons.ts"],
   ["src/lib/place-name.ts", "mobile/src/lib/place-name.ts"],

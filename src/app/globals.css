@@ -1,45 +1,59 @@
 @import "tailwindcss";
 
-/* The brand guide's colour system, with its roles:
-     Deep Ocean   primary / navigation
-     Coastal Teal CTA / active
-     Sea Glass    accent / highlights
-     Warm Cream   brand surface
-     Soft White   app background
-     Ink          body text
+/* The brand kit's colour system, with its roles:
+     Evergreen 900  buttons, selected chips, navigation
+     Evergreen 700  raised surfaces in dark
+     Evergreen 100  brand surface, tints
+     Mist           the page
+     Card           anything raised off it
+     Sun            the floating button, counts, highlights
+     Sun ink        text that wants to look active
+     Ink            body text
+     Muted          everything secondary
 
-   White on Coastal Teal is 2.5:1, so buttons carry Ink instead — hence a
-   separate token for text drawn on the accent. */
+   Values are mirrored from src/lib/brand.ts, which is the source of truth and
+   is shared with the app. Change a colour there, then here.
+
+   Sun is 2.4:1 on the page, so it is a fill and never a text colour — the same
+   accommodation the old teal needed, moved to the orange. */
 :root {
-  --background: #fcfaf6;
-  --surface: #ffffff;
-  --brand-surface: #f4ede1;
-  --foreground: #14212b;
-  --muted: #55677a;
-  --border: rgba(20, 33, 43, 0.12);
-  --accent: #14b8a6;
-  --accent-contrast: #14212b;
-  /* Coastal Teal is a CTA colour, not a text colour: it is 2.5:1 on the page
-     background, so links set in it are unreadable. Text that wants to look
-     active uses Deep Ocean, which is 13.5:1. */
-  --accent-text: #0f2d4a;
-  --brand: #0f2d4a;
-  --sea-glass: #a7f3e0;
+  --background: #f3f5f1;
+  --surface: #fefefc;
+  --brand-surface: #e4ede8;
+  --foreground: #13241f;
+  --muted: #5b6b65;
+  --border: rgba(19, 36, 31, 0.12);
+  /* Buttons, selected chips, navigation. Carries white at 13.7:1. */
+  --primary: #12322b;
+  --on-primary: #fefefc;
+  /* The floating button, counts, the things meant to catch an eye. Sun is
+     2.4:1 on the page, so it is a fill and never a text colour — text that
+     wants to look active uses --accent-text. */
+  --accent: #f98746;
+  --accent-contrast: #13241f;
+  --accent-text: #a64a15;
+  --accent-tint: #ffe9db;
+  --brand: #12322b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1620;
-    --surface: #14212b;
-    --brand-surface: #0f2d4a;
-    --foreground: #fcfaf6;
-    --muted: #9fb3c4;
-    --border: rgba(167, 243, 224, 0.14);
-    --accent: #14b8a6;
-    --accent-contrast: #0b1620;
-    --accent-text: #a7f3e0;
-    --brand: #0f2d4a;
-    --sea-glass: #a7f3e0;
+    --background: #0b211c;
+    --surface: #12322b;
+    --brand-surface: #245247;
+    --foreground: #f3f5f1;
+    --muted: #8a9991;
+    --border: rgba(228, 237, 232, 0.14);
+    /* Inverted: an evergreen button on an evergreen page is a rectangle you
+       cannot see. The pale end of the same family carries the dark text. */
+    --primary: #e4ede8;
+    --on-primary: #12322b;
+    --accent: #f98746;
+    --accent-contrast: #13241f;
+    /* Sun ink is 1.8:1 on this background. Sun itself is 6.9:1. */
+    --accent-text: #f98746;
+    --accent-tint: #245247;
+    --brand: #e4ede8;
   }
 }
 
@@ -50,10 +64,12 @@
   --color-muted: var(--muted);
   --color-line: var(--border);
   --color-accent: var(--accent);
-  --color-sea-glass: var(--sea-glass);
   --color-brand: var(--brand);
   --color-brand-surface: var(--brand-surface);
   --color-accent-text: var(--accent-text);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-accent-tint: var(--accent-tint);
 }
 
 html,
@@ -181,14 +197,16 @@ h1,
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
+    /* The kit's radius rule: cards and sheets are 24 to 28. */
+    border-radius: 1.5rem;
   }
 
   .btn {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    border-radius: 0.5rem;
+    /* Controls are full pills. */
+    border-radius: 999px;
     padding: 0.5rem 0.85rem;
     font-size: 0.875rem;
     font-weight: 500;
@@ -196,12 +214,25 @@ h1,
     transition: background 120ms ease, opacity 120ms ease;
   }
 
+  /* The dark evergreen button: the one that commits to something. */
   .btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  /* Sun. For the one action on a screen that should be found without looking
+     — starting a trip, adding a place. Carries Ink, never white: Sun is
+     2.4:1 against white and 6.6:1 against Ink. */
+  .btn-accent {
     background: var(--accent);
     color: var(--accent-contrast);
   }
 
-  .btn-primary:hover {
+  .btn-accent:hover {
     opacity: 0.9;
   }
 
@@ -220,7 +251,7 @@ h1,
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--foreground);
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     padding: 0.5rem 0.7rem;
     font-size: 0.875rem;
   }
@@ -242,8 +273,12 @@ h1,
     white-space: nowrap;
   }
 
+  /* "On" here usually means "not filtered out", and most chips start on — so a
+     solid evergreen fill turns a filter row into a wall of dark and inverts
+     what the colour is saying. Definite, but light. */
   .chip.is-on {
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    background: var(--brand-surface);
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    color: var(--foreground);
   }
 }

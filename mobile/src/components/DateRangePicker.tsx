@@ -114,11 +114,11 @@ export default function DateRangePicker({
               <View
                 style={[
                   styles.day,
-                  inRange && { backgroundColor: `${palette.accent}22` },
-                  (isStart || isEnd) && { backgroundColor: palette.accent },
+                  inRange && { backgroundColor: `${palette.primary}22` },
+                  (isStart || isEnd) && { backgroundColor: palette.primary },
                   cell.time === today &&
                     !isStart &&
-                    !isEnd && { borderWidth: 1, borderColor: palette.accent },
+                    !isEnd && { borderWidth: 1, borderColor: palette.primary },
                 ]}
               >
                 <Text

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import DateRangePicker from "@/components/DateRangePicker";
 import DestinationField from "@/components/DestinationField";
 import { tripRegions } from "@/lib/trip-where";
@@ -186,14 +187,14 @@ export default function TripEditor({
               <Switch
                 value={published}
                 onValueChange={setPublished}
-                trackColor={{ true: palette.accent }}
+                trackColor={{ true: palette.primary }}
               />
             </View>
           )}
 
           {editing && (
             <Pressable onPress={remove} style={styles.remove}>
-              <Text style={{ color: "#E07A5F", fontWeight: "500" }}>Delete this trip</Text>
+              <Text style={{ color: SEMANTIC.danger, fontWeight: "500" }}>Delete this trip</Text>
             </Pressable>
           )}
         </ScrollView>

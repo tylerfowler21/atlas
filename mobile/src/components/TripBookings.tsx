@@ -4,6 +4,7 @@
 /// day it happens on — which is no use for the question people actually ask,
 /// which is what is still not booked. So they collect here, outstanding first.
 import { useState } from "react";
+import { SEMANTIC } from "@/lib/brand";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BOOKING_BOOKED, nextState, outstanding, tracked } from "@/lib/bookings";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
@@ -107,9 +108,9 @@ export default function TripBookings({
                 fontWeight: "600",
                 color:
                   urgencyOf(item.bookBy) === "overdue"
-                    ? "#E07A5F"
+                    ? SEMANTIC.danger
                     : urgencyOf(item.bookBy) === "soon"
-                      ? "#D9A441"
+                      ? SEMANTIC.warning
                       : palette.muted,
               }}
             >

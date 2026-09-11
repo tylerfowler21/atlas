@@ -247,9 +247,9 @@ function Primary({
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={[styles.primary, { backgroundColor: palette.accent, opacity: disabled ? 0.5 : 1 }]}
+      style={[styles.primary, { backgroundColor: palette.primary, opacity: disabled ? 0.5 : 1 }]}
     >
-      <Text style={{ color: palette.onAccent, fontWeight: "600", fontSize: 15 }}>{label}</Text>
+      <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>{label}</Text>
     </Pressable>
   );
 }
