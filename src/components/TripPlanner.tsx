@@ -786,6 +786,7 @@ export default function TripPlanner({
             <ol ref={listRef} className="mt-3 space-y-2">
               {dayItems.map((item, index) => {
                 const meta = categoryOf(item.category);
+                const timed = dayItems.some((i) => i.startTime);
                 const open = selectedId === item.id;
                 const leg = item.kind === "travel";
                 return (
@@ -799,11 +800,14 @@ export default function TripPlanner({
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      {/* The time column. A stop with no time keeps the
-                          column so the cards line up. */}
-                      <span className="w-11 shrink-0 text-xs tabular-nums text-muted">
-                        {item.startTime ?? ""}
-                      </span>
+                      {/* The time column, once any stop on the day has one.
+                          A stop with no time keeps the column so the cards
+                          line up; a day with none gives the room back. */}
+                      {timed && (
+                        <span className="w-11 shrink-0 text-xs tabular-nums text-muted">
+                          {item.startTime ?? ""}
+                        </span>
+                      )}
                       <span
                         title="Drag to reorder"
                         aria-label={`Stop ${index + 1}. Drag to reorder.`}
