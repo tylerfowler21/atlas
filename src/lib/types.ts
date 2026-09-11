@@ -188,6 +188,9 @@ export type PublicItemDTO = {
   dayIndex: number;
   startTime: string | null;
   endTime: string | null;
+  /// Days later that a journey lands, so a reader sees the "+1" on an
+  /// overnight flight rather than an arrival before its departure.
+  endDayOffset: number;
   category: string;
   position: number;
   place: PublicPlaceDTO | null;

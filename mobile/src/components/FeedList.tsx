@@ -110,7 +110,13 @@ export default function FeedList() {
           return (
             <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <View style={[styles.stripe, { backgroundColor: item.color }]} />
-              <View style={styles.body}>
+              <Pressable
+                style={styles.body}
+                // Reading somebody's trip should not cost you a copy of it.
+                onPress={() =>
+                  router.push({ pathname: "/published/[id]", params: { id: item.id } })
+                }
+              >
                 <Text style={[styles.author, { color: palette.muted }]} numberOfLines={1}>
                   {item.author.name ?? item.author.username ?? "Someone"}
                   {item.author.username ? ` · @${item.author.username}` : ""}
@@ -146,7 +152,7 @@ export default function FeedList() {
                     <Text style={{ color: palette.muted, fontSize: 13 }}>Report</Text>
                   </Pressable>
                 </View>
-              </View>
+              </Pressable>
             </View>
           );
         }}

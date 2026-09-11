@@ -170,7 +170,9 @@ export default function SharedTrip({
                                   : ""
                               }${
                                 item.startTime && item.endTime
-                                  ? ` · ${item.startTime}–${item.endTime}`
+                                  ? ` · ${item.startTime}–${item.endTime}${
+                                      item.endDayOffset > 0 ? ` +${item.endDayOffset}` : ""
+                                    }`
                                   : ""
                               }`
                             : `${meta.label}${item.place?.city ? ` · ${item.place.city}` : ""}`}
