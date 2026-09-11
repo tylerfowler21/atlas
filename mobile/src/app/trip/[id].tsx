@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { tripRegion } from "@/lib/place-groups";
 import { useCategories } from "@/lib/categories";
 import {
@@ -39,6 +39,7 @@ import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
 import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
+import { syncReminders } from "@/lib/booking-reminders";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -137,6 +138,34 @@ export default function TripScreen() {
     [data],
   );
   const toBook = outstanding(data?.items ?? []).length;
+
+  /// Keep the phone's reminders matching what the trip says.
+  ///
+  /// Done on every read of the trip rather than when a deadline is set: a
+  /// booking ticked off on the website, or by whoever you are travelling with,
+  /// has to stop reminding you too — and the only moment this screen reliably
+  /// learns about that is when it reads the trip.
+  const reminderKey = (data?.items ?? [])
+    .map((i) => `${i.id}:${i.booking ?? ""}:${i.bookBy ?? ""}`)
+    .join("|");
+
+  useEffect(() => {
+    if (!data) return;
+    void syncReminders(
+      data.items
+        .filter((i) => i.booking === BOOKING_NEEDED && i.bookBy)
+        .map((i) => ({
+          id: i.id,
+          title: i.title,
+          bookBy: i.bookBy!,
+          tripTitle: data.trip.title,
+        })),
+      data.items.map((i) => i.id),
+    );
+    // Keyed on what the reminders are made of, so a re-render that changes
+    // nothing does not reschedule the lot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reminderKey]);
 
   /// Where to ask about, day by day. A trip through three cities is three
   /// questions; one that stays put is still one.
