@@ -74,7 +74,7 @@ export default function ImportLink({
         className="btn btn-ghost text-xs"
         onClick={() => setOpen(true)}
       >
-        From a TikTok or Instagram link
+        Add from TikTok
       </button>
     );
   }
@@ -83,9 +83,9 @@ export default function ImportLink({
     <div className="card w-full space-y-2 p-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs text-muted">
-          Paste a link and the places in its caption land in the box below.
-          Instagram doesn&apos;t let anything read a caption without an account,
-          so those need the caption pasted too — it&apos;s two taps in their app.
+          Paste a TikTok link and the places in its caption land in the box
+          below. TikTok is the one that gives up its caption on its own, which
+          is why it is the one offered.
         </p>
         <button
           type="button"
@@ -98,14 +98,15 @@ export default function ImportLink({
 
       <input
         className="input text-sm"
-        placeholder="A TikTok or Instagram link"
+        placeholder="Paste a TikTok link"
         value={url}
         onChange={(e) => {
           setUrl(e.target.value);
-          // Instagram will never give up a caption, so ask for it the moment
-          // the link is recognised rather than after a round trip that can
-          // only come back saying no.
-          if (/instagram\.com|instagr\.am/i.test(e.target.value)) setNeedsCaption(true);
+          // Only TikTok will part with a caption, so anything else asks for
+          // one straight away rather than after a round trip that could only
+          // come back saying no.
+          const value = e.target.value.trim();
+          if (value.length > 12 && !/tiktok\.com/i.test(value)) setNeedsCaption(true);
         }}
       />
 

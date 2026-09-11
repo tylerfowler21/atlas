@@ -52,9 +52,9 @@ export async function POST(request: Request) {
       needsCaption: true,
       source,
       error:
-        source === "instagram"
-          ? "Instagram doesn't let anything read a post's caption without an account, so paste the caption here and it works the same."
-          : "That link didn't give up its caption — it may be private or removed. Paste the caption here instead.",
+        source === "tiktok"
+          ? "That link didn't give up its caption — it may be private or removed. Paste the caption here instead."
+          : "TikTok is the one that can be read automatically. Paste the caption here and the rest works the same.",
     });
   }
 

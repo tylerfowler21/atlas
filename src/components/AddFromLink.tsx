@@ -131,7 +131,7 @@ export default function AddFromLink({
           setOpen(true);
         }}
       >
-        + Add places from a TikTok or Instagram link
+        + Add places from TikTok
       </button>
     );
   }
@@ -141,7 +141,7 @@ export default function AddFromLink({
   return (
     <div className="card space-y-3 p-3">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-semibold">Add places from a link</h2>
+        <h2 className="text-sm font-semibold">Add places from TikTok</h2>
         <button
           type="button"
           className="rounded px-1.5 text-muted hover:bg-foreground/5"

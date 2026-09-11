@@ -33,10 +33,11 @@ type Found = {
   keep: boolean;
 };
 
-/// Instagram will not give up a caption to anything without an account, so
-/// those links ask for a paste. TikTok's comes back on its own.
-function isInstagram(url: string) {
-  return /instagram\.com|instagr\.am/i.test(url);
+/// TikTok is the only one that parts with a caption, so anything else asks
+/// for a paste rather than failing after a round trip.
+function needsPastedCaption(url: string) {
+  const value = url.trim();
+  return value.length > 12 && !/tiktok\.com/i.test(value);
 }
 
 export default function AddFromLink({
@@ -186,7 +187,7 @@ export default function AddFromLink({
         keyboardDismissMode="on-drag"
       >
         <View style={styles.head}>
-          <Text style={[styles.title, { color: palette.ink }]}>Add from a link</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>Add from TikTok</Text>
           <Pressable onPress={onClose} hitSlop={8}>
             <Text style={{ color: palette.muted, fontSize: 15 }}>Close</Text>
           </Pressable>
@@ -210,11 +211,11 @@ export default function AddFromLink({
           value={url}
           onChangeText={(next) => {
             setUrl(next);
-            if (isInstagram(next)) setNeedsCaption(true);
+            if (needsPastedCaption(next)) setNeedsCaption(true);
           }}
           autoCapitalize="none"
           keyboardType="url"
-          placeholder="Paste a TikTok or Instagram link"
+          placeholder="Paste a TikTok link"
           placeholderTextColor={palette.muted}
           style={[styles.input, field]}
         />

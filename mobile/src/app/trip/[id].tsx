@@ -627,7 +627,7 @@ export default function TripScreen() {
                 {/* The reel is on this phone, so the places should go in from
                     this phone — and onto the day whose button was pressed. */}
                 <Pressable onPress={() => setLinkDay(day)} style={styles.add}>
-                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ From a link</Text>
+                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ From TikTok</Text>
                 </Pressable>
               </View>
             </View>
