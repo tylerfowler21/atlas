@@ -163,7 +163,10 @@ export default function MapScreen() {
   const preview = sharing ? sharePreview : null;
 
   const listed = useMemo(() => {
-    const base = view === "all" ? places : places.filter((p) => p.status !== "wishlist");
+    // Been is about where you have actually been; Cities and Countries are
+    // about spread, and hiding what you have not reached yet would empty them
+    // for anybody still planning.
+    const base = view === "been" ? places.filter((p) => p.status !== "wishlist") : places;
     const here = within
       ? base.filter((p) => p.city === within || p.country === within)
       : base;
@@ -545,7 +548,7 @@ export default function MapScreen() {
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
                 ListEmptyComponent={
                   <Text style={[styles.listEmpty, { color: palette.muted }]}>
-                    Mark somewhere as been there and it appears here.
+                    Save a place and the city it is in appears here.
                   </Text>
                 }
                 renderItem={({ item }) => (

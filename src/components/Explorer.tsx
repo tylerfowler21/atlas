@@ -124,9 +124,11 @@ export default function Explorer({
       places.filter(
         (p) =>
           (statusFilter === "all" || p.status === statusFilter) &&
-          // Been, Cities and Countries are all about where you have actually
-          // been, so a wishlist pin is not part of any of their answers.
-          (view === "all" || p.status !== "wishlist") &&
+          // Been is about where you have actually been, so a wishlist pin is
+          // not part of its answer. Cities and Countries are about spread, and
+          // hiding the places you have not reached yet would empty them for
+          // anybody still planning.
+          (view !== "been" || p.status !== "wishlist") &&
           (drilledInto === null || p.city === drilledInto || p.country === drilledInto) &&
           // While a link is being composed, the map shows the link.
           (preview === null ||
@@ -421,10 +423,10 @@ export default function Explorer({
               </div>
             </div>
 
-            {/* The four counts. "How many countries have you been to" is the
-                question this map exists to answer, and it is answered by naming
-                them — so these open into lists rather than just reading out a
-                number. */}
+            {/* The four counts, which open into lists rather than just reading
+                out a number: "how many countries" is answered by naming them.
+                Been counts where you have actually been; Cities and Countries
+                count spread, including the places you are still planning. */}
             <div className={`flex-wrap gap-1.5 ${listOpen ? "flex" : "hidden lg:flex"}`}>
               {(
                 [
@@ -559,7 +561,7 @@ export default function Explorer({
             {(view === "cities" || view === "countries") && !drilledInto ? (
               <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
                 <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">
-                  {view === "cities" ? "Cities" : "Countries"} you&apos;ve been to
+                  {view === "cities" ? "Cities" : "Countries"} on your map
                 </h2>
                 {(view === "cities" ? groups.cities : groups.countries).length === 0 ? (
                   <p className="card p-3 text-xs text-muted">

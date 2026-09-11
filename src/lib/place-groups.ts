@@ -39,10 +39,19 @@ function tally(places: PlaceLike[], key: "city" | "country"): Group[] {
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
+/// Cities and countries count every place you have saved, not only the ones
+/// you have been to.
+///
+/// They used to count only the visited ones, which is the right answer to "how
+/// many countries have you been to" and the wrong one for a tile sitting beside
+/// "14 Places". Somebody who has saved fourteen places and marked none of them
+/// visited — which is everybody, on their first day — read "0 Cities" and
+/// concluded the thing was broken. Being is what the Been tile counts; these
+/// two count spread.
 export function groupPlaces(places: PlaceLike[]) {
   const been = beenPlaces(places);
-  const cities = tally(been, "city");
-  const countries = tally(been, "country");
+  const cities = tally(places, "city");
+  const countries = tally(places, "country");
 
   return {
     cities,
