@@ -82,13 +82,24 @@ function loadMapKit(): Promise<typeof mapkit> {
 }
 
 /// The pin, built as DOM so it matches the MapLibre one exactly — same emoji,
-/// same coloured ring, same badge.
-function pinElement(pin: MapPin) {
+/// same colour, same badge.
+///
+/// It did not match. This set the category colour as the pin's *border*, while
+/// the free basemap set it as `--pin-color`, which the stylesheet uses to fill
+/// the disc. So the same saved place was a coloured disc with a white ring on
+/// one map and a grey disc with a coloured ring on the other — and since Apple
+/// Maps is what anyone signed in actually sees, the category colours were
+/// effectively not on the map at all.
+function pinElement(pin: MapPin, selected: boolean) {
   const el = document.createElement("div");
   el.className = "roava-pin";
-  el.style.borderColor = pin.color;
-  // Matches the free basemap's muted pins, which used a different value.
-  if (pin.muted) el.style.opacity = "0.72";
+  // The stylesheet draws the selected pin — bigger, with the orange halo.
+  // MapKit's own `selected` flag is about its callout and does nothing to the
+  // element, so without this the selected pin looked like all the others and
+  // only the free basemap ever showed which one you had opened.
+  if (selected) el.classList.add("is-selected");
+  if (pin.muted) el.classList.add("is-muted");
+  el.style.setProperty("--pin-color", pin.color);
 
   const face = document.createElement("span");
   face.className = "roava-pin-face";
@@ -309,7 +320,7 @@ export default function MapKitCanvas({
     const annotations = pins.map((pin) => {
       const annotation = new mapkit.Annotation(
         new mapkit.Coordinate(pin.lat, pin.lng),
-        () => pinElement(pin),
+        () => pinElement(pin, pin.id === selectedId),
         {
           anchorOffset: new DOMPoint(0, -8),
           data: { id: pin.id },
