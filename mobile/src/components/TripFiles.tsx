@@ -4,12 +4,11 @@
 /// Two shapes, one component, matching the website: attached to the stop it
 /// confirms, and gathered on the trip's own Files tab.
 ///
-/// Picking a PDF needs expo-document-picker, which is a native module and so
-/// only exists in builds made after it was added. It is imported lazily and
-/// the button says so when it is missing, rather than the whole screen failing
-/// over a file nobody has chosen yet. Photos work either way, and a screenshot
-/// of a confirmation is the commonest confirmation there is.
+/// A confirmation arrives as a PDF or as a screenshot of one, so both are
+/// offered: the document picker for what the hotel emailed, the photo library
+/// for what somebody screenshotted.
 import { useState } from "react";
+import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import {
   ActionSheetIOS,
@@ -21,18 +20,31 @@ import {
   View,
 } from "react-native";
 import { API_URL, upload, api, type TripDocument } from "@/lib/api";
-import { documentIcon, formatBytes, MAX_DOCUMENT_BYTES } from "@/lib/trip-documents";
+import {
+  ALLOWED_DOCUMENT_TYPES,
+  documentIcon,
+  formatBytes,
+  MAX_DOCUMENT_BYTES,
+} from "@/lib/trip-documents";
 import { usePalette } from "@/lib/use-palette";
 
-/// Picking a PDF needs expo-document-picker, which is a native module and is
-/// not a dependency yet: adding it changes the native fingerprint, and then
-/// nothing at all could ship over the air until a new build cleared review.
-/// Resolving it by name at runtime does not work either — Metro needs a static
-/// module name, and Hermes rejects the bundle outright.
-///
-/// So the option is offered and says what it is waiting for, rather than
-/// silently not being there. Photos work today, and a screenshot of a
-/// confirmation is the commonest confirmation there is.
+async function pickDocument() {
+  const result = await DocumentPicker.getDocumentAsync({
+    // The same list the server accepts, so a file is turned away in the picker
+    // rather than after it has been chosen and uploaded.
+    type: [...ALLOWED_DOCUMENT_TYPES.keys()],
+    copyToCacheDirectory: true,
+  });
+  const file = result.assets?.[0];
+  if (result.canceled || !file) return null;
+  return {
+    uri: file.uri,
+    name: file.name || "Document",
+    type: file.mimeType || "application/octet-stream",
+    size: file.size ?? 0,
+  };
+}
+
 async function pickPhoto() {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
@@ -108,10 +120,8 @@ export default function TripFiles({
           if (picked) await send(picked);
         }
         if (chosen === 2) {
-          Alert.alert(
-            "PDFs come with the next update",
-            "Photos and screenshots work now. Choosing a PDF or Word file needs a part of the app that ships with the next App Store update — until then you can add one on roava.co, and it shows here.",
-          );
+          const picked = await pickDocument();
+          if (picked) await send(picked);
         }
       },
     );
