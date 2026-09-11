@@ -23,7 +23,7 @@ import { travelMode } from "@/lib/taxonomy";
 import { dayLabel } from "@/lib/dates";
 import { tripRegions } from "@/lib/trip-where";
 import { useTripWeather } from "@/lib/use-trip-weather";
-import { condition } from "@/lib/weather";
+import { condition, weatherSegments } from "@/lib/weather";
 import {
   API_URL,
   api,
@@ -109,23 +109,16 @@ export default function TripScreen() {
   );
   const toBook = outstanding(data?.items ?? []).length;
 
-  /// Where to ask about. The first placed stop of the trip: a trip's days are
-  /// usually within a few miles of each other, and the alternative is a
-  /// request per day for an answer that barely differs.
-  const weatherAt = useMemo(() => {
-    const placed = (data?.items ?? []).find((i) => i.place);
-    return placed?.place ? { lat: placed.place.lat, lng: placed.place.lng } : null;
-  }, [data]);
-
-  const weather = useTripWeather(
-    weatherAt,
-    data?.trip.startDate ? data.trip.startDate.slice(0, 10) : null,
-    data?.trip.startDate
-      ? new Date(Date.parse(data.trip.startDate) + (days - 1) * 86_400_000)
-          .toISOString()
-          .slice(0, 10)
-      : null,
+  /// Where to ask about, day by day. A trip through three cities is three
+  /// questions; one that stays put is still one.
+  const segments = useMemo(
+    () =>
+      data?.trip.startDate
+        ? weatherSegments(data.trip.startDate, days, data.items)
+        : [],
+    [data, days],
   );
+  const weather = useTripWeather(segments);
   /// Stops per day, for the dots on the calendar.
   const dayCounts = useMemo(() => {
     const counts = Array.from({ length: days }, () => 0);

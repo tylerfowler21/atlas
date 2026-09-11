@@ -23,7 +23,7 @@ import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
 import { useTripWeather } from "@/lib/use-trip-weather";
-import { condition } from "@/lib/weather";
+import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
 import { dateForDay, dayCount, formatDay, formatRange } from "@/lib/trips";
@@ -519,24 +519,13 @@ export default function TripPlanner({
 
   const dayDate = dateForDay(trip, activeDay);
 
-  /// Where to ask about. The first placed stop of the trip: a trip's days are
-  /// usually within a few miles of each other, and the alternative is a
-  /// request per day for an answer that barely differs.
-  const weatherAt = useMemo(() => {
-    const placed = items.find((i) => i.place);
-    return placed?.place ? { lat: placed.place.lat, lng: placed.place.lng } : null;
-  }, [items]);
-
-  const weather = useTripWeather(
-    weatherAt,
-    trip.startDate ? trip.startDate.slice(0, 10) : null,
-    // A trip with no end still has days; ask to the last one it has.
-    trip.startDate
-      ? new Date(Date.parse(trip.startDate) + (days - 1) * 86400000)
-          .toISOString()
-          .slice(0, 10)
-      : null,
+  /// Where to ask about, day by day. A trip through three cities is three
+  /// questions; one that stays put is still one.
+  const segments = useMemo(
+    () => (trip.startDate ? weatherSegments(trip.startDate, days, items) : []),
+    [trip.startDate, days, items],
   );
+  const weather = useTripWeather(segments);
   const todayWeather = dayDate ? weather.get(dayDate.toISOString().slice(0, 10)) : undefined;
   /// Journeys that took off earlier and land today.
   const arrivalsToday = items.filter(

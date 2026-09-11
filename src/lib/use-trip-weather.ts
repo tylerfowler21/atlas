@@ -1,57 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { unitsFor, type DayWeather } from "@/lib/weather";
+import { unitsFor, type DayWeather, type WeatherSegment } from "@/lib/weather";
 
 const NONE: Map<string, DayWeather> = new Map();
 
-/// Weather for a whole trip, asked for once.
+/// Weather for a trip, one request per place it passes through.
 ///
-/// Keyed on the place and the range rather than fetched per day: one request
-/// covers a fortnight, and asking per day would be fourteen requests for the
-/// same answer.
-export function useTripWeather(
-  centre: { lat: number; lng: number } | null,
-  start: string | null,
-  end: string | null,
-): Map<string, DayWeather> {
-  /// The answer carries the question it answers. Clearing state when the trip
-  /// changes would mean a setState in the effect's synchronous path, which the
-  /// compiler refuses — and rightly, since the same thing falls out of
-  /// comparing keys, without the extra render.
+/// Segments rather than a single point: a fortnight through three cities is
+/// three questions, and asking only the first would answer all three with
+/// Lucerne. A trip that stays put is still one request, which is the common
+/// case and stays cheap.
+export function useTripWeather(segments: WeatherSegment[]): Map<string, DayWeather> {
+  /// The answer carries the question it answers, so a trip that changes shows
+  /// nothing rather than the last one's weather — and without a setState in
+  /// the effect's synchronous path, which the compiler refuses.
   const [state, setState] = useState<{ key: string; days: Map<string, DayWeather> }>({
     key: "",
     days: NONE,
   });
 
-  const lat = centre?.lat ?? null;
-  const lng = centre?.lng ?? null;
-  const key =
-    lat !== null && lng !== null && start && end ? `${lat},${lng},${start},${end}` : "";
+  const key = segments
+    .map((s) => `${s.lat.toFixed(2)},${s.lng.toFixed(2)},${s.start},${s.end}`)
+    .join("|");
 
   useEffect(() => {
     if (!key) return;
-
     let alive = true;
-    const [kLat, kLng, kStart, kEnd] = key.split(",");
-    const params = new URLSearchParams({
-      lat: kLat!,
-      lng: kLng!,
-      start: kStart!,
-      end: kEnd!,
-      units: unitsFor(
-        typeof navigator === "undefined" ? "en-US" : (navigator.language ?? "en-US"),
-      ),
-    });
 
-    void fetch(`/api/weather?${params}`)
-      .then((r) => r.json())
-      .then((body: { days?: DayWeather[] }) => {
-        if (!alive) return;
-        setState({ key, days: new Map((body.days ?? []).map((d) => [d.date, d])) });
-      })
-      // A trip is perfectly usable without weather on it.
-      .catch(() => {});
+    const units = unitsFor(
+      typeof navigator === "undefined" ? "en-US" : (navigator.language ?? "en-US"),
+    );
+
+    // In parallel: they are separate places, and a trip should not wait three
+    // round trips to show the first day.
+    void Promise.all(
+      key.split("|").map(async (part) => {
+        const [lat, lng, start, end] = part.split(",");
+        const params = new URLSearchParams({ lat: lat!, lng: lng!, start: start!, end: end!, units });
+        try {
+          const res = await fetch(`/api/weather?${params}`);
+          const body = (await res.json()) as { days?: DayWeather[] };
+          return body.days ?? [];
+        } catch {
+          // A trip is perfectly usable without weather on it.
+          return [];
+        }
+      }),
+    ).then((all) => {
+      if (!alive) return;
+      setState({ key, days: new Map(all.flat().map((d) => [d.date, d])) });
+    });
 
     return () => {
       alive = false;
