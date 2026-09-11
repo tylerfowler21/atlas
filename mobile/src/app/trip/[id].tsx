@@ -29,10 +29,12 @@ import {
   type Place,
   type Trip,
   type TripResource,
+  type TripDocument,
 } from "@/lib/api";
 import TripBookings from "@/components/TripBookings";
 import TripCalendar from "@/components/TripCalendar";
 import TripResources from "@/components/TripResources";
+import TripFiles from "@/components/TripFiles";
 import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
@@ -42,6 +44,7 @@ type TripResponse = {
   role: string;
   items: ItineraryItem[];
   resources: TripResource[];
+  documents: TripDocument[];
 };
 
 function dayCount(trip: Trip, items: ItineraryItem[]) {
@@ -96,7 +99,7 @@ export default function TripScreen() {
   const [mapDay, setMapDay] = useState<number | null>(null);
   /// Which of the trip's three lists is showing: the trip as it will happen,
   /// and the two ways it has to be prepared for.
-  const [view, setView] = useState<"days" | "bookings" | "before">("days");
+  const [view, setView] = useState<"days" | "bookings" | "before" | "files">("days");
 
   const days = useMemo(
     () => (data ? dayCount(data.trip, data.items) : 0),
@@ -274,6 +277,7 @@ export default function TripScreen() {
           tripRegion((data?.items ?? []).map((i) => i.place).filter((p) => p !== null))
         }
         places={placeData?.places ?? []}
+        documents={data?.documents ?? []}
         onClose={() => setItem(null)}
         onSaved={reload}
       />
@@ -306,6 +310,7 @@ export default function TripScreen() {
               ["days", "Days", 0],
               ["bookings", "Bookings", toBook],
               ["before", "Before you go", toSort],
+              ["files", "Files", (data?.documents ?? []).length],
             ] as const
           ).map(([id, label, count]) => {
             const on = view === id;
@@ -338,6 +343,10 @@ export default function TripScreen() {
             resources={data.resources ?? []}
             onChanged={reload}
           />
+        )}
+
+        {view === "files" && (
+          <TripFiles tripId={id} files={data.documents ?? []} onChanged={reload} />
         )}
 
         {view === "days" && (

@@ -197,6 +197,19 @@ export type TripResource = {
   position: number;
 };
 
+/// A file belonging to a trip — a confirmation, a ticket, an emailed
+/// itinerary.
+export type TripDocument = {
+  id: string;
+  tripId: string;
+  name: string;
+  contentType: string;
+  size: number;
+  /// The stop it confirms, or null for a file that belongs to the whole trip.
+  itemId: string | null;
+  createdAt: string;
+};
+
 export type ItineraryItem = {
   id: string;
   tripId: string;

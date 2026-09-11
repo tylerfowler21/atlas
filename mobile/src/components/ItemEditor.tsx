@@ -1,4 +1,5 @@
 import { useState } from "react";
+import TripFiles from "@/components/TripFiles";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
@@ -17,7 +18,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, type ItineraryItem, type Place, type SearchResult } from "@/lib/api";
+import {
+  api,
+  type ItineraryItem,
+  type Place,
+  type SearchResult,
+  type TripDocument,
+} from "@/lib/api";
 import { TRAVEL_MODES } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState } from "@/lib/bookings";
@@ -94,6 +101,7 @@ export default function ItemEditor({
   draft,
   destination,
   places,
+  documents,
   onClose,
   onSaved,
 }: {
@@ -102,6 +110,8 @@ export default function ItemEditor({
   /// inside a trip to Barcelona should not begin with the branch in Chicago.
   destination: string[] | string | null;
   places: Place[];
+  /// The trip's files, so a stop can show the ones attached to it.
+  documents: TripDocument[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -532,6 +542,20 @@ export default function ItemEditor({
             placeholderTextColor={palette.muted}
             style={[styles.input, styles.emoji, field]}
           />
+
+          {/* The confirmation, on the thing it confirms. The trip's Files tab
+              shows it too — the same list, read from the stop it belongs to. */}
+          {draft?.mode === "edit" && (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>Files</Text>
+              <TripFiles
+                tripId={draft.item.tripId}
+                files={documents}
+                itemId={draft.item.id}
+                onChanged={onSaved}
+              />
+            </>
+          )}
 
           {/* The tick that puts this on the trip's bookings tab, and takes it
               off again. Nothing is a booking until somebody says so. */}
