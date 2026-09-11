@@ -418,6 +418,10 @@ export default function MapKitCanvas({
         lat: live.center.latitude,
         lng: live.center.longitude,
         span: Math.max(span.latitudeDelta, span.longitudeDelta),
+        north: live.center.latitude + span.latitudeDelta / 2,
+        south: live.center.latitude - span.latitudeDelta / 2,
+        east: live.center.longitude + span.longitudeDelta / 2,
+        west: live.center.longitude - span.longitudeDelta / 2,
       });
     };
     report();

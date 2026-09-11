@@ -44,7 +44,19 @@ export type MapCanvasProps = {
   /// `span` is the larger of the two visible spans in degrees, so a caller can
   /// tell "looking at an island" from "looking at the Atlantic". The centre of
   /// a world view is a point in the Gulf of Guinea and means nothing.
-  onViewport?: (view: { lat: number; lng: number; span: number }) => void;
+  /// Where the map is looking, reported when it stops moving. `span` is the
+  /// wider of the two deltas in degrees; the edges are the actual visible
+  /// rectangle, which is what a list following the map has to filter against —
+  /// a radius from the centre either clips the corners or overshoots them.
+  onViewport?: (view: {
+    lat: number;
+    lng: number;
+    span: number;
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }) => void;
   /// Change this string to re-fit the viewport to the current pins.
   fitToken?: string;
   /// Pan to one point without refitting everything. Bump `token` to re-run it.

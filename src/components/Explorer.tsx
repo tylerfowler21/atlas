@@ -19,6 +19,7 @@ import { STATUSES, status as statusOf } from "@/lib/taxonomy";
 import type { PlaceDTO, PlaceDraft, SearchResult, TripDTO } from "@/lib/types";
 import type { SelectedPlace } from "@/components/map-types";
 import { enrichSelectedPlace } from "@/lib/enrich-place";
+import { WORLD_SPAN, inView, viewName, viewSubtitle, type Bounds } from "@/lib/map-view";
 
 const DRAFT_PIN_ID = "__draft__";
 
@@ -140,6 +141,13 @@ export default function Explorer({
   const [drag, setDrag] = useState(0);
   const dragFrom = useRef<number | null>(null);
 
+  /// Where the map is looking. Held in state as well as in the ref above,
+  /// because the list beside the map now answers "what is here" — and the ref
+  /// exists precisely so that panning does *not* re-render, which is the
+  /// opposite of what a list following the map needs. The map reports this
+  /// when it stops moving, so it is one render per gesture.
+  const [bounds, setBounds] = useState<Bounds | null>(null);
+
   // --- world search, as you type -------------------------------------------
   const trimmedQuery = query.trim();
   const { results, searching } = usePlaceSearch(trimmedQuery, (q, mode) =>
@@ -171,15 +179,37 @@ export default function Explorer({
     [places, statusFilter, hidden, view, drilledInto, preview],
   );
 
+  /// The places the map is currently showing.
+  ///
+  /// Only while the view is of somewhere in particular. Zoomed out to a
+  /// continent there is nothing useful to narrow to, and a list that empties
+  /// itself as you zoom out would be a list that breaks when you look for
+  /// something.
+  ///
+  /// Searching turns this off: typing a name means you are looking for it
+  /// wherever it is, and hiding the answer because it is off-screen is the
+  /// most annoying thing a search can do.
+  const inFrame = useMemo(() => {
+    if (!bounds || bounds.span > WORLD_SPAN || trimmedQuery.length > 0) return visiblePlaces;
+    return visiblePlaces.filter((p) => inView(p, bounds));
+  }, [visiblePlaces, bounds, trimmedQuery]);
+
   const localMatches = useMemo(() => {
     const q = trimmedQuery.toLowerCase();
-    if (q.length === 0) return visiblePlaces;
-    return visiblePlaces.filter((p) =>
+    if (q.length === 0) return inFrame;
+    return inFrame.filter((p) =>
       [p.name, p.city, p.country, p.notes]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(q)),
     );
-  }, [visiblePlaces, trimmedQuery]);
+  }, [inFrame, trimmedQuery]);
+
+  /// What to call what is on screen, and the line under it.
+  const here = useMemo(() => viewName(inFrame, bounds), [inFrame, bounds]);
+  const hereSubtitle = useMemo(
+    () => viewSubtitle(inFrame, here, visiblePlaces.length),
+    [inFrame, here, visiblePlaces.length],
+  );
 
   const pins = useMemo<MapPin[]>(() => {
     const list: MapPin[] = visiblePlaces.map((p) => {
@@ -627,6 +657,18 @@ export default function Explorer({
               </section>
             ) : (
             <section className={`min-h-0 ${listOpen ? "" : "hidden lg:block"}`}>
+              {/* What the map is looking at. The list under it answers "what is
+                  here", so it is worth saying where "here" is — and saying it
+                  from the places themselves rather than by reverse-geocoding
+                  the centre of the view, which would be a request per pan to
+                  learn a name the places already know. */}
+              {here && (
+                <div className="mb-2.5">
+                  <h2 className="display text-2xl leading-tight">{here}</h2>
+                  <p className="text-xs text-muted">{hereSubtitle}</p>
+                </div>
+              )}
+
               {/* Collapsible on its own, separately from hiding the whole
                   sidebar. Ninety-two places is a long scroll between the
                   filters above it and anything below, and someone who has just
@@ -765,6 +807,13 @@ export default function Explorer({
             // the ocean that no one is thinking about.
             viewport.current =
               view.span <= 8 ? { lat: view.lat, lng: view.lng } : null;
+            setBounds({
+              north: view.north,
+              south: view.south,
+              east: view.east,
+              west: view.west,
+              span: view.span,
+            });
           }}
           fitToken={String(fitSeq)}
           focus={focus}

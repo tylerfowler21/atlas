@@ -71,6 +71,10 @@ export default function MapLibreCanvas({
           Math.abs(bounds.getNorth() - bounds.getSouth()),
           Math.abs(bounds.getEast() - bounds.getWest()),
         ),
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
       });
     };
     report();
