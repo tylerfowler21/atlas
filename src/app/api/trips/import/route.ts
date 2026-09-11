@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, tripImportSchema } from "@/lib/validation";
+import { tripAccess } from "@/lib/trip-access";
 
 /// Two places within ~50m of each other with the same name are the same place.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -16,12 +17,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
 
-  const { trip, entries, markVisited } = parsed.data;
-  if (trip.startDate && trip.endDate && trip.endDate < trip.startDate) {
+  const { trip, tripId, entries, markVisited } = parsed.data;
+
+  if (!trip && !tripId) {
+    return NextResponse.json({ error: "Which trip?" }, { status: 400 });
+  }
+  if (trip?.startDate && trip.endDate && trip.endDate < trip.startDate) {
     return NextResponse.json({ error: "The trip ends before it starts" }, { status: 400 });
   }
 
-  const visitedAt = markVisited ? (trip.startDate ?? new Date()) : null;
+  // Appending is only allowed to a trip this person can already edit, checked
+  // before anything is written.
+  const existingTrip = tripId ? await tripAccess(tripId, user) : null;
+  if (tripId && !existingTrip) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const visitedAt = markVisited
+    ? (trip?.startDate ?? existingTrip?.trip.startDate ?? new Date())
+    : null;
 
   const result = await prisma.$transaction(async (tx) => {
     const placeIds = new Map<number, string>();
@@ -76,28 +90,48 @@ export async function POST(request: Request) {
       placeIds.set(index, place.id);
     }
 
-    // Position is per-day, so count within each day rather than overall.
+    // Position is per-day, so count within each day rather than overall. When
+    // appending, each day starts after whatever is already on it — otherwise
+    // the new stops claim positions the existing ones already hold.
     const positionByDay = new Map<number, number>();
+    if (existingTrip) {
+      const already = await tx.itineraryItem.groupBy({
+        by: ["dayIndex"],
+        where: { tripId: existingTrip.trip.id },
+        _count: { _all: true },
+      });
+      for (const row of already) positionByDay.set(row.dayIndex, row._count._all);
+    }
+
+    const itemFor = (entry: (typeof entries)[number], index: number) => {
+      const position = positionByDay.get(entry.dayIndex) ?? 0;
+      positionByDay.set(entry.dayIndex, position + 1);
+      return {
+        title: entry.title,
+        notes: entry.notes,
+        dayIndex: entry.dayIndex,
+        startTime: entry.startTime,
+        category: entry.category,
+        position,
+        placeId: placeIds.get(index) ?? null,
+      };
+    };
+
+    if (existingTrip) {
+      await tx.itineraryItem.createMany({
+        data: entries.map((entry, index) => ({
+          ...itemFor(entry, index),
+          tripId: existingTrip.trip.id,
+        })),
+      });
+      return { tripId: existingTrip.trip.id, created, reused };
+    }
 
     const saved = await tx.trip.create({
       data: {
-        ...trip,
+        ...trip!,
         userId: user.id,
-        items: {
-          create: entries.map((entry, index) => {
-            const position = positionByDay.get(entry.dayIndex) ?? 0;
-            positionByDay.set(entry.dayIndex, position + 1);
-            return {
-              title: entry.title,
-              notes: entry.notes,
-              dayIndex: entry.dayIndex,
-              startTime: entry.startTime,
-              category: entry.category,
-              position,
-              placeId: placeIds.get(index) ?? null,
-            };
-          }),
-        },
+        items: { create: entries.map(itemFor) },
       },
     });
 

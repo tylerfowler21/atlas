@@ -99,6 +99,15 @@ export default function TripImporter({
   /// the pins instead does not work — the map mounts in the same render the
   /// first pin arrives, and asks to be fitted before it has anything on it.
   const [fitSeq, setFitSeq] = useState(0);
+  /// An existing trip to add to, or "" for a new one.
+  ///
+  /// A feed is where the next trip gets planned — somebody sends you a reel of
+  /// six places in a city you are going to in March, and those six belong on
+  /// the trip that already exists, not on a second trip with the same name.
+  const [intoTripId, setIntoTripId] = useState("");
+  const [trips, setTrips] = useState<{ id: string; title: string; startDate: string | null }[]>(
+    [],
+  );
 
   const preview = useMemo(() => parseItinerary(text), [text]);
   const dayCount = parsedDayCount(preview);
@@ -225,6 +234,28 @@ export default function TripImporter({
     }
   }
 
+  /// Loaded when the picker is first shown rather than on mount: most imports
+  /// are a new trip and never need the list.
+  async function loadTrips() {
+    if (trips.length > 0) return;
+    try {
+      const res = await fetch("/api/trips");
+      const body = await res.json();
+      setTrips(
+        (body.trips ?? []).map(
+          (t: { id: string; title: string; startDate: string | null }) => ({
+            id: t.id,
+            title: t.title,
+            startDate: t.startDate,
+          }),
+        ),
+      );
+    } catch {
+      // Without the list the picker simply offers a new trip, which is the
+      // behaviour this always had.
+    }
+  }
+
   async function create() {
     if (!rows) return;
     setBusy(true);
@@ -286,16 +317,20 @@ export default function TripImporter({
         : await fetch("/api/trips/import", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              trip: {
-                title: title.trim(),
-                destination: region.trim() || null,
-                startDate: startDate || null,
-                endDate,
-              },
-              markVisited,
-              entries: entries(),
-            }),
+            body: JSON.stringify(
+              intoTripId
+                ? { tripId: intoTripId, markVisited, entries: entries() }
+                : {
+                    trip: {
+                      title: title.trim(),
+                      destination: region.trim() || null,
+                      startDate: startDate || null,
+                      endDate,
+                    },
+                    markVisited,
+                    entries: entries(),
+                  },
+            ),
           });
 
     const body = await res.json().catch(() => ({}));
@@ -555,15 +590,49 @@ export default function TripImporter({
       <div className="mt-6 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           {destination !== "places" && (
-            <label className="text-xs text-muted">
-              Trip name
-              <input
+            <div className="text-xs text-muted">
+              {/* Where it goes. A feed is where the next trip gets planned:
+                  six places off a reel belong on the trip you already have for
+                  March, not on a second trip with the same name. */}
+              <label htmlFor="into-trip">Add to</label>
+              <select
+                id="into-trip"
                 className="input mt-1"
-                placeholder="Switzerland"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </label>
+                value={intoTripId}
+                onFocus={loadTrips}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setIntoTripId(next);
+                  // A trip that has not happened yet is a plan, and places
+                  // added to a plan are somewhere you want to go rather than
+                  // somewhere you have been. Getting this wrong marks half a
+                  // city visited before you have left home.
+                  const chosen = trips.find((t) => t.id === next);
+                  if (chosen) {
+                    const upcoming =
+                      !chosen.startDate || Date.parse(chosen.startDate) > Date.now();
+                    setMarkVisited(!upcoming);
+                  }
+                }}
+              >
+                <option value="">A new trip</option>
+                {trips.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+
+              {!intoTripId && (
+                <input
+                  className="input mt-2"
+                  aria-label="Trip name"
+                  placeholder="Switzerland"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              )}
+            </div>
           )}
           {/* This matters more for a list, not less. A note full of restaurants
               is a note about one place, and without saying which, "Husk" finds
@@ -796,16 +865,21 @@ export default function TripImporter({
               type="button"
               className="btn btn-primary"
               // A list of places needs no name; a trip does.
-              disabled={busy || (destination !== "places" && title.trim().length === 0)}
+              disabled={
+                busy ||
+                (destination !== "places" && !intoTripId && title.trim().length === 0)
+              }
               onClick={create}
             >
               {busy
                 ? "Saving…"
                 : destination !== "places"
-                  ? `Create trip with ${including} ${including === 1 ? "stop" : "stops"}`
+                  ? intoTripId
+                    ? `Add ${including} ${including === 1 ? "stop" : "stops"} to that trip`
+                    : `Create trip with ${including} ${including === 1 ? "stop" : "stops"}`
                   : `Add ${includingWithPin} ${includingWithPin === 1 ? "place" : "places"} to my map`}
             </button>
-            {destination !== "places" && title.trim().length === 0 && (
+            {destination !== "places" && !intoTripId && title.trim().length === 0 && (
               <span className="text-xs text-amber-600 dark:text-amber-400">
                 Give the trip a name first.
               </span>

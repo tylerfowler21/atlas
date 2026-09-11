@@ -169,7 +169,14 @@ const importEntrySchema = z.object({
 });
 
 export const tripImportSchema = z.object({
-  trip: tripCreateSchema,
+  /// The trip to make. Omitted when adding to one that already exists.
+  trip: tripCreateSchema.optional(),
+  /// An existing trip to append to instead.
+  ///
+  /// The commonest thing anybody imports is not a trip they have taken — it is
+  /// a handful of places off a feed that belong on the trip they are about to
+  /// take. Without this, that ends in a second trip with the same name.
+  tripId: optionalText(40),
   /// A trip you've already taken: every place it creates is marked visited.
   markVisited: z.boolean().default(true),
   entries: z.array(importEntrySchema).min(1, "Nothing to import").max(300),
