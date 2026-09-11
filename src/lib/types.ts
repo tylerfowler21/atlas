@@ -19,6 +19,11 @@ export type PlaceDTO = {
   photoUrl: string | null;
   photoAttribution: string | null;
   photoSourceUrl: string | null;
+  /// Whether anyone has gone looking yet. A place can be checked and still
+  /// have no photo — most bars are — so this is not `photoUrl !== null`, and
+  /// without it the map would ask Wikipedia about the same empty places on
+  /// every single load.
+  photoChecked: boolean;
   website: string | null;
   visitedAt: string | null;
   livedFrom: string | null;
@@ -130,6 +135,7 @@ export function serializePlace<
 >(p: T): PlaceDTO {
   return {
     ...(p as unknown as PlaceDTO),
+    photoChecked: Boolean((p as { photoCheckedAt?: DateLike | null }).photoCheckedAt),
     visitedAt: p.visitedAt ? p.visitedAt.toISOString() : null,
     livedFrom: p.livedFrom ? p.livedFrom.toISOString() : null,
     livedTo: p.livedTo ? p.livedTo.toISOString() : null,

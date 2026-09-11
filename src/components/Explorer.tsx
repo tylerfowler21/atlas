@@ -11,7 +11,7 @@ import { searchPlaces } from "@/lib/search-places";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
@@ -203,6 +203,82 @@ export default function Explorer({
         .some((field) => field!.toLowerCase().includes(q)),
     );
   }, [inFrame, trimmedQuery]);
+
+  /// Photographs for the places on screen, fetched as you browse.
+  ///
+  /// Not at save time: most places are never looked at, Wikipedia has nothing
+  /// for most of them, and putting a stranger's server in the path of saving
+  /// somewhere would make the one action that has to feel instant depend on
+  /// it. So the map asks about what it is showing, and pictures appear.
+  ///
+  /// `asked` is a ref rather than state because it must not cause a render —
+  /// it exists to stop a second request going out for a place while the first
+  /// is still in the air, and re-rendering on every id added would defeat the
+  /// batching it is there to protect.
+  const asked = useRef<Set<string>>(new Set());
+
+  /// The places on screen that nobody has looked up yet, as a stable string.
+  ///
+  /// `inFrame` is a fresh array on most renders, so depending on it re-ran this
+  /// whenever the map so much as settled — and each re-run tore down the one
+  /// before it. Depending on the ids themselves means it runs when the answer
+  /// would actually differ.
+  const wantedKey = useMemo(
+    () =>
+      inFrame
+        .filter((p) => !p.photoChecked)
+        .map((p) => p.id)
+        .sort()
+        .join(","),
+    [inFrame],
+  );
+
+  useEffect(() => {
+    const wanted = wantedKey
+      .split(",")
+      .filter((id) => id && !asked.current.has(id))
+      .slice(0, 12);
+    if (wanted.length === 0) return;
+    for (const id of wanted) asked.current.add(id);
+
+    (async () => {
+      try {
+        const res = await fetch("/api/places/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: wanted }),
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          places: {
+            id: string;
+            photoUrl: string | null;
+            photoAttribution: string | null;
+            photoSourceUrl: string | null;
+          }[];
+        };
+        if (body.places.length === 0) return;
+        const byId = new Map(body.places.map((p) => [p.id, p]));
+        setPlaces((prev) =>
+          prev.map((p) => {
+            const found = byId.get(p.id);
+            return found ? { ...p, ...found, photoChecked: true } : p;
+          }),
+        );
+      } catch {
+        // A place that was asked about and did not come back keeps its tile.
+        // Worth retrying on the next visit, which is why nothing is written
+        // down as checked here — only the server decides that.
+      }
+    })();
+
+    // Deliberately nothing to clean up. The obvious version cancelled the
+    // request when the effect re-ran, which threw away an answer the server
+    // had already found and written down — and `asked` meant it was never
+    // asked for again, so the photo simply never appeared. The response is
+    // keyed by place id and is the same whenever it lands, so there is no
+    // stale answer to protect against.
+  }, [wantedKey]);
 
   /// What to call what is on screen, and the line under it.
   const here = useMemo(() => viewName(inFrame, bounds), [inFrame, bounds]);
