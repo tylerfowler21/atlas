@@ -34,6 +34,23 @@
   --accent-text: #a64a15;
   --accent-tint: #ffe9db;
   --brand: #12322b;
+  /* Not in the kit — nothing on the boards is wrong or overdue. Mirrors
+     SEMANTIC.danger in src/lib/brand.ts. */
+  --danger: #d65a4a;
+}
+
+/* Raw paint, and deliberately not redefined for dark mode. Anything drawn on
+   top of a photograph is in the photograph's light, not the reader's theme —
+   a role token there inverts and puts a white icon on a pale disc. Mirrors
+   PAINT in src/lib/brand.ts. */
+:root {
+  --paint-evergreen-900: #12322b;
+  --paint-sun: #f98746;
+  --paint-sun-tint: #ffe9db;
+  --paint-card: #fefefc;
+  --paint-ink: #13241f;
+  --paint-muted: #5b6b65;
+  --paint-nature: #3e8e5e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -54,6 +71,7 @@
     --accent-text: #f98746;
     --accent-tint: #245247;
     --brand: #e4ede8;
+    --danger: #e2786a;
   }
 }
 
@@ -70,6 +88,14 @@
   --color-primary: var(--primary);
   --color-on-primary: var(--on-primary);
   --color-accent-tint: var(--accent-tint);
+  --color-danger: var(--danger);
+  --color-paint-evergreen-900: var(--paint-evergreen-900);
+  --color-paint-sun: var(--paint-sun);
+  --color-paint-sun-tint: var(--paint-sun-tint);
+  --color-paint-card: var(--paint-card);
+  --color-paint-ink: var(--paint-ink);
+  --color-paint-muted: var(--paint-muted);
+  --color-paint-nature: var(--paint-nature);
 }
 
 html,
