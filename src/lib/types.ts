@@ -216,6 +216,8 @@ export type PublicTripDTO = {
   startDate: string | null;
   endDate: string | null;
   color: string;
+  /// The owner's one-line description of the trip, if they wrote one.
+  notes?: string | null;
 };
 
 export function toPublicPlace(p: {
