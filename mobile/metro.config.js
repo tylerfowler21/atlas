@@ -1,6 +1,7 @@
-// Required by expo-share-extension: the share target is a second bundle, and
-// Metro has to be told it exists.
+// The share extension is not in this build — its plugin is out of app.json
+// until the App Group exists in the Apple developer console, and without the
+// plugin there is no second target for withShareExtension to bundle for.
+// Put both back together.
 const { getDefaultConfig } = require("expo/metro-config");
-const { withShareExtension } = require("expo-share-extension/metro");
 
-module.exports = withShareExtension(getDefaultConfig(__dirname));
+module.exports = getDefaultConfig(__dirname);

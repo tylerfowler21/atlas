@@ -1,18 +1,24 @@
+import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "react-native";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { CategoriesProvider } from "@/lib/categories";
+import { FONTS } from "@/lib/type";
 
 SplashScreen.preventAutoHideAsync();
 
 function Routes() {
   const { user } = useAuth();
+  // The kit's faces. Held behind the splash with the keychain read, because a
+  // screen that paints in the system font and then reflows into Bricolage a
+  // moment later looks like a bug rather than like loading.
+  const [fontsReady] = useFonts(FONTS);
 
   // Undefined means the keychain has not been read yet. Rendering nothing
   // holds the splash screen rather than showing a sign-in screen to somebody
   // who is already signed in and then yanking it away.
-  if (user === undefined) return null;
+  if (user === undefined || !fontsReady) return null;
   SplashScreen.hideAsync();
 
   return (

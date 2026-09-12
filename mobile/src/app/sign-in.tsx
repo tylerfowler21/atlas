@@ -1,109 +1,152 @@
 import * as AppleAuthentication from "expo-apple-authentication";
-import { SEMANTIC } from "@/lib/brand";
+import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
+import { SEMANTIC, PAINT } from "@/lib/brand";
 import GoogleIcon from "@/components/GoogleIcon";
 import { useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
+import {
+  Image as RNImage,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
-import { usePalette } from "@/lib/use-palette";
+import { type } from "@/lib/type";
+
+/// The photograph is a real one of a real place, under a licence that names
+/// its author — so the credit at the foot is a condition of using it rather
+/// than decoration. The mockups used an AI-generated stand-in and the brief
+/// that came with them says not to ship those as photographs of real places.
+const CREDIT = "https://commons.wikimedia.org/wiki/File:Oeschinensee_D8A_8808.jpg";
 
 export default function SignIn() {
   const { signIn, signInOnTheWeb } = useAuth();
   const scheme = useColorScheme();
-  const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+    <View style={styles.screen}>
       <Image
-        source={require("../../assets/images/icon.png")}
-        style={styles.mark}
-      />
-      <Text style={[styles.title, { color: palette.ink }]}>Roava</Text>
-      <Text style={[styles.blurb, { color: palette.muted }]}>
-        The places you want to go, the trips you take, and a map of everywhere
-        you have been.
-      </Text>
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-        buttonStyle={
-          scheme === "dark"
-            ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-            : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-        }
-        cornerRadius={10}
-        style={styles.button}
-        onPress={async () => {
-          setError(null);
-          try {
-            await signIn();
-          } catch (e) {
-            // Cancelling is not a failure and should not be reported as one.
-            if ((e as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
-            setError(e instanceof Error ? e.message : "That didn't work");
-          }
-        }}
+        source={require("../../assets/images/signin-hero.jpg")}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        // Decoded before the splash lifts, so the screen never appears empty
+        // and then fills in.
+        cachePolicy="memory-disk"
       />
 
-      {/* Apple first, because it is the one that happens on the device and
-          because Apple requires it to be offered wherever Google is. */}
-      {/* Google's own spec: their mark, their wording, a white field with a
-          grey border — and near-black in dark mode. It should look like every
-          other Google button anybody has used. */}
-      <Pressable
-        style={[
-          styles.google,
-          scheme === "dark"
-            ? { backgroundColor: "#131314", borderColor: "#8E918F" }
-            : { backgroundColor: "#FFFFFF", borderColor: "#747775" },
-        ]}
-        onPress={async () => {
-          setError(null);
-          try {
-            await signInOnTheWeb();
-          } catch {
-            setError("Could not open the sign-in page");
-          }
-        }}
-      >
-        <GoogleIcon />
-        <Text
-          style={{
-            color: scheme === "dark" ? "#E3E3E3" : "#1F1F1F",
-            fontSize: 16,
-            fontWeight: "500",
+      {/* Dark at the foot, where everything that has to be read sits. The
+          photograph is at its best at the top, so the scrim stays off it. */}
+      <LinearGradient
+        colors={["rgba(11,33,28,0.15)", "rgba(11,33,28,0.35)", "rgba(11,33,28,0.92)"]}
+        locations={[0, 0.4, 0.82]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={[styles.mark, { top: insets.top + 12 }]}>
+        <RNImage
+          source={require("../../assets/images/icon.png")}
+          style={styles.markImage}
+        />
+        <Text style={styles.wordmark}>Roava</Text>
+      </View>
+
+      <View style={[styles.foot, { paddingBottom: insets.bottom + 16 }]}>
+        <Text style={styles.headline}>Every place you want to go, on one map.</Text>
+        <Text style={styles.blurb}>
+          Save spots, plan trips day by day with friends, and keep a map of
+          everywhere you&apos;ve been.
+        </Text>
+
+        {error && <Text style={styles.error}>{error}</Text>}
+
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          // White on the photograph in both appearances: the screen behind it
+          // is a dark scrim whatever the phone's setting says.
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+          cornerRadius={28}
+          style={styles.apple}
+          onPress={async () => {
+            setError(null);
+            try {
+              await signIn();
+            } catch (e) {
+              // Cancelling is not a failure and should not be reported as one.
+              if ((e as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
+              setError(e instanceof Error ? e.message : "That didn't work");
+            }
+          }}
+        />
+
+        {/* Google's own spec: their mark, their wording, and one of their two
+            fields. The boards draw this translucent, which is not a style
+            Google's terms allow — their dark field is the nearest thing that
+            is, and over this scrim it reads much the same. */}
+        <Pressable
+          style={[styles.google, { backgroundColor: "#131314", borderColor: "#8E918F" }]}
+          onPress={async () => {
+            setError(null);
+            try {
+              await signInOnTheWeb();
+            } catch {
+              setError("Could not open the sign-in page");
+            }
           }}
         >
-          Continue with Google
-        </Text>
-      </Pressable>
+          <GoogleIcon />
+          <Text style={[type.button, { color: "#E3E3E3" }]}>Continue with Google</Text>
+        </Pressable>
 
-      <Text style={[styles.aside, { color: palette.muted }]}>
-        Google opens roava.co to sign in, then comes back here.
-      </Text>
+        <Text style={styles.aside}>
+          Google opens roava.co to sign in, then comes back here.
+        </Text>
+
+        <Text
+          style={styles.credit}
+          onPress={() => void Linking.openURL(CREDIT)}
+          suppressHighlighting
+        >
+          Oeschinensee, Kandersteg · Orest Svirchevskyi, CC BY-SA 4.0
+        </Text>
+      </View>
     </View>
   );
 }
 
+/// Fixed colours rather than the palette: everything here sits on a dark
+/// photograph, so it is in the photograph's light and not the reader's.
 const styles = StyleSheet.create({
-  screen: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
-  mark: { width: 76, height: 76, borderRadius: 18 },
-  title: { fontSize: 28, fontWeight: "600", marginTop: 12 },
-  blurb: { marginTop: 8, marginBottom: 28, textAlign: "center", lineHeight: 20 },
-  error: { color: SEMANTIC.danger, marginBottom: 12, textAlign: "center" },
-  button: { width: 260, height: 48 },
+  screen: { flex: 1, backgroundColor: PAINT.evergreen950 },
+  mark: { position: "absolute", left: 20, flexDirection: "row", alignItems: "center", gap: 10 },
+  markImage: { width: 34, height: 34, borderRadius: 9 },
+  wordmark: { ...type.item, fontSize: 19, color: "#fff" },
+  foot: { marginTop: "auto", paddingHorizontal: 20 },
+  headline: { ...type.title, fontSize: 34, lineHeight: 38, color: "#fff" },
+  blurb: { ...type.body, color: "rgba(255,255,255,0.78)", marginTop: 10, marginBottom: 22 },
+  error: { ...type.meta, color: SEMANTIC.danger, marginBottom: 10 },
+  apple: { height: 56 },
   google: {
-    width: 260,
-    height: 48,
-    marginTop: 12,
+    height: 56,
+    marginTop: 10,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 28,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
   },
-  aside: { marginTop: 14, fontSize: 12, textAlign: "center" },
+  aside: { ...type.meta, color: "rgba(255,255,255,0.6)", textAlign: "center", marginTop: 12 },
+  credit: {
+    ...type.meta,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.45)",
+    textAlign: "center",
+    marginTop: 8,
+  },
 });
