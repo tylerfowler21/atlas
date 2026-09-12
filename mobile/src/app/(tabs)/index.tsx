@@ -10,7 +10,7 @@ import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
 import { type } from "@/lib/type";
 import Glass from "@/components/Glass";
-import { FAB_SIZE, TAB_BAR_MARGIN, tabBarSpace } from "@/lib/layout";
+import { FAB_SIZE, tabBarSpace } from "@/lib/layout";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PlaceThumb from "@/components/PlaceThumb";
 import Stars from "@/components/Stars";
@@ -366,7 +366,7 @@ export default function MapScreen() {
             center: { latitude: here.lat, longitude: here.lng },
           });
         }}
-        style={[styles.findMe, { bottom: insets.bottom + TAB_BAR_MARGIN + FAB_SIZE + 12 }]}
+        style={[styles.findMe, { bottom: tabBarSpace(insets.bottom) + FAB_SIZE + 24 }]}
         accessibilityLabel="Show where I am"
       >
         {/* The supplied artwork, which brings its own tile — so the button
@@ -386,7 +386,10 @@ export default function MapScreen() {
           if (!camera) return;
           void offerWhatIsHere(camera.center.latitude, camera.center.longitude);
         }}
-        style={[styles.fab, { bottom: insets.bottom + TAB_BAR_MARGIN, backgroundColor: palette.accent }]}
+        style={[
+          styles.fab,
+          { bottom: tabBarSpace(insets.bottom) + 12, backgroundColor: palette.accent },
+        ]}
         accessibilityLabel="Add a place here"
       >
         <Text style={[styles.fabGlyph, { color: palette.onAccent }]}>+</Text>
@@ -499,7 +502,15 @@ export default function MapScreen() {
       <View
         style={[
           styles.sheet,
-          { backgroundColor: palette.surface, borderColor: palette.border },
+          {
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+            // The floating tab bar sits over the foot of this sheet, so the
+            // sheet keeps its own room underneath: without it the collapsed
+            // handle poked out below the bar and read as a second bar.
+            paddingBottom: tabBarSpace(insets.bottom),
+            maxHeight: 72 + tabBarSpace(insets.bottom),
+          },
           listOpen && styles.sheetOpen,
         ]}
       >

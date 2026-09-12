@@ -9,7 +9,7 @@ import {
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Glass from "@/components/Glass";
-import { TAB_BAR_HEIGHT, TAB_BAR_MARGIN, TAB_BAR_RIGHT } from "@/lib/layout";
+import { TAB_BAR_HEIGHT, TAB_BAR_MARGIN } from "@/lib/layout";
 import { usePalette } from "@/lib/use-palette";
 
 /// Five destinations, down from eight, and nothing hidden behind "More".
@@ -38,7 +38,7 @@ export default function TabsLayout() {
         tabBarStyle: {
           position: "absolute",
           left: 16,
-          right: TAB_BAR_RIGHT,
+          right: 16,
           bottom: insets.bottom + TAB_BAR_MARGIN,
           height: TAB_BAR_HEIGHT,
           paddingBottom: 0,
