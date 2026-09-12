@@ -1,6 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import PlaceThumb from "@/components/PlaceThumb";
 import { tripWhere, tripRegions } from "@/lib/trip-where";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
@@ -1732,7 +1733,11 @@ function AddStop({
                     setAround(null);
                   }}
                 >
-                  <span aria-hidden>{categoryOf(r.category).icon}</span>
+                  <PlaceThumb
+                    icon={categoryOf(r.category).icon}
+                    color={categoryOf(r.category).color}
+                    size={36}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{r.name}</span>
                     <span className="block truncate text-xs text-muted">
@@ -1766,7 +1771,12 @@ function AddStop({
                     if (ok) setQuery("");
                   }}
                 >
-                  <span aria-hidden>{placeIconOf(place)}</span>
+                  <PlaceThumb
+                    photoUrl={place.photoUrl}
+                    icon={placeIconOf(place)}
+                    color={meta.color}
+                    size={36}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{place.name}</span>
                     <span className="block truncate text-xs text-muted">
@@ -1809,7 +1819,11 @@ function AddStop({
                     setQuery("");
                   }}
                 >
-                  <span aria-hidden>{categoryOf(r.category).icon}</span>
+                  <PlaceThumb
+                    icon={categoryOf(r.category).icon}
+                    color={categoryOf(r.category).color}
+                    size={36}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{r.name}</span>
                     <span className="block truncate text-xs text-muted">{r.context}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PlaceThumb from "@/components/PlaceThumb";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
@@ -43,7 +44,11 @@ export default function PlaceChooser({
       <div className="text-xs text-muted">
         {label}
         <div className="input mt-1 flex items-center gap-2">
-          <span aria-hidden>{categoryOf(chosen.category).icon}</span>
+          <PlaceThumb
+                    icon={categoryOf(chosen.category).icon}
+                    color={categoryOf(chosen.category).color}
+                    size={36}
+                  />
           <span className="min-w-0 flex-1 truncate text-sm text-foreground">
             {chosen.name}
           </span>
@@ -99,7 +104,11 @@ export default function PlaceChooser({
                   setQuery("");
                 }}
               >
-                <span aria-hidden>{categoryOf(p.category).icon}</span>
+                <PlaceThumb
+                    icon={categoryOf(p.category).icon}
+                    color={categoryOf(p.category).color}
+                    size={36}
+                  />
                 <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                   {p.name}
                 </span>
@@ -128,7 +137,11 @@ export default function PlaceChooser({
                   }
                 }}
               >
-                <span aria-hidden>{categoryOf(r.category).icon}</span>
+                <PlaceThumb
+                    icon={categoryOf(r.category).icon}
+                    color={categoryOf(r.category).color}
+                    size={36}
+                  />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-foreground">{r.name}</span>
                   <span className="block truncate text-xs text-muted">{r.context}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import PlaceThumb from "@/components/PlaceThumb";
 import FirstSteps from "@/components/FirstSteps";
 import ShareArea from "@/components/ShareArea";
 import { groupPlaces } from "@/lib/place-groups";
@@ -8,7 +9,6 @@ import type { FirstSteps as Steps } from "@/lib/first-steps";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -642,9 +642,11 @@ export default function Explorer({
                             className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
                             onClick={() => pickResult(r)}
                           >
-                            <span aria-hidden className="text-sm">
-                              {categoryOf(r.category).icon}
-                            </span>
+                            <PlaceThumb
+                              icon={categoryOf(r.category).icon}
+                              color={categoryOf(r.category).color}
+                              size={32}
+                            />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm">{r.name}</span>
                               <span className="block truncate text-xs text-muted">
@@ -899,28 +901,16 @@ export default function Explorer({
                             panTo(p.lat, p.lng);
                           }}
                         >
-                          {/* Wikipedia's photograph of the place when there is
-                              one. Landmarks have one; the bar round the corner
-                              does not, and gets its category tile in the same
-                              space at the same size rather than a grey
-                              rectangle where a picture should be. */}
-                          {p.photoUrl ? (
-                            <Image
-                              src={p.photoUrl}
-                              alt=""
-                              width={52}
-                              height={52}
-                              className="size-13 shrink-0 rounded-[14px] object-cover"
-                            />
-                          ) : (
-                            <span
-                              aria-hidden
-                              className="grid size-13 shrink-0 place-items-center rounded-[14px] text-xl"
-                              style={{ background: `${meta.color}22` }}
-                            >
-                              {placeIconOf(p)}
-                            </span>
-                          )}
+                          {/* Wikipedia's photograph when there is one, and the
+                              category's tile when there is not — which is most
+                              of the time, since a place nobody has been to has
+                              no photo of its own. */}
+                          <PlaceThumb
+                            photoUrl={p.photoUrl}
+                            icon={placeIconOf(p)}
+                            color={meta.color}
+                            size={52}
+                          />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">
                               {p.name}

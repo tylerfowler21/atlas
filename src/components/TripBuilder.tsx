@@ -1,6 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import PlaceThumb from "@/components/PlaceThumb";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
@@ -372,7 +373,11 @@ export default function TripBuilder() {
                         className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left hover:bg-foreground/5"
                         onClick={() => addStop(r.name, r)}
                       >
-                        <span aria-hidden>{categoryOf(r.category).icon}</span>
+                        <PlaceThumb
+                    icon={categoryOf(r.category).icon}
+                    color={categoryOf(r.category).color}
+                    size={36}
+                  />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm">{r.name}</span>
                           <span className="block truncate text-xs text-muted">
