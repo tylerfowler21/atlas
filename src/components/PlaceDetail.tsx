@@ -1,6 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import StatusIcon from "@/components/StatusIcon";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -231,9 +232,11 @@ export default function PlaceDetail({
             key={s.id}
             type="button"
             onClick={() => setDraft({ ...draft, status: s.id })}
-            className={`chip ${draft.status === s.id ? "is-on" : ""}`}
+            className={`chip ${
+              draft.status === s.id ? (s.id === "wishlist" ? "is-sun" : "is-solid") : ""
+            }`}
           >
-            <span aria-hidden>{s.icon}</span> {s.label}
+            <StatusIcon status={s.id} /> {s.label}
           </button>
         ))}
       </div>

@@ -373,6 +373,15 @@ h1,
     font-weight: 500;
   }
 
+  /* In dark both of those tokens move — the tint becomes Evergreen 700 and the
+     ink becomes Sun itself — and Sun on Evergreen 700 is 3.6:1, under the bar
+     for text this small. The pale end of Sun on that same green is 7.6:1. */
+  @media (prefers-color-scheme: dark) {
+    .chip.is-sun {
+      color: var(--paint-sun-tint);
+    }
+  }
+
   /* Anything floating over the map: search, filter chips, the tab bar.
 
      ponytail: no backdrop-filter. The kit asks for blur(22px), but Chrome

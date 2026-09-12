@@ -44,6 +44,14 @@ export function JournalIcon({ size = 24, color = INK }: IconProps) {
   );
 }
 
+export function LivedIcon({ size = 24, color = INK }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
+      <Path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"/>
+    </Svg>
+  );
+}
+
 export function MapIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
@@ -88,6 +96,14 @@ export function TripsIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
       <Path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v72H40V72Zm0,128H40V160H216v40Z"/>
+    </Svg>
+  );
+}
+
+export function WantToGoIcon({ size = 24, color = INK }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
+      <Path d="M184,32H72A16,16,0,0,0,56,48V224a8,8,0,0,0,12.24,6.78L128,193.43l59.77,37.35A8,8,0,0,0,200,224V48A16,16,0,0,0,184,32Zm0,177.57-51.77-32.35a8,8,0,0,0-8.48,0L72,209.57V48H184Z"/>
     </Svg>
   );
 }

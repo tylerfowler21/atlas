@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import StatusIcon from "@/components/StatusIcon";
 import { useCategories } from "@/components/CategoriesProvider";
 import { STATUSES } from "@/lib/taxonomy";
 import { placeName } from "@/lib/place-name";
@@ -173,7 +174,7 @@ export default function ShareArea({
                 onPreview(covers(chosen, next));
               }}
             >
-              <span aria-hidden>{s.icon}</span>
+              <StatusIcon status={s.id} />
               {s.label}
             </button>
           ))}

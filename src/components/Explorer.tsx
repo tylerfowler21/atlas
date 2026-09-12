@@ -1,6 +1,7 @@
 "use client";
 
 import { useCategories } from "@/components/CategoriesProvider";
+import StatusIcon from "@/components/StatusIcon";
 import PlaceThumb from "@/components/PlaceThumb";
 import FirstSteps from "@/components/FirstSteps";
 import ShareArea from "@/components/ShareArea";
@@ -699,13 +700,19 @@ export default function Explorer({
                   <button
                     key={s.id}
                     type="button"
-                    className={`chip shrink-0 ${statusFilter === s.id ? "is-on" : ""}`}
+                    className={`chip shrink-0 ${statusFilter === s.id ? "is-solid" : ""}`}
                     onClick={() => {
                       setStatusFilter(s.id as typeof statusFilter);
                       setFitSeq((n) => n + 1);
                     }}
                   >
-                    <span aria-hidden>{s.icon}</span>
+                    {s.id === "all" ? (
+                      <span aria-hidden className="text-[10px]">
+                        •
+                      </span>
+                    ) : (
+                      <StatusIcon status={s.id} />
+                    )}
                     {s.label}
                   </button>
                 ))}
@@ -933,9 +940,11 @@ export default function Explorer({
                           <span
                             aria-label={statusOf(p.status).label}
                             title={statusOf(p.status).label}
-                            className="shrink-0 self-start text-xs"
+                            className={`shrink-0 self-start ${
+                              p.status === "wishlist" ? "text-accent-text" : "text-muted"
+                            }`}
                           >
-                            {statusOf(p.status).icon}
+                            <StatusIcon status={p.status} className="h-4 w-4" />
                           </span>
                         </button>
                       </li>

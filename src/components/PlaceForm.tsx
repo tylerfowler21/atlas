@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import StatusIcon from "@/components/StatusIcon";
 import { placeName } from "@/lib/place-name";
 import CategoryPicker from "@/components/CategoryPicker";
 import { STATUSES } from "@/lib/taxonomy";
@@ -90,9 +91,11 @@ export default function PlaceForm({
             key={s.id}
             type="button"
             onClick={() => setStatus(s.id)}
-            className={`chip ${status === s.id ? "is-on" : ""}`}
+            className={`chip ${
+              status === s.id ? (s.id === "wishlist" ? "is-sun" : "is-solid") : ""
+            }`}
           >
-            <span aria-hidden>{s.icon}</span> {s.label}
+            <StatusIcon status={s.id} /> {s.label}
           </button>
         ))}
       </div>
