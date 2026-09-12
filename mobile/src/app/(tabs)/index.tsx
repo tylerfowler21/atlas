@@ -216,7 +216,7 @@ export default function MapScreen() {
   /// Which of the four counts the list is showing. "cities" and "countries"
   /// are not filters but groupings — the question behind them is "where have I
   /// been", and the answer is a list of cities, not of restaurants.
-  const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
+  const [view, setView] = useState<"all" | "cities" | "countries">("all");
   /// Set by tapping a city or a country, which drills into it.
   const [within, setWithin] = useState<string | null>(null);
   /// The share sheet for that place, and what it currently covers — the map
@@ -276,13 +276,12 @@ export default function MapScreen() {
   const preview = sharing ? sharePreview : null;
 
   const listed = useMemo(() => {
-    // Been is about where you have actually been; Cities and Countries are
-    // about spread, and hiding what you have not reached yet would empty them
-    // for anybody still planning.
-    const base = view === "been" ? places.filter((p) => p.status !== "wishlist") : places;
+    // Cities and Countries are about spread, so they keep the places you have
+    // not reached yet — hiding those would empty them for anybody still
+    // planning.
     const here = within
-      ? base.filter((p) => p.city === within || p.country === within)
-      : base;
+      ? places.filter((p) => p.city === within || p.country === within)
+      : places;
     if (!preview) return here;
 
     return here.filter(
@@ -290,7 +289,7 @@ export default function MapScreen() {
         (preview.categories.length === 0 || preview.categories.includes(p.category)) &&
         (preview.statuses.length === 0 || preview.statuses.includes(p.status)),
     );
-  }, [places, view, within, preview]);
+  }, [places, within, preview]);
 
   /// What is on screen, which is what the sheet's heading names and counts.
   ///
@@ -1009,11 +1008,19 @@ export default function MapScreen() {
                   ["countries", counts.countries, "Countries"],
                 ] as const
               ).map(([id, n, label]) => {
-                const on = view === id;
+                const on = id !== "been" && view === id;
                 return (
                   <Pressable
                     key={id}
+                    // Been is the odd one out: the other three regroup the
+                    // list below, and this opens the map of everywhere you
+                    // have been. It used to filter the list to visited and
+                    // lived, which the status chips above it already do.
                     onPress={() => {
+                      if (id === "been") {
+                        router.push("/been");
+                        return;
+                      }
                       setView(id);
                       setWithin(null);
                     }}

@@ -48,6 +48,10 @@ function Routes() {
           name="account"
           options={{ headerShown: true, title: "You", headerBackTitle: "Map" }}
         />
+        <Stack.Screen
+          name="been"
+          options={{ headerShown: true, title: "Been", headerBackTitle: "Map" }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={user === null}>
         <Stack.Screen name="sign-in" />

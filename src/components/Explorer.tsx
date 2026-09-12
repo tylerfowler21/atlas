@@ -673,7 +673,14 @@ export default function Explorer({
                 <span className="text-xs text-muted">
                   {listOpen ? (
                     <>
-                      {wishlistCount} to go · {visitedCount} visited
+                      {wishlistCount} to go ·{" "}
+                      {/* The way through to the map of everywhere you have
+                          been. It hangs off the count because that is where
+                          somebody is already looking when the question occurs
+                          to them. */}
+                      <Link href="/been" className="text-accent-text hover:underline">
+                        {visitedCount} visited
+                      </Link>
                     </>
                   ) : (
                     <>{visiblePlaces.length} places — pull up to see them</>

@@ -21,7 +21,8 @@
     "sync:mirror": "tsx scripts/sync-mirror.ts",
     "build:icons": "tsx scripts/build-icons.ts",
     "build:nav-icons": "tsx scripts/build-nav-icons.ts",
-    "build:native-icons": "tsx scripts/build-native-icons.ts"
+    "build:native-icons": "tsx scripts/build-native-icons.ts",
+    "build:dot-world": "tsx scripts/build-dot-world.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

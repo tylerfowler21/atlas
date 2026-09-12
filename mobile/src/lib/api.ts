@@ -116,6 +116,10 @@ export type Place = {
   photoUrl: string | null;
   photoAttribution: string | null;
   photoSourceUrl: string | null;
+  /// When you were there. Optional, and plenty of places are marked visited
+  /// without one — which is why the Been screen counts them regardless and
+  /// only the year filter needs this.
+  visitedAt: string | null;
   /// Only meaningful for "lived": when you moved there, and when you left.
   livedFrom: string | null;
   livedTo: string | null;

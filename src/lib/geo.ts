@@ -43,13 +43,6 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
 
-/// 🇵🇹 from "pt" — regional indicator symbols are just A–Z offset into a
-/// separate Unicode block, so this needs no lookup table.
-export function flagEmoji(countryCode?: string | null): string {
-  if (!countryCode || countryCode.length !== 2) return "🌍";
-  const base = 0x1f1e6;
-  const chars = [...countryCode.toUpperCase()].map((c) =>
-    String.fromCodePoint(base + c.charCodeAt(0) - 65),
-  );
-  return chars.join("");
-}
+/// Re-exported so the call sites that have always found it here still do.
+/// It lives in its own file now because the app shares it.
+export { flagEmoji } from "@/lib/flag";
