@@ -219,6 +219,11 @@ model Place {
   photoAttribution String?
   /// The file's page on Commons, where the full licence lives.
   photoSourceUrl   String?
+  /// Set when the photograph is one somebody uploaded rather than one
+  /// Wikipedia had. Kept so it can be replaced or deleted later; the URL
+  /// itself is public, because a place's photograph shows on published trips
+  /// and shared links, where the person looking is not signed in to anything.
+  photoPathname    String?
   /// When we last went looking. Set even when nothing was found, so a place
   /// with no article is not searched for on every load.
   photoCheckedAt   DateTime?

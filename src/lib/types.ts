@@ -19,6 +19,9 @@ export type PlaceDTO = {
   photoUrl: string | null;
   photoAttribution: string | null;
   photoSourceUrl: string | null;
+  /// Whether the photograph is one the owner uploaded rather than one
+  /// Wikipedia had. The editor offers to remove only their own.
+  photoUploaded: boolean;
   /// Whether anyone has gone looking yet. A place can be checked and still
   /// have no photo — most bars are — so this is not `photoUrl !== null`, and
   /// without it the map would ask Wikipedia about the same empty places on
@@ -140,8 +143,13 @@ export function serializePlace<
     createdAt: DateLike;
   },
 >(p: T): PlaceDTO {
+  // Where the blob lives is the server's business; what a client needs is
+  // whether this picture is the owner's to replace.
+  const { photoPathname, ...rest } = p as T & { photoPathname?: string | null };
+
   return {
-    ...(p as unknown as PlaceDTO),
+    ...(rest as unknown as PlaceDTO),
+    photoUploaded: Boolean(photoPathname),
     photoChecked: Boolean((p as { photoCheckedAt?: DateLike | null }).photoCheckedAt),
     visitedAt: p.visitedAt ? p.visitedAt.toISOString() : null,
     livedFrom: p.livedFrom ? p.livedFrom.toISOString() : null,

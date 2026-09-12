@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SEMANTIC } from "@/lib/brand";
+import { RADIUS, SEMANTIC } from "@/lib/brand";
 import { useCategories } from "@/lib/categories";
 import {
   ActivityIndicator,
@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { api, type Place } from "@/lib/api";
+import { api, upload, type Place } from "@/lib/api";
 import { openDirections } from "@/components/TripMap";
 import { placeName } from "@/lib/place-name";
 import { usePalette } from "@/lib/use-palette";
@@ -43,6 +43,11 @@ export type PlaceDraft = {
   city?: string | null;
   country?: string | null;
   countryCode?: string | null;
+  /// What it looks like now, and whether that picture is yours. Only set for
+  /// something already saved — there is nowhere to put a photograph of a
+  /// place that does not exist yet.
+  photoUrl?: string | null;
+  photoUploaded?: boolean;
 };
 
 /// One sheet for both saving something new and changing something saved.
@@ -69,6 +74,80 @@ export default function PlaceEditor({
   const [emoji, setEmoji] = useState(draft?.emoji ?? "");
   const [rating, setRating] = useState<number | null>(draft?.rating ?? null);
   const [busy, setBusy] = useState(false);
+
+  /// The photograph, which changes on the server the moment it is chosen
+  /// rather than waiting for Save — an upload is its own commitment, and a
+  /// picture that vanished because you backed out would be a surprise.
+  const [photoUrl, setPhotoUrl] = useState(draft?.photoUrl ?? null);
+  const [photoOwn, setPhotoOwn] = useState(draft?.photoUploaded ?? false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+
+  async function choosePhoto(placeId: string) {
+    // Imported where it is used: a build without the native module would
+    // otherwise throw on startup over a button nobody had pressed.
+    let ImagePicker: typeof import("expo-image-picker");
+    try {
+      ImagePicker = await import("expo-image-picker");
+    } catch {
+      Alert.alert(
+        "Photos need a newer build",
+        "Adding your own photo was added after the version installed on this phone.",
+      );
+      return;
+    }
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Photos are not shared", "Allow photo access in Settings to add one.");
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [4, 3],
+    });
+    if (picked.canceled) return;
+
+    setPhotoBusy(true);
+    try {
+      const asset = picked.assets[0];
+      const form = new FormData();
+      // React Native's FormData takes this shape for a local file rather than
+      // a Blob — the uri is what the native side streams from.
+      form.append("file", {
+        uri: asset.uri,
+        name: asset.fileName ?? "photo.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      } as unknown as Blob);
+
+      const { photoUrl: url } = await upload<{ photoUrl: string | null }>(
+        `/api/places/${placeId}/photo`,
+        form,
+      );
+      setPhotoUrl(url);
+      setPhotoOwn(true);
+      onSaved();
+    } catch (e) {
+      Alert.alert("Could not use that photo", e instanceof Error ? e.message : "Try again");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function removePhoto(placeId: string) {
+    setPhotoBusy(true);
+    try {
+      await api(`/api/places/${placeId}/photo`, { method: "DELETE" });
+      setPhotoUrl(null);
+      setPhotoOwn(false);
+      onSaved();
+    } catch (e) {
+      Alert.alert("Could not remove it", e instanceof Error ? e.message : "Try again");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   /// The trips this place is already on.
   ///
@@ -299,6 +378,52 @@ export default function PlaceEditor({
             style={[styles.input, styles.emoji, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.ink }]}
           />
 
+          {/* Only for something already saved: there is nowhere to attach a
+              photograph to a place that does not exist yet, and the save is a
+              tap away. */}
+          {draft?.id && (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>Photo</Text>
+              <View style={styles.photoRow}>
+                {photoUrl ? (
+                  <Image source={{ uri: photoUrl }} style={styles.photo} />
+                ) : (
+                  <View style={[styles.photo, styles.photoBlank, { backgroundColor: palette.brandSurface }]}>
+                    <Text style={{ fontSize: 22 }}>{emoji || "📷"}</Text>
+                  </View>
+                )}
+
+                <View style={styles.photoActions}>
+                  {photoBusy ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <>
+                      <Pressable onPress={() => void choosePhoto(draft.id!)}>
+                        <Text style={{ color: palette.accentText, fontSize: 15 }}>
+                          {photoUrl ? "Replace photo" : "Add a photo"}
+                        </Text>
+                      </Pressable>
+                      {/* Wikipedia's picture is not yours to delete — and
+                          there would be nothing to put back if it were. */}
+                      {photoOwn && (
+                        <Pressable onPress={() => void removePhoto(draft.id!)}>
+                          <Text style={{ color: palette.muted, fontSize: 14 }}>
+                            Remove
+                          </Text>
+                        </Pressable>
+                      )}
+                      {photoUrl && !photoOwn && (
+                        <Text style={{ color: palette.muted, fontSize: 12 }}>
+                          From Wikipedia
+                        </Text>
+                      )}
+                    </>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+
           <Text style={[styles.label, { color: palette.muted }]}>Notes</Text>
           <TextInput
             value={notes}
@@ -379,10 +504,16 @@ export function placeToDraft(place: Place): PlaceDraft {
     city: place.city,
     country: place.country,
     countryCode: place.countryCode,
+    photoUrl: place.photoUrl,
+    photoUploaded: place.photoUploaded,
   };
 }
 
 const styles = StyleSheet.create({
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  photo: { width: 96, height: 72, borderRadius: RADIUS.photo },
+  photoBlank: { alignItems: "center", justifyContent: "center" },
+  photoActions: { gap: 8 },
   header: {
     flexDirection: "row",
     alignItems: "center",

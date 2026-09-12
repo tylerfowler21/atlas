@@ -52,6 +52,49 @@ export async function storePhoto(input: {
   return { pathname: blob.pathname, size: input.file.size };
 }
 
+/// One uploaded image, stored under a pathname you choose.
+///
+/// The access is the caller's decision because it is not the same everywhere.
+/// A journal photo and a private trip's cover are private, and read back
+/// through a route that checks who is asking. A photograph of a place is
+/// public, because places show on published trips and shared links where the
+/// person looking is not signed in to anything — private storage there would
+/// simply break them.
+export class BlobAccessError extends Error {}
+
+export async function storeImage(input: {
+  pathname: string;
+  file: File;
+  access: "public" | "private";
+}) {
+  try {
+    const blob = await put(input.pathname, input.file, {
+      access: input.access,
+      addRandomSuffix: true,
+      contentType: input.file.type,
+    });
+    return { pathname: blob.pathname, url: blob.url };
+  } catch (error) {
+    // A store is configured for one or the other, and a public object cannot
+    // be written to a private store. Worth saying plainly: it is a setting on
+    // the store rather than anything wrong with the photo, and a 500 sends
+    // whoever hits it looking in the wrong place entirely.
+    if (
+      error instanceof Error &&
+      /private store|public access|access on a/i.test(error.message)
+    ) {
+      throw new BlobAccessError(
+        "This Vercel Blob store only allows private files, and a place's photo has to be readable on shared trips. Switch the store to public access.",
+      );
+    }
+    throw error;
+  }
+}
+
+export function extensionForImage(contentType: string) {
+  return extensionFor(contentType);
+}
+
 export async function removePhoto(pathname: string) {
   try {
     await del(pathname);

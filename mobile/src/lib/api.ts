@@ -116,6 +116,9 @@ export type Place = {
   photoUrl: string | null;
   photoAttribution: string | null;
   photoSourceUrl: string | null;
+  /// Whether this is a photograph you added rather than one Wikipedia had.
+  /// Only your own is yours to remove.
+  photoUploaded: boolean;
   /// When you were there. Optional, and plenty of places are marked visited
   /// without one — which is why the Been screen counts them regardless and
   /// only the year filter needs this.
