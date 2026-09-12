@@ -34,6 +34,7 @@ export default async function MapPage({
       trips={trips.map(serializeTrip)}
       initialSelectedId={place ?? null}
       firstSteps={steps.hidden ? null : steps}
+      user={{ name: user.name, image: user.image }}
     />
   );
 }

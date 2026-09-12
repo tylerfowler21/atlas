@@ -18,6 +18,7 @@ export default function PlaceThumb({
   photoUrl,
   alt = "",
   size = 36,
+  width,
   className = "",
 }: {
   icon: string;
@@ -28,17 +29,22 @@ export default function PlaceThumb({
   /// Only meaningful with a photo; a tile is decoration and stays hidden.
   alt?: string;
   size?: number;
+  /// Wider than it is tall, for the cards on the map's sheet. Square
+  /// everywhere else, which is why this is an option rather than a second
+  /// required dimension.
+  width?: number;
   className?: string;
 }) {
+  const w = width ?? size;
   if (photoUrl) {
     return (
       <Image
         src={photoUrl}
         alt={alt}
-        width={size}
+        width={w}
         height={size}
         className={`shrink-0 rounded-[var(--radius-photo)] object-cover ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: w, height: size }}
       />
     );
   }
@@ -50,7 +56,7 @@ export default function PlaceThumb({
       style={
         {
           "--tile-color": color,
-          width: size,
+          width: w,
           height: size,
           // Half the tile, the same rule the pins follow.
           fontSize: size / 2,

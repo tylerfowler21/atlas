@@ -9,8 +9,10 @@ import { groupPlaces } from "@/lib/place-groups";
 import type { FirstSteps as Steps } from "@/lib/first-steps";
 
 import { usePlaceSearch } from "@/lib/use-place-search";
+import { useIsPhone } from "@/lib/use-phone";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
@@ -48,6 +50,7 @@ export default function Explorer({
   trips,
   initialSelectedId = null,
   firstSteps = null,
+  user,
 }: {
   initialPlaces: PlaceDTO[];
   trips: TripDTO[];
@@ -55,6 +58,9 @@ export default function Explorer({
   initialSelectedId?: string | null;
   /// The short list of first steps, or null once it is finished or hidden.
   firstSteps?: Steps | null;
+  /// Only for the avatar beside the search on a phone, where the bar that
+  /// usually carries it is hidden.
+  user?: { name: string | null; image: string | null };
 }) {
   const { categories, categoryOf, placeIconOf } = useCategories();
   const [places, setPlaces] = useState(initialPlaces);
@@ -118,7 +124,16 @@ export default function Explorer({
   const [citiesOpen, setCitiesOpen] = useState(false);
   // The list is useful, but this is a map — being able to get it out of the
   // way matters most on a phone, where it otherwise fills the screen.
-  const [listOpen, setListOpen] = useState(true);
+  /// Open on a laptop, a peek on a phone — until somebody says otherwise.
+  ///
+  /// Null is "never touched", so the default can follow the screen without a
+  /// second piece of state to remember whether it still applies. On a phone
+  /// the sheet is a caption for the map and the map is the point; in a
+  /// sidebar there is nothing else for the space to be.
+  const isPhone = useIsPhone();
+  const [openChoice, setOpenChoice] = useState<boolean | null>(null);
+  const listOpen = openChoice ?? !isPhone;
+  const setListOpen = setOpenChoice;
   /// The scrolling panel itself, so opening a place can return it to the top.
   const sheetRef = useRef<HTMLDivElement>(null);
   // How far the sheet has been dragged from its resting position, in pixels.
@@ -479,7 +494,10 @@ export default function Explorer({
             // throw here used to swallow the whole gesture.
             setDrag(0);
             if (Math.abs(delta) < 6) {
-              setListOpen((v) => !v);   // a tap
+              // Against what is on screen rather than against the stored
+              // choice, which is null until somebody makes one — and !null is
+              // true, so a tap on an open sidebar would have left it open.
+              setListOpen(!listOpen);   // a tap
             } else if (delta > 48) {
               setListOpen(false);
             } else if (delta < -48) {
@@ -514,7 +532,7 @@ export default function Explorer({
             {/* Where the map is looking, and a way to look somewhere else.
                 The list under it follows the map, so this menu does not filter
                 anything — it moves the map, and the list follows on its own. */}
-            <div className={`relative ${listOpen ? "" : "hidden lg:block"}`}>
+            <div className={`relative ${listOpen ? "" : "max-sm:block hidden lg:block"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="display truncate text-3xl leading-tight">
@@ -522,18 +540,31 @@ export default function Explorer({
                   </h2>
                   <p className="mt-0.5 text-xs text-muted">{hereSubtitle}</p>
                 </div>
-                <button
-                  type="button"
-                  className="chip shrink-0"
-                  aria-haspopup="menu"
-                  aria-expanded={citiesOpen}
-                  onClick={() => setCitiesOpen((open) => !open)}
-                >
-                  Change city
-                  <span aria-hidden className="text-[10px]">
-                    {citiesOpen ? "▲" : "▼"}
-                  </span>
-                </button>
+                {/* Shut, the sheet is a caption for the map and the only thing
+                    to ask of it is more. Open, it is the list, and the useful
+                    question is which city. */}
+                {listOpen ? (
+                  <button
+                    type="button"
+                    className="chip shrink-0"
+                    aria-haspopup="menu"
+                    aria-expanded={citiesOpen}
+                    onClick={() => setCitiesOpen((open) => !open)}
+                  >
+                    Change city
+                    <span aria-hidden className="text-[10px]">
+                      {citiesOpen ? "▲" : "▼"}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="shrink-0 text-sm font-medium text-accent-text"
+                    onClick={() => setListOpen(true)}
+                  >
+                    See all
+                  </button>
+                )}
               </div>
 
               {citiesOpen && (
@@ -615,13 +646,42 @@ export default function Explorer({
                   Hide list ‹
                 </button>
               </div>
-              <input
-                className="input sm:hidden"
-                type="search"
-                value={query}
-                placeholder="Search your places or anywhere in the world…"
-                onChange={(e) => setQuery(e.target.value)}
-              />
+              {/* On a phone this floats on the map rather than sitting in the
+                  sheet, which is where the kit puts it and why the map runs
+                  to the top of the screen. Fixed rather than absolute: the
+                  sheet it is written inside scrolls, and the search must not
+                  scroll with it.
+
+                  It exists only below sm — from there up the search lives in
+                  the bar across the top. */}
+              <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 flex items-center gap-2.5 sm:hidden">
+                <input
+                  className="input glass h-11 flex-1 rounded-full"
+                  type="search"
+                  value={query}
+                  placeholder="Search places or anywhere"
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {/* Where "You" lives on a phone now the bar across the top is
+                    gone on this screen. */}
+                <Link
+                  href="/settings"
+                  aria-label="You"
+                  className="glass grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full text-sm font-semibold"
+                >
+                  {user?.image ? (
+                    <Image
+                      src={user.image}
+                      alt=""
+                      width={44}
+                      height={44}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    (user?.name ?? "?").trim().charAt(0).toUpperCase()
+                  )}
+                </Link>
+              </div>
 
               {/* Directly under the box, not at the foot of the sidebar. They
                   were last, below every place already saved, so typing
@@ -662,7 +722,11 @@ export default function Explorer({
                   )}
                 </section>
               )}
-              <div className="mt-2 flex items-center justify-between gap-2">
+              <div
+                className={`mt-2 flex items-center justify-between gap-2 ${
+                  listOpen ? "" : "max-sm:hidden"
+                }`}
+              >
                 <button
                   type="button"
                   className={`chip ${dropMode ? "is-on" : "sm:hidden"}`}
@@ -687,6 +751,45 @@ export default function Explorer({
                   )}
                 </span>
               </div>
+
+              {/* The peek: the first few of what is in view, as pictures.
+                  Shut, the sheet is a caption for the map — what you are
+                  looking at, how much of it you have saved, and enough of it
+                  to recognise. It used to say "pull up to see them", which
+                  named the gesture and nothing else. */}
+              {!listOpen && (
+                <div className="no-scrollbar -mx-3 mt-3 flex gap-3 overflow-x-auto px-3 pb-1 sm:hidden">
+                  {inFrame.length === 0 ? (
+                    <p className="py-2 text-xs text-muted">
+                      Nothing saved in view. Search above, or drop a pin.
+                    </p>
+                  ) : (
+                    inFrame.slice(0, 10).map((place) => (
+                      <button
+                        key={place.id}
+                        type="button"
+                        className="w-[150px] shrink-0 text-left"
+                        onClick={() => setSelectedId(place.id)}
+                      >
+                        <PlaceThumb
+                          icon={placeIconOf(place)}
+                          color={categoryOf(place.category).color}
+                          photoUrl={place.photoUrl}
+                          size={104}
+                          width={150}
+                        />
+                        <span className="mt-1.5 block truncate text-sm font-semibold">
+                          {place.name}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {categoryOf(place.category).icon}{" "}
+                          {categoryOf(place.category).label}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* One row that scrolls, not three that wrap. Three rows of chips
@@ -698,8 +801,11 @@ export default function Explorer({
               // overflows, and without it the row gets squeezed — and since
               // setting overflow-x also makes overflow-y clip, the chips were
               // sliced off top and bottom rather than simply being cramped.
-              className={`no-scrollbar -mx-3 shrink-0 overflow-x-auto px-3 py-1 lg:mx-0 lg:px-0 ${
-                listOpen ? "" : "hidden lg:block"
+              className={`no-scrollbar shrink-0 overflow-x-auto py-1 max-sm:fixed max-sm:inset-x-0 max-sm:top-[calc(env(safe-area-inset-top)+4rem)] max-sm:z-20 max-sm:px-3 sm:-mx-3 sm:px-3 lg:mx-0 lg:px-0 ${
+                // Below sm these float on the map and are always up; from
+                // there to lg they are inside the sheet, which has to be open
+                // for them to have anywhere to be.
+                listOpen ? "" : "max-sm:block hidden lg:block"
               }`}
             >
               <div className="flex w-max gap-1.5">

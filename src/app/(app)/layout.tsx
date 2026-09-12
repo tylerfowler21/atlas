@@ -43,7 +43,12 @@ export default async function AppLayout({
           unread={unread}
           signOutAction={signOutAction}
         />
-        <main className="min-h-0 flex-1 overflow-auto">{children}</main>
+        {/* The room the floating tab bar needs on a phone. It is a pill over
+            the content rather than a strip beneath it, so every page has to
+            end above it — said once here rather than in each of them. */}
+        <main className="min-h-0 flex-1 overflow-auto pb-[calc(env(safe-area-inset-bottom)+4.5rem)] sm:pb-0">
+          {children}
+        </main>
         <MobileTabBar admin={isAdmin(user)} signOutAction={signOutAction} />
       </SearchProvider>
     </CategoriesProvider>

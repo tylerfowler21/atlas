@@ -28,10 +28,14 @@ export default function MobileTabBar({
 
   return (
     <>
-    {/* Bottom bar, phones only. A sibling in the page's flex column rather
-        than fixed positioning, so it can never overlap the content above it
-        and nothing needs padding to compensate. */}
-    <nav className="flex shrink-0 border-t border-line pb-[env(safe-area-inset-bottom)] sm:hidden">
+    {/* Bottom bar, phones only.
+    
+        A pill floating over the content rather than a strip ruled off beneath
+        it — the kit draws it that way, and on the map it is what gives the
+        glass something to sit on. The cost is that it covers what is under
+        it, so <main> leaves room for it; that room is `pb-tabbar` in the app
+        layout, and this is the only thing that needs it. */}
+    <nav className="glass-opaque fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+0.625rem)] z-30 flex rounded-full sm:hidden">
       {primary.map((link) => {
         const active = isActive(pathname, link.href);
         return (
@@ -39,8 +43,10 @@ export default function MobileTabBar({
             key={link.href}
             href={link.href}
             aria-current={active ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
-              active ? "font-medium text-accent-text" : "text-muted"
+            className={`m-1.5 flex flex-1 flex-col items-center gap-0.5 rounded-full py-1.5 text-[10px] ${
+              active
+                ? "bg-brand-surface font-medium text-accent-text"
+                : "text-muted"
             }`}
           >
             <link.Icon className="h-6 w-6" />
@@ -53,9 +59,9 @@ export default function MobileTabBar({
         type="button"
         aria-expanded={moreOpen}
         onClick={() => setMoreOpen((v) => !v)}
-        className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
+        className={`m-1.5 flex flex-1 flex-col items-center gap-0.5 rounded-full py-1.5 text-[10px] ${
           moreOpen || overflow.some((l) => isActive(pathname, l.href))
-            ? "font-medium text-accent-text"
+            ? "bg-brand-surface font-medium text-accent-text"
             : "text-muted"
         }`}
       >
@@ -74,7 +80,7 @@ export default function MobileTabBar({
           className="fixed inset-0 z-20 bg-black/20 sm:hidden"
           onClick={() => setMoreOpen(false)}
         />
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface pb-[calc(env(safe-area-inset-bottom)+4.5rem)] sm:hidden">
           <ul className="divide-y divide-line">
             {overflow.map((link) => (
               <li key={link.href}>

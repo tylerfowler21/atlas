@@ -395,6 +395,16 @@ h1,
     box-shadow: var(--shadow-glass);
   }
 
+  /* The same thing where what is underneath is text rather than cartography.
+     Twelve percent of a map showing through reads as depth; twelve percent of
+     somebody's trip list showing through reads as a rendering fault, and the
+     labels on top of it become unreadable. */
+  .glass-opaque {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-glass);
+  }
+
   /* The stand-in for a photograph: a tile in the category colour with the
      emoji centred. Set --tile-color inline. */
   .tile {

@@ -66,7 +66,15 @@ export default function NavBar({
   const initial = label.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <header className="relative flex shrink-0 items-center gap-3 border-b border-line px-4 py-2.5">
+    <header
+      // Gone on the map, on a phone. The map runs to the top of the screen
+      // there and the search floats on it — a title bar above that is a strip
+      // of paint where the map should be. Every other page keeps it, and so
+      // does the map from sm up, where there is room for both.
+      className={`relative shrink-0 items-center gap-3 border-b border-line px-4 py-2.5 ${
+        pathname === "/" ? "hidden sm:flex" : "flex"
+      }`}
+    >
       <Link href="/" className="flex items-center gap-2.5 text-base font-semibold">
         <Image src="/brand/mark-64.png" alt="" width={28} height={28} className="rounded-lg" />
         <span>Roava</span>
