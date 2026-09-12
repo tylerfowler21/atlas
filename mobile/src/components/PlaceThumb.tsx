@@ -16,13 +16,18 @@ export default function PlaceThumb({
   color,
   photoUrl,
   size = 44,
+  width,
 }: {
   icon: string;
   color: string;
   photoUrl?: string | null;
   size?: number;
+  /// Wider than it is tall, for the cards on the map's sheet. Square
+  /// everywhere else, which is why this is an option rather than a second
+  /// required dimension.
+  width?: number;
 }) {
-  const shape = { width: size, height: size, borderRadius: RADIUS.photo };
+  const shape = { width: width ?? size, height: size, borderRadius: RADIUS.photo };
 
   if (photoUrl) {
     return (

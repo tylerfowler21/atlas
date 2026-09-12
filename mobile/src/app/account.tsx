@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { tabBarSpace } from "@/lib/layout";
 import { SEMANTIC } from "@/lib/brand";
 import CategoryManager from "@/components/CategoryManager";
 import {
@@ -100,7 +99,7 @@ export default function AccountScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         style={{ backgroundColor: palette.background }}
-        contentContainerStyle={[styles.body, { paddingBottom: tabBarSpace(insets.bottom) }]}
+        contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 24 }]}
       >
         <Text style={[styles.name, { color: palette.ink }]}>{user?.name ?? "You"}</Text>
 

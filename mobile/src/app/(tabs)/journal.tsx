@@ -16,6 +16,7 @@ import { formatDay } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
 import { SEMANTIC } from "@/lib/brand";
 import { usePalette } from "@/lib/use-palette";
+import ScreenTitle from "@/components/ScreenTitle";
 
 /// When it happened, which is rarely when it was written — so the date shown
 /// is the one the writer chose, falling back to when it was saved.
@@ -49,6 +50,7 @@ export default function JournalScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
+      <ScreenTitle>Journal</ScreenTitle>
       <MemoryEditor
         memory={editing}
         open={writing || editing !== null}

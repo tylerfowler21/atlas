@@ -52,10 +52,26 @@ export function LivedIcon({ size = 24, color = INK }: IconProps) {
   );
 }
 
+export function MagnifyingGlassIcon({ size = 24, color = INK }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
+      <Path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/>
+    </Svg>
+  );
+}
+
 export function MapIcon({ size = 24, color = INK }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
       <Path d="M228.92,49.69a8,8,0,0,0-6.86-1.45L160.93,63.52,99.58,32.84a8,8,0,0,0-5.52-.6l-64,16A8,8,0,0,0,24,56V200a8,8,0,0,0,9.94,7.76l61.13-15.28,61.35,30.68A8.15,8.15,0,0,0,160,224a8,8,0,0,0,1.94-.24l64-16A8,8,0,0,0,232,200V56A8,8,0,0,0,228.92,49.69ZM104,52.94l48,24V203.06l-48-24ZM40,62.25l48-12v127.5l-48,12Zm176,131.5-48,12V78.25l48-12Z"/>
+    </Svg>
+  );
+}
+
+export function NavigationArrowIcon({ size = 24, color = INK }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 256 256" fill={color}>
+      <Path d="M237.33,106.21,61.41,41l-.16-.05A16,16,0,0,0,40.9,61.25a1,1,0,0,0,.05.16l65.26,175.92A15.77,15.77,0,0,0,121.28,248h.3a15.77,15.77,0,0,0,15-11.29l.06-.2,21.84-78,78-21.84.2-.06a16,16,0,0,0,.62-30.38ZM149.84,144.3a8,8,0,0,0-5.54,5.54L121.3,232l-.06-.17L56,56l175.82,65.22.16.06Z"/>
     </Svg>
   );
 }

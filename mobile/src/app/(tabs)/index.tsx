@@ -5,12 +5,28 @@ import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
 import { useCategories } from "@/lib/categories";
+import { useRouter } from "expo-router";
+import { useAuth } from "@/lib/auth";
+import {
+  BeenIcon,
+  LivedIcon,
+  MagnifyingGlassIcon,
+  NavigationArrowIcon,
+  WantToGoIcon,
+} from "@/components/nav-icons";
+import { inView, viewName, viewSubtitle, type Bounds } from "@/lib/map-view";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
 import { type } from "@/lib/type";
 import Glass from "@/components/Glass";
-import { FAB_SIZE, SHEET_HANDLE, mapFloorSpace, tabBarSpace } from "@/lib/layout";
+import {
+  FAB_SIZE,
+  SHEET_PEEK,
+  fabBottom,
+  sheetPeekHeight,
+  tabBarSpace,
+} from "@/lib/layout";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PlaceThumb from "@/components/PlaceThumb";
 import Stars from "@/components/Stars";
@@ -32,9 +48,36 @@ import {
   TextInput,
   View,
 } from "react-native";
-import MapView, { Marker, type Region } from "react-native-maps";
+import MapView, { Callout, Marker, type Region } from "react-native-maps";
 import { year } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
+
+/// The search field's height, so the chip row beneath it knows where it ends.
+/// Both float over the map, so neither can push the other down.
+const TOP_ROW_HEIGHT = 46;
+const AVATAR = 42;
+const FIND_ME_SIZE = 44;
+
+/// One card in the sheet's row: wider than tall, as photographs of places
+/// tend to be.
+const CARD_WIDTH = 150;
+const CARD_PHOTO_HEIGHT = 104;
+
+/// The marker's view, which is a fixed size whatever state the pin is in.
+///
+/// Apple Maps places a custom marker by its own view's geometry, so a view
+/// that changes size drags the pin off the place it is marking — and it clips
+/// anything drawn outside that view rather than letting it overhang. So the
+/// chosen pin grows *within* an unchanging box, and its name is a callout,
+/// which MapKit positions itself.
+const PIN_BOX = 44;
+const PIN = 32;
+const PIN_SELECTED = 42;
+/// Wide enough for most names and no wider. MapKit centres the callout on the
+/// pin and slides it inwards when it would fall off the screen, so an
+/// over-wide box makes a pin near the edge look like it belongs to a
+/// neighbour.
+const PIN_CALLOUT_WIDTH = 150;
 
 /// Enough of a margin that pins are not welded to the edge of the screen.
 const PADDING = 1.4;
@@ -62,7 +105,9 @@ function regionFor(places: Place[]): Region | undefined {
 }
 
 export default function MapScreen() {
-  const { placeIconOf, categoryOf } = useCategories();
+  const { placeIconOf, categoryOf, categories } = useCategories();
+  const { user } = useAuth();
+  const router = useRouter();
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
   const insets = useSafeAreaInsets();
@@ -74,6 +119,12 @@ export default function MapScreen() {
   /// A ref, not state: it changes on every pan, and the search should read it
   /// when somebody types rather than re-run because the map drifted a mile.
   const viewport = useRef<{ lat: number; lng: number } | null>(null);
+  /// What the map can see, which is what the sheet names and counts.
+  ///
+  /// State rather than a ref, unlike the centre above: the heading has to
+  /// redraw when you pan somewhere else. Only ever set when a pan settles, so
+  /// this is one render per gesture rather than one per frame.
+  const [bounds, setBounds] = useState<Bounds | null>(null);
 
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
   /// What was found under a long press, waiting to be chosen from.
@@ -102,6 +153,14 @@ export default function MapScreen() {
   /// Status filtering lives here now the Been tab is gone: the map of
   /// everywhere you have been is the same map with everything else hidden.
   const [status, setStatus] = useState<string>("all");
+  /// Categories narrow what status has already chosen, and unlike status they
+  /// stack: "Food and Café" is a question somebody asks, where "Want to go and
+  /// Been there" is not. Empty means all of them.
+  const [cats, setCats] = useState<string[]>([]);
+  /// The pin you last tapped, which the kit draws larger with its name under
+  /// it. Null is the resting state — a map of pins, none of them singled out.
+  const [selected, setSelected] = useState<string | null>(null);
+  const carousel = useRef<FlatList<Place>>(null);
   /// The places list, which used to be its own tab. A panel rather than a
   /// separate screen: it is the same places under the same filters, and the
   /// map is the thing you want behind it.
@@ -145,7 +204,9 @@ export default function MapScreen() {
   );
 
   const places = useMemo(() => {
-    const chosen = status === "all" ? all : all.filter((p) => p.status === status);
+    const byStatus = status === "all" ? all : all.filter((p) => p.status === status);
+    const chosen =
+      cats.length === 0 ? byStatus : byStatus.filter((p) => cats.includes(p.category));
     if (status !== "lived") return chosen;
     // Lived-in places read as chapters: earliest first, undated last.
     return [...chosen].sort((a, b) => {
@@ -153,7 +214,7 @@ export default function MapScreen() {
       if (!b.livedFrom) return -1;
       return new Date(a.livedFrom).getTime() - new Date(b.livedFrom).getTime();
     });
-  }, [all, status]);
+  }, [all, status, cats]);
 
   /// Cities and countries with how many places are in each, commonest first.
   /// Shared with the website so the two cannot disagree about a number somebody
@@ -185,6 +246,35 @@ export default function MapScreen() {
         (preview.statuses.length === 0 || preview.statuses.includes(p.status)),
     );
   }, [places, view, within, preview]);
+
+  /// What is on screen, which is what the sheet's heading names and counts.
+  ///
+  /// The list follows the map rather than listing everything ever saved:
+  /// panning to Kyoto should give you Kyoto without anyone choosing it from a
+  /// menu. With no bounds yet — the first frame, before the map has settled —
+  /// it is everything, which is also what a world view would give.
+  const inFrame = useMemo(
+    () => (bounds ? listed.filter((p) => inView(p, bounds)) : listed),
+    [listed, bounds],
+  );
+
+  const frameName = useMemo(() => viewName(inFrame, bounds), [inFrame, bounds]);
+  const frameSubtitle = useMemo(
+    () => viewSubtitle(inFrame, frameName, listed.length),
+    [inFrame, frameName, listed.length],
+  );
+
+  /// Tapping a pin brings its card to the front of the row below.
+  ///
+  /// The pin says which one you mean and the card is how you open it, so the
+  /// two have to agree — a highlighted pin whose card is three swipes away is
+  /// a question with the answer hidden.
+  useEffect(() => {
+    if (!selected || listOpen) return;
+    const index = inFrame.findIndex((p) => p.id === selected);
+    if (index < 0) return;
+    carousel.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+  }, [selected, listOpen, inFrame]);
 
   /// Drilling into a city moves the map to it.
   ///
@@ -303,6 +393,13 @@ export default function MapScreen() {
           const span = Math.max(r.latitudeDelta, r.longitudeDelta);
           viewport.current =
             span <= 8 ? { lat: r.latitude, lng: r.longitude } : null;
+          setBounds({
+            north: r.latitude + r.latitudeDelta / 2,
+            south: r.latitude - r.latitudeDelta / 2,
+            east: r.longitude + r.longitudeDelta / 2,
+            west: r.longitude - r.longitudeDelta / 2,
+            span,
+          });
         }}
         initialRegion={initial}
         showsUserLocation={granted}
@@ -320,7 +417,14 @@ export default function MapScreen() {
         // plain tap — that is what the long press below is for — but the
         // keyboard goes away, because a finger on the map means "I am done
         // typing" and there was previously nothing that meant that.
-        onPress={() => Keyboard.dismiss()}
+        onPress={(e) => {
+          Keyboard.dismiss();
+          // A tap on a pin reaches the map as well as the marker, and the two
+          // handlers would otherwise race: the marker selects the place and
+          // this puts it straight back down. Only a tap on the map itself is
+          // the gesture that means "never mind".
+          if (e.nativeEvent.action !== "marker-press") setSelected(null);
+        }}
         onLongPress={(e) => {
           const { latitude, longitude } = e.nativeEvent.coordinate;
           void offerWhatIsHere(latitude, longitude);
@@ -334,9 +438,9 @@ export default function MapScreen() {
           <Marker
             key={place.id}
             coordinate={{ latitude: place.lat, longitude: place.lng }}
-            title={place.name}
-            description={[place.city, place.country].filter(Boolean).join(", ")}
-            onCalloutPress={() => setDraft(placeToDraft(place))}
+            onPress={() => setSelected(place.id)}
+            // Keeps the chosen pin, and its name, above its neighbours.
+            zIndex={selected === place.id ? 2 : 1}
           >
             {/* The kit's pin, and the website's: the category's colour filling
                 the disc with a white ring round it.
@@ -346,11 +450,40 @@ export default function MapScreen() {
                 pictures depending on whether you opened it here or on the
                 website. Status is what the chips above filter by, which is
                 where that question gets answered now. */}
-            <View
-              style={[styles.pin, { backgroundColor: categoryOf(place.category).color }]}
-            >
-              <Text style={styles.pinGlyph}>{placeIconOf(place)}</Text>
+            <View style={styles.pinBox}>
+              <View
+                style={[
+                  styles.pin,
+                  { backgroundColor: categoryOf(place.category).color },
+                  selected === place.id && styles.pinSelected,
+                ]}
+              >
+                <Text
+                  style={[styles.pinGlyph, selected === place.id && styles.pinGlyphSelected]}
+                >
+                  {placeIconOf(place)}
+                </Text>
+              </View>
             </View>
+
+            {/* The pin's name, which the kit draws as a pill beside it. A
+                callout rather than more marker: MapKit keeps it the right way
+                up and on screen at the edges, and — the reason this is not
+                drawn in the marker itself — it may overhang the pin, where
+                anything inside the marker's own view is clipped to it. */}
+            <Callout tooltip onPress={() => setDraft(placeToDraft(place))}>
+              {/* The fixed width is the callout's, not the pill's. MapKit
+                  measures a custom callout against the marker it belongs to
+                  and would otherwise squeeze this into 44 points and clip the
+                  name to one letter; the pill centres itself inside it. */}
+              <View style={styles.pinCallout}>
+                <View style={[styles.pinLabel, { backgroundColor: palette.surface }]}>
+                  <Text style={[type.metaStrong, { color: palette.ink }]} numberOfLines={1}>
+                    {place.name}
+                  </Text>
+                </View>
+              </View>
+            </Callout>
           </Marker>
         ))}
       </MapView>
@@ -366,73 +499,103 @@ export default function MapScreen() {
             center: { latitude: here.lat, longitude: here.lng },
           });
         }}
-        style={[styles.findMe, { bottom: mapFloorSpace(insets.bottom) + FAB_SIZE + 24 }]}
+        style={[styles.findMe, { bottom: sheetPeekHeight(insets.bottom) + 14 }]}
         accessibilityLabel="Show where I am"
       >
-        {/* The supplied artwork, which brings its own tile — so the button
-            draws no surface of its own. */}
-        <Image source={require("../../../assets/images/locate.png")} style={styles.findMeIcon} />
+        {/* Drawn rather than the supplied artwork, which baked its own pale
+            tile into the image: on a dark map that was a white square, and it
+            could not take the palette because it was a photograph of a button
+            rather than a button. */}
+        <Glass radius={FIND_ME_SIZE / 2} style={styles.findMeGlass}>
+          <NavigationArrowIcon size={22} color={palette.ink} />
+        </Glass>
       </Pressable>
 
-      {/* The kit's round Sun button, beside the tab bar.
+
+      {/* The search field and the avatar share the top line, which is why the
+          field stops short of the right edge. There is no title bar above
+          them: the map runs to the top of the screen and this floats on it. */}
+      <View style={[styles.topRow, { top: insets.top + 8 }]}>
+        <Glass style={styles.searchBar} radius={26}>
+          <MagnifyingGlassIcon size={20} color={palette.muted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={() => Keyboard.dismiss()}
+            returnKeyType="search"
+            placeholder="Search places or anywhere"
+            placeholderTextColor={palette.muted}
+            style={[type.body, { flex: 1, color: palette.ink }]}
+          />
+          {searching && <ActivityIndicator />}
+          {/* The way back to the map. Without it the keyboard covers half the
+              screen with no gesture that closes it, and the only escape from
+              a search is to have typed something worth tapping. */}
+          {query.length > 0 && !searching && (
+            <Pressable
+              onPress={() => {
+                setQuery("");
+                Keyboard.dismiss();
+              }}
+              hitSlop={10}
+              accessibilityLabel="Clear the search"
+            >
+              <Text style={{ color: palette.muted, fontSize: 17 }}>✕</Text>
+            </Pressable>
+          )}
+        </Glass>
+
+        {/* Where "You" went when the tab bar came down to four. A face is a
+            better door to your own account than a fifth icon competing with
+            the four places you actually move between. */}
+        <Pressable
+          onPress={() => router.push("/account")}
+          accessibilityLabel="You"
+          style={styles.avatarHit}
+        >
+          {user?.image ? (
+            <Image source={{ uri: user.image }} style={styles.avatar} />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                styles.avatarBlank,
+                { backgroundColor: palette.brandSurface },
+              ]}
+            >
+              <Text style={[type.item, { color: palette.ink }]}>
+                {(user?.name ?? user?.username ?? "?").trim().charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </Pressable>
+      </View>
+
+      {/* One row, two kinds of filter.
           
-          It asks the same question a long press does — what is at this point —
-          but about the middle of what you are looking at, which is where you
-          have just panned to. A "+" that opened an empty form would make you
-          type the name of the thing already under your thumb. */}
-      <Pressable
-        onPress={async () => {
-          const camera = await map.current?.getCamera();
-          if (!camera) return;
-          void offerWhatIsHere(camera.center.latitude, camera.center.longitude);
-        }}
-        style={[
-          styles.fab,
-          { bottom: mapFloorSpace(insets.bottom) + 12, backgroundColor: palette.accent },
-        ]}
-        accessibilityLabel="Add a place here"
+          Status comes first and picks one — a place is either somewhere you
+          want to go or somewhere you have been, never both. Categories follow
+          and stack, because "food and cafés" is a question somebody asks. The
+          two are told apart by the icons: the status chips carry theirs, the
+          category chips are bare, which is how the kit draws them. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        style={[styles.chipScroll, { top: insets.top + 8 + TOP_ROW_HEIGHT + 10 }]}
+        contentContainerStyle={styles.chipRow}
       >
-        <Text style={[styles.fabGlyph, { color: palette.onAccent }]}>+</Text>
-      </Pressable>
-
-      <Glass style={styles.searchBar} radius={26}>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={() => Keyboard.dismiss()}
-          returnKeyType="search"
-          placeholder="Search places or anywhere"
-          placeholderTextColor={palette.muted}
-          style={[type.body, { flex: 1, color: palette.ink }]}
-        />
-        {searching && <ActivityIndicator />}
-        {/* The way back to the map. Without it the keyboard covers half the
-            screen with no gesture that closes it, and the only escape from a
-            search is to have typed something worth tapping. */}
-        {query.length > 0 && !searching && (
-          <Pressable
-            onPress={() => {
-              setQuery("");
-              Keyboard.dismiss();
-            }}
-            hitSlop={10}
-            accessibilityLabel="Clear the search"
-          >
-            <Text style={{ color: palette.muted, fontSize: 17 }}>✕</Text>
-          </Pressable>
-        )}
-      </Glass>
-
-      <View style={styles.statusRow}>
-        {[
-          { id: "all", label: "All", count: 0 },
-          { id: "wishlist", label: "Want to go", count: wishlistCount },
-          { id: "visited", label: "Been", count: 0 },
-          { id: "lived", label: "Lived", count: 0 },
-        ].map((s) => {
-          const on = status === s.id;
+        {(
+          [
+            ["all", "All", 0, null],
+            ["wishlist", "Want to go", wishlistCount, WantToGoIcon],
+            ["visited", "Been there", 0, BeenIcon],
+            ["lived", "Lived", 0, LivedIcon],
+          ] as const
+        ).map(([id, label, count, Icon]) => {
+          const on = status === id;
           return (
-            <Pressable key={s.id} onPress={() => setStatus(s.id)}>
+            <Pressable key={id} onPress={() => setStatus(id)}>
               <Glass
                 radius={999}
                 style={[
@@ -440,17 +603,18 @@ export default function MapScreen() {
                   on && { backgroundColor: palette.primary, borderColor: palette.primary },
                 ]}
               >
+                {Icon && <Icon size={17} color={on ? palette.onPrimary : palette.ink} />}
                 <Text
                   style={[type.metaStrong, { color: on ? palette.onPrimary : palette.ink }]}
                 >
-                  {s.label}
+                  {label}
                 </Text>
                 {/* The boards put the number on the one chip it means
                     something for: how many places are still to go. */}
-                {s.count > 0 && (
+                {count > 0 && (
                   <View style={[styles.chipCount, { backgroundColor: palette.accent }]}>
                     <Text style={[type.meta, styles.chipCountText, { color: palette.onAccent }]}>
-                      {s.count}
+                      {count}
                     </Text>
                   </View>
                 )}
@@ -458,7 +622,42 @@ export default function MapScreen() {
             </Pressable>
           );
         })}
-      </View>
+
+        {/* Only the categories somebody has actually saved something in. A row
+            of ten filters where seven of them empty the map is a row of ten
+            ways to be disappointed. */}
+        {categories
+          .filter((c) => all.some((p) => p.category === c.id))
+          .map((c) => {
+            const on = cats.includes(c.id);
+            return (
+              <Pressable
+                key={c.id}
+                onPress={() =>
+                  setCats((chosen) =>
+                    chosen.includes(c.id)
+                      ? chosen.filter((x) => x !== c.id)
+                      : [...chosen, c.id],
+                  )
+                }
+              >
+                <Glass
+                  radius={999}
+                  style={[
+                    styles.statusChip,
+                    on && { backgroundColor: palette.primary, borderColor: palette.primary },
+                  ]}
+                >
+                  <Text
+                    style={[type.metaStrong, { color: on ? palette.onPrimary : palette.ink }]}
+                  >
+                    {c.label}
+                  </Text>
+                </Glass>
+              </Pressable>
+            );
+          })}
+      </ScrollView>
 
       {results.length > 0 && (
         <ScrollView
@@ -509,17 +708,81 @@ export default function MapScreen() {
             // sheet keeps its own room underneath: without it the collapsed
             // handle poked out below the bar and read as a second bar.
             paddingBottom: tabBarSpace(insets.bottom),
-            maxHeight: SHEET_HANDLE + tabBarSpace(insets.bottom),
+            maxHeight: SHEET_PEEK + tabBarSpace(insets.bottom),
           },
           listOpen && styles.sheetOpen,
         ]}
       >
         <Pressable onPress={() => setListOpen((open) => !open)} style={styles.handle}>
           <View style={[styles.grabber, { backgroundColor: palette.border }]} />
-          <Text style={[type.meta, { color: palette.muted }]}>
-            {listOpen ? "Hide list" : "Show list"}
-          </Text>
         </Pressable>
+
+        {/* Closed, the sheet is a caption for the map: what you are looking
+            at, how much of it you have saved, and the first few of them. It
+            used to read "Show list", which named the gesture rather than
+            saying anything about the place under it. */}
+        {!listOpen && (
+          <>
+            <Pressable onPress={() => setListOpen(true)} style={styles.peekHead}>
+              <View style={styles.peekHeadText}>
+                <Text style={[type.section, { color: palette.ink }]} numberOfLines={1}>
+                  {frameName ?? "Your places"}
+                </Text>
+                <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
+                  {frameSubtitle}
+                </Text>
+              </View>
+              <Text style={[type.metaStrong, { color: palette.accentText }]}>See all</Text>
+            </Pressable>
+
+            {inFrame.length === 0 ? (
+              <Text style={[type.meta, styles.peekEmpty, { color: palette.muted }]}>
+                Nothing saved in view. Search above, or press and hold anywhere
+                on the map to drop a pin.
+              </Text>
+            ) : (
+              <FlatList
+                ref={carousel}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={inFrame}
+                keyExtractor={(p) => p.id}
+                contentContainerStyle={styles.peekRow}
+                // A card can be off screen when its pin is tapped, and
+                // scrollToIndex needs to be told how wide one is to reach it
+                // without having measured it first.
+                getItemLayout={(_, index) => ({
+                  length: CARD_WIDTH + 12,
+                  offset: (CARD_WIDTH + 12) * index,
+                  index,
+                })}
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => setDraft(placeToDraft(item))}
+                    style={styles.card}
+                  >
+                    <PlaceThumb
+                      icon={placeIconOf(item)}
+                      color={categoryOf(item.category).color}
+                      photoUrl={item.photoUrl}
+                      size={CARD_PHOTO_HEIGHT}
+                      width={CARD_WIDTH}
+                    />
+                    <Text
+                      style={[type.item, styles.cardName, { color: palette.ink }]}
+                      numberOfLines={1}
+                    >
+                      {item.name}
+                    </Text>
+                    <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
+                      {categoryOf(item.category).icon} {categoryOf(item.category).label}
+                    </Text>
+                  </Pressable>
+                )}
+              />
+            )}
+          </>
+        )}
 
         {listOpen && (
           <>
@@ -736,13 +999,26 @@ export default function MapScreen() {
         )}
       </View>
 
-      {places.length === 0 && results.length === 0 && !listOpen && (
-        <View style={styles.empty} pointerEvents="none">
-          <Text style={styles.emptyText}>
-            Search above, or press and hold anywhere on the map to drop a pin.
-          </Text>
-        </View>
-      )}
+      {/* The kit's round Sun button, beside the tab bar.
+
+          It asks the same question a long press does — what is at this point —
+          but about the middle of what you are looking at, which is where you
+          have just panned to. A "+" that opened an empty form would make you
+          type the name of the thing already under your thumb. */}
+      <Pressable
+        onPress={async () => {
+          const camera = await map.current?.getCamera();
+          if (!camera) return;
+          void offerWhatIsHere(camera.center.latitude, camera.center.longitude);
+        }}
+        style={[
+          styles.fab,
+          { bottom: fabBottom(insets.bottom), backgroundColor: palette.accent },
+        ]}
+        accessibilityLabel="Add a place here"
+      >
+        <Text style={[styles.fabGlyph, { color: palette.onAccent }]}>+</Text>
+      </Pressable>
     </View>
   );
 }
@@ -752,9 +1028,9 @@ const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: SEMANTIC.danger, padding: 24, textAlign: "center" },
   pin: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: PIN,
+    height: PIN,
+    borderRadius: PIN / 2,
     borderWidth: 2.5,
     borderColor: "#fff",
     alignItems: "center",
@@ -767,8 +1043,42 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
   },
   pinGlyph: { fontSize: 16, lineHeight: 19 },
-  /// Above the round button, which now owns the bottom-right corner.
-  findMe: { position: "absolute", right: 19 },
+  /// The disc alone, at a fixed size whether or not it is the chosen one.
+  ///
+  /// react-native-maps anchors a custom marker on the middle of its view, so
+  /// anything that changes that view's size moves the pin off the place it is
+  /// marking. The caption is positioned out of the flow below for the same
+  /// reason — laid out normally it widened the box and slid the pin sideways.
+  pinBox: {
+    width: PIN_BOX,
+    height: PIN_BOX,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  /// Grows inside the box rather than growing the box, so the pin stays on
+  /// the place it marks.
+  pinSelected: {
+    width: PIN_SELECTED,
+    height: PIN_SELECTED,
+    borderRadius: PIN_SELECTED / 2,
+    borderWidth: 3,
+    shadowOpacity: 0.36,
+    shadowRadius: 9,
+  },
+  pinGlyphSelected: { fontSize: 22, lineHeight: 26 },
+  pinCallout: { width: PIN_CALLOUT_WIDTH, alignItems: "center" },
+  pinLabel: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    maxWidth: PIN_CALLOUT_WIDTH,
+    shadowColor: "#12322B",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  /// Above the resting sheet, which owns the foot of the map.
+  findMe: { position: "absolute", right: 16 },
   fab: {
     position: "absolute",
     right: 16,
@@ -784,27 +1094,41 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   fabGlyph: { fontSize: 30, lineHeight: 34, fontWeight: "400" },
-  findMeIcon: { width: 44, height: 44 },
-  searchBar: {
+  findMeGlass: {
+    width: FIND_ME_SIZE,
+    height: FIND_ME_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topRow: {
     position: "absolute",
-    top: 12,
     left: 12,
     right: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    gap: 10,
   },
-  statusRow: {
-    position: "absolute",
-    top: 62,
-    left: 12,
-    right: 12,
+  searchBar: {
+    flex: 1,
+    height: TOP_ROW_HEIGHT,
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
   },
+  avatarHit: { padding: 2 },
+  avatar: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  avatarBlank: { alignItems: "center", justifyContent: "center" },
+  /// Scrolls rather than wraps: the categories make this longer than the
+  /// screen, and a second line of chips would eat the map.
+  chipScroll: { position: "absolute", left: 0, right: 0 },
+  chipRow: { flexDirection: "row", gap: 6, paddingHorizontal: 12 },
   statusChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -887,7 +1211,19 @@ const styles = StyleSheet.create({
     maxHeight: 72,
   },
   sheetOpen: { maxHeight: "70%" },
-  handle: { alignItems: "center", paddingTop: 8, paddingBottom: 10 },
+  handle: { alignItems: "center", paddingTop: 8, paddingBottom: 8 },
+  peekHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  peekHeadText: { flex: 1 },
+  peekEmpty: { paddingHorizontal: 16, paddingBottom: 16, lineHeight: 19 },
+  peekRow: { gap: 12, paddingHorizontal: 16, paddingBottom: 4 },
+  card: { width: CARD_WIDTH },
+  cardName: { marginTop: 7 },
   tiles: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingBottom: 10 },
   tile: {
     flex: 1,
@@ -913,13 +1249,4 @@ const styles = StyleSheet.create({
   rowName: { fontSize: 15, fontWeight: "500" },
   rowWhere: { fontSize: 13, marginTop: 2 },
   listEmpty: { textAlign: "center", padding: 24 },
-  empty: { position: "absolute", left: 24, right: 24, bottom: 96 },
-  emptyText: {
-    backgroundColor: "rgba(0,0,0,0.7)",
-    color: "#fff",
-    padding: 12,
-    borderRadius: 10,
-    textAlign: "center",
-    overflow: "hidden",
-  },
 });

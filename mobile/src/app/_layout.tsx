@@ -33,14 +33,20 @@ function Routes() {
         {/* The tabs draw their own chrome, so the stack hides its header by
             default. A screen pushed on top of them needs it back — without a
             header there is no back button, and a trip becomes somewhere you
-            can get into and not out of. */}
-        {/* The title and the back label are set here rather than left to
-            expo-router, which otherwise names them after the files: a trip
-            opened with "trip/[id]" in the header and "(tabs)" on the back
-            button until the fetch came back. */}
+            can get into and not out of.
+
+            The titles are set here rather than left to expo-router, which
+            otherwise names a screen after its file: a trip opened with
+            "trip/[id]" in the header and "(tabs)" on the back button. */}
         <Stack.Screen
           name="trip/[id]"
           options={{ headerShown: true, title: "Trip", headerBackTitle: "Trips" }}
+        />
+        {/* Reached from the avatar on the map rather than from a tab, so it is
+            pushed over the tabs and needs the header's way back. */}
+        <Stack.Screen
+          name="account"
+          options={{ headerShown: true, title: "You", headerBackTitle: "Map" }}
         />
       </Stack.Protected>
       <Stack.Protected guard={user === null}>

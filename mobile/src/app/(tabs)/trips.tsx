@@ -19,6 +19,7 @@ import TripEditor from "@/components/TripEditor";
 import PlanTrip from "@/components/PlanTrip";
 import type { Trip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import ScreenTitle from "@/components/ScreenTitle";
 
 /// "12–19 May 2025", or a single date, or nothing at all — trips are allowed
 /// to have no dates, and a stray dash for a missing one looks like a bug.
@@ -45,6 +46,7 @@ export default function TripsScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
+      <ScreenTitle>Trips</ScreenTitle>
       {creating && (
         <TripEditor
           trip={null}

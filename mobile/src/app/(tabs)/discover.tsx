@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import FeedList from "@/components/FeedList";
 import PeopleList from "@/components/PeopleList";
 import { usePalette } from "@/lib/use-palette";
+import ScreenTitle from "@/components/ScreenTitle";
 
 /// Two views of the same subject: other travellers, and what they have
 /// published. They were separate tabs, but People exists mostly to fill the
@@ -16,6 +17,7 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
+      <ScreenTitle>Discover</ScreenTitle>
       <View style={[styles.segments, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         {(
           [
