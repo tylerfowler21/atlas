@@ -33,6 +33,7 @@ import PlaceThumb from "@/components/PlaceThumb";
 import Stars from "@/components/Stars";
 import StatusIcon from "@/components/StatusIcon";
 import { useMyLocation } from "@/lib/use-my-location";
+import PlaceDetail from "@/components/PlaceDetail";
 import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
 import { type Place, type SearchResult } from "@/lib/api";
 import {
@@ -172,6 +173,10 @@ export default function MapScreen() {
   const [bounds, setBounds] = useState<Bounds | null>(null);
 
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
+  /// A saved place being read rather than edited. The editor is still there,
+  /// behind this screen's ⋯, and is what a new place goes straight into —
+  /// there is nothing to read about somewhere not saved yet.
+  const [viewing, setViewing] = useState<Place | null>(null);
   /// What was found under a long press, waiting to be chosen from.
   const [underFinger, setUnderFinger] = useState<
     { lat: number; lng: number; found: SearchResult[] } | null
@@ -425,6 +430,19 @@ export default function MapScreen() {
       )}
 
       <PlaceEditor draft={draft} onClose={() => setDraft(null)} onSaved={reload} />
+
+      <PlaceDetail
+        // Keyed on the place so opening a different one starts fresh rather
+        // than carrying the last one's status and stars for a render.
+        key={viewing?.id}
+        place={viewing}
+        onClose={() => setViewing(null)}
+        onChanged={reload}
+        onEdit={(place) => {
+          setViewing(null);
+          setDraft(placeToDraft(place));
+        }}
+      />
 
       {/* What was found under a long press. A sheet rather than an alert: the
           answer is a list with icons and addresses, and an alert would flatten
@@ -933,7 +951,7 @@ export default function MapScreen() {
                 })}
                 renderItem={({ item }) => (
                   <Pressable
-                    onPress={() => setDraft(placeToDraft(item))}
+                    onPress={() => setViewing(item)}
                     style={styles.card}
                   >
                     <PlaceThumb
@@ -1133,7 +1151,7 @@ export default function MapScreen() {
                 }
                 renderItem={({ item }) => (
                   <Pressable
-                    onPress={() => setDraft(placeToDraft(item))}
+                    onPress={() => setViewing(item)}
                     style={[styles.row, { borderBottomColor: palette.border }]}
                   >
                     <PlaceThumb
