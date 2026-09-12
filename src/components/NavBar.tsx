@@ -8,7 +8,6 @@ import {
   JournalIcon,
   MapIcon,
   NotificationsIcon,
-  PeopleIcon,
   SignOutIcon,
   TripsIcon,
   WhosUsingRoavaIcon,

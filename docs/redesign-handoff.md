@@ -277,3 +277,18 @@ the mockup images.
 brief. `roava-ios-prototype.html` is still worth asking Jack for; it is the
 precise source for the glass, blur and shadow values, which are otherwise
 being eyeballed from screenshots.
+
+**Phase 0 decisions, settled 12 September.** Icons move to Phosphor. Dark
+mode ships rather than being disabled.
+
+**Icons.** Swapped at the source, which is what this brief suggests: the
+eleven brand SVGs in `brand/icons` are Phosphor regular now, and both
+generated sets are rebuilt from them, so the two platforms cannot drift.
+Discover has its own compass rather than borrowing the people icon, which
+Welcome uses to mean people.
+
+Both generators had to learn one thing: Phosphor draws filled shapes that
+inherit `fill` from the root, where the brand set drew strokes on a root of
+`fill="none"`. The wrapper decided that for every icon, so a filled set came
+out invisible. They carry the source's own value through now and can emit
+either kind.
