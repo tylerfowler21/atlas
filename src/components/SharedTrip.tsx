@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import Image from "next/image";
 import { tripWhere } from "@/lib/trip-where";
 import DirectionsIcon from "@/components/DirectionsIcon";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
@@ -105,6 +106,18 @@ export default function SharedTrip({
   const visibleDays = showAll ? byDay : byDay.slice(0, DAYS_BEFORE_FOLD);
   const coverEmoji = stops[0] ? stopIconOf(stops[0]) : "🧭";
 
+  /// The trip's cover: a photograph of somewhere it actually goes.
+  ///
+  /// Taken from the first stop that has one rather than from the first stop,
+  /// because the first stop is often an airport or a hotel and the one after
+  /// it is the reason for the trip. Wikipedia has pictures of landmarks and
+  /// not of restaurants, which sorts them in roughly the right order by
+  /// itself.
+  const cover = useMemo(
+    () => stops.map((i) => i.place).find((pl) => pl?.photoUrl) ?? null,
+    [stops],
+  );
+
   const facts = [
     formatRange(trip) !== "No dates yet" ? `📅 ${formatRange(trip)}` : null,
     `${days} ${days === 1 ? "day" : "days"}`,
@@ -145,18 +158,51 @@ export default function SharedTrip({
           {actions && <div className="mt-5 flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
 
-        {/* A cover photograph would go here. Until there is one, the trip's
-            colour into evergreen, with the first stop's emoji. */}
-        <div
-          className="flex aspect-[4/3] w-full items-end rounded-[32px] p-5 text-[color:var(--paint-card)] lg:aspect-[640/460]"
-          style={{
-            background: `linear-gradient(160deg, ${trip.color} 0%, var(--paint-evergreen-900) 80%)`,
-          }}
-        >
-          <span aria-hidden className="text-7xl leading-none drop-shadow-lg">
-            {coverEmoji}
-          </span>
-        </div>
+        {/* A photograph of somewhere the trip goes. Failing that — a trip made
+            entirely of restaurants, which Wikipedia has nothing for — the
+            trip's own colour into evergreen, with the first stop's emoji. */}
+        {cover?.photoUrl ? (
+          <figure className="w-full">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[32px] lg:aspect-[640/460]">
+              <Image
+                src={cover.photoUrl}
+                alt={cover.name}
+                fill
+                sizes="(min-width: 1024px) 640px, 100vw"
+                className="object-cover"
+              />
+            </div>
+            {cover.photoAttribution && (
+              <figcaption className="mt-2 text-[11px] text-muted">
+                {cover.name} ·{" "}
+                {cover.photoSourceUrl ? (
+                  <a
+                    href={cover.photoSourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    {cover.photoAttribution}
+                  </a>
+                ) : (
+                  cover.photoAttribution
+                )}{" "}
+                · via Wikipedia
+              </figcaption>
+            )}
+          </figure>
+        ) : (
+          <div
+            className="flex aspect-[4/3] w-full items-end rounded-[32px] p-5 text-[color:var(--paint-card)] lg:aspect-[640/460]"
+            style={{
+              background: `linear-gradient(160deg, ${trip.color} 0%, var(--paint-evergreen-900) 80%)`,
+            }}
+          >
+            <span aria-hidden className="text-7xl leading-none drop-shadow-lg">
+              {coverEmoji}
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_520px] lg:items-start">

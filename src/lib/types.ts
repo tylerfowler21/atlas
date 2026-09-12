@@ -201,6 +201,12 @@ export type PublicPlaceDTO = {
   city: string | null;
   country: string | null;
   countryCode: string | null;
+  /// Wikipedia's photograph of the place. Safe to show a stranger — it is a
+  /// picture of a public landmark, not anything the person who saved it made
+  /// — and the credit travels with it because the licence requires it.
+  photoUrl: string | null;
+  photoAttribution: string | null;
+  photoSourceUrl: string | null;
 };
 
 export type PublicItemDTO = {
@@ -243,6 +249,9 @@ export function toPublicPlace(p: {
   city: string | null;
   country: string | null;
   countryCode: string | null;
+  photoUrl?: string | null;
+  photoAttribution?: string | null;
+  photoSourceUrl?: string | null;
 }): PublicPlaceDTO {
   return {
     id: p.id,
@@ -254,6 +263,9 @@ export function toPublicPlace(p: {
     city: p.city,
     country: p.country,
     countryCode: p.countryCode,
+    photoUrl: p.photoUrl ?? null,
+    photoAttribution: p.photoAttribution ?? null,
+    photoSourceUrl: p.photoSourceUrl ?? null,
   };
 }
 
