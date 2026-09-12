@@ -100,7 +100,11 @@ export default function NavBar({
       <Link
         href="/notifications"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
-        className="relative rounded-full p-2 text-sm text-muted hover:bg-foreground/5"
+        // The search field carries ml-auto and is hidden below sm, so without
+        // this the bell and the avatar bunch up against the wordmark on a
+        // phone — and the account menu, anchored to the avatar's right edge,
+        // then opens off the side of the screen.
+        className="relative ml-auto rounded-full p-2 text-sm text-muted hover:bg-foreground/5 sm:ml-0"
       >
         <NotificationsIcon className="h-5 w-5" />
         {unread > 0 && (
