@@ -262,11 +262,19 @@ type ItemPlace = {
   category: string;
   lat: number;
   lng: number;
+  /// Wikipedia's photograph of the place. What a stop shows beside its name,
+  /// and what a trip borrows for its cover when nobody has chosen one.
+  photoUrl: string | null;
 };
 
 export type Trip = {
   id: string;
   title: string;
+  /// Where to read the photograph chosen for this trip, relative to API_URL,
+  /// or null when nobody has chosen one. The blob behind it is private, so
+  /// this path is the only way to it and it needs the usual Authorization
+  /// header.
+  coverUrl: string | null;
   /// What a trip made before it could go to more than one place still says.
   destination: string | null;
   destinations: string[];

@@ -19,6 +19,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
+import TripCover from "@/components/TripCover";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
 import { dayLabel } from "@/lib/dates";
@@ -360,18 +361,9 @@ export default function TripScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: data.trip.title,
-          headerBackTitle: "Trips",
-          headerRight: () => (
-            <Pressable onPress={() => setSettings(true)} hitSlop={10}>
-              <Text style={{ color: palette.accentText, fontSize: 15 }}>Edit</Text>
-            </Pressable>
-          ),
-        }}
-      />
+      {/* No bar across the top: the cover is the top of this screen, and it
+          carries the title, the dates and the way back itself. */}
+      <Stack.Screen options={{ headerShown: false }} />
 
       {linkDay !== null && data && (
         <AddFromLink
@@ -416,6 +408,14 @@ export default function TripScreen() {
         />
       )}
       <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
+        <TripCover
+          trip={data.trip}
+          items={data.items}
+          days={days}
+          onChanged={reload}
+          onEdit={() => setSettings(true)}
+        />
+
         <TripMap
           items={
             mapDay === null ? data.items : data.items.filter((i) => i.dayIndex === mapDay)
