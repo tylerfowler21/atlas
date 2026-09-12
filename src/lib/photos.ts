@@ -62,6 +62,24 @@ export async function storePhoto(input: {
 /// simply break them.
 export class BlobAccessError extends Error {}
 
+/// Which store to write to.
+///
+/// A Blob store is public or private for life — the mode is fixed when it is
+/// created and cannot be changed afterwards — so the two kinds of file this
+/// app stores need two stores. Journal photos and trip covers stay in the
+/// private one, which is the default. A place's photograph has to be readable
+/// by strangers holding a share link, so it goes to a public store connected
+/// alongside it under the PLACE_PHOTOS_ prefix.
+///
+/// Undefined when that store is not configured, which leaves the SDK on the
+/// default and produces the explicit error below rather than a surprise.
+function publicStore() {
+  const token = process.env.PLACE_PHOTOS_READ_WRITE_TOKEN;
+  const storeId = process.env.PLACE_PHOTOS_STORE_ID;
+  if (!token && !storeId) return {};
+  return { ...(token ? { token } : {}), ...(storeId ? { storeId } : {}) };
+}
+
 export async function storeImage(input: {
   pathname: string;
   file: File;
@@ -72,6 +90,7 @@ export async function storeImage(input: {
       access: input.access,
       addRandomSuffix: true,
       contentType: input.file.type,
+      ...(input.access === "public" ? publicStore() : {}),
     });
     return { pathname: blob.pathname, url: blob.url };
   } catch (error) {
@@ -84,7 +103,7 @@ export async function storeImage(input: {
       /private store|public access|access on a/i.test(error.message)
     ) {
       throw new BlobAccessError(
-        "This Vercel Blob store only allows private files, and a place's photo has to be readable on shared trips. Switch the store to public access.",
+        "No public Blob store is configured. A place's photo has to be readable on shared trips, and a store's access mode cannot be changed after it is created — so this needs a second, public store connected with the PLACE_PHOTOS_ prefix.",
       );
     }
     throw error;
