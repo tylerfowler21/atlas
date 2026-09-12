@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { STATUS, SEMANTIC } from "@/lib/brand";
+import { SEMANTIC } from "@/lib/brand";
 import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
@@ -10,6 +10,9 @@ import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
 import { type } from "@/lib/type";
 import Glass from "@/components/Glass";
+import PlaceThumb from "@/components/PlaceThumb";
+import Stars from "@/components/Stars";
+import StatusIcon from "@/components/StatusIcon";
 import { useMyLocation } from "@/lib/use-my-location";
 import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
 import { type Place, type SearchResult } from "@/lib/api";
@@ -28,7 +31,6 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
-import { status as statusOf } from "@/lib/taxonomy";
 import { year } from "@/lib/dates";
 import { useApi } from "@/lib/use-api";
 
@@ -56,9 +58,6 @@ function regionFor(places: Place[]): Region | undefined {
     longitudeDelta: Math.max((maxLng - minLng) * PADDING, MIN_SPAN),
   };
 }
-
-/// Status rings, matching the website's pins so a place looks the same in both.
-const RING = STATUS;
 
 export default function MapScreen() {
   const { placeIconOf, categoryOf } = useCategories();
@@ -324,14 +323,16 @@ export default function MapScreen() {
             description={[place.city, place.country].filter(Boolean).join(", ")}
             onCalloutPress={() => setDraft(placeToDraft(place))}
           >
+            {/* The kit's pin, and the website's: the category's colour filling
+                the disc with a white ring round it.
+
+                This used to be the other way about — a pale disc with a ring
+                coloured by status — so the same saved place was two different
+                pictures depending on whether you opened it here or on the
+                website. Status is what the chips above filter by, which is
+                where that question gets answered now. */}
             <View
-              style={[
-                styles.pin,
-                {
-                  backgroundColor: palette.surface,
-                  borderColor: RING[place.status as keyof typeof RING] ?? RING.wishlist,
-                },
-              ]}
+              style={[styles.pin, { backgroundColor: categoryOf(place.category).color }]}
             >
               <Text style={styles.pinGlyph}>{placeIconOf(place)}</Text>
             </View>
@@ -471,13 +472,58 @@ export default function MapScreen() {
       >
         <Pressable onPress={() => setListOpen((open) => !open)} style={styles.handle}>
           <View style={[styles.grabber, { backgroundColor: palette.border }]} />
-          <Text style={{ color: palette.muted, fontSize: 13 }}>
+          <Text style={[type.meta, { color: palette.muted }]}>
             {listOpen ? "Hide list" : "Show list"}
           </Text>
         </Pressable>
 
         {listOpen && (
           <>
+            <Text style={[type.title, styles.sheetTitle, { color: palette.ink }]}>
+              Your places
+            </Text>
+
+            {/* Want to go, Been there, Lived — one segmented control rather
+                than a row of chips, because these three are one question with
+                one answer, and the boards draw them that way. The count sits
+                on the label: how many are still to go is the thing somebody
+                came to the list for. */}
+            <View style={[styles.segmented, { backgroundColor: palette.brandSurface }]}>
+              {(
+                [
+                  ["all", "All", counts.total],
+                  ["wishlist", "Want to go", wishlistCount],
+                  ["visited", "Been there", counts.been],
+                  ["lived", "Lived", 0],
+                ] as const
+              ).map(([id, label, n]) => {
+                const on = status === id;
+                return (
+                  <Pressable
+                    key={id}
+                    onPress={() => setStatus(id)}
+                    style={[
+                      styles.segment,
+                      on && { backgroundColor: palette.surface },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        type.metaStrong,
+                        { color: on ? palette.ink : palette.muted },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {label}
+                    </Text>
+                    {n > 0 && (
+                      <Text style={[type.meta, { color: palette.muted }]}>{n}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
             {/* The counts are the way into the list, not a caption above it.
                 Places and Been filter it; Cities and Countries regroup it,
                 because "3 countries" is answered by naming them. */}
@@ -599,22 +645,43 @@ export default function MapScreen() {
                     onPress={() => setDraft(placeToDraft(item))}
                     style={[styles.row, { borderBottomColor: palette.border }]}
                   >
-                    <Text style={styles.rowGlyph}>{placeIconOf(item)}</Text>
+                    <PlaceThumb
+                      photoUrl={item.photoUrl}
+                      icon={placeIconOf(item)}
+                      color={categoryOf(item.category).color}
+                    />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.rowName, { color: palette.ink }]} numberOfLines={1}>
+                      <Text style={[type.item, { color: palette.ink }]} numberOfLines={1}>
                         {item.name}
                       </Text>
-                      <Text style={[styles.rowWhere, { color: palette.muted }]} numberOfLines={1}>
-                        {[item.city, item.country].filter(Boolean).join(", ") || "—"}
+                      {/* What it is and what you said about it. The city is
+                          the fallback rather than the default: in a list
+                          already grouped by city, repeating it on every row
+                          says nothing. */}
+                      <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
+                        {[categoryOf(item.category).label, item.notes?.trim()]
+                          .filter(Boolean)
+                          .join(" · ") ||
+                          [item.city, item.country].filter(Boolean).join(", ") ||
+                          "—"}
                       </Text>
+                      {item.status === "lived" && item.livedFrom && (
+                        <Text style={[type.meta, { color: palette.muted }]}>
+                          {year(item.livedFrom)}–{item.livedTo ? year(item.livedTo) : "now"}
+                        </Text>
+                      )}
                     </View>
-                    <Text style={{ fontSize: 13 }}>{statusOf(item.status).icon}</Text>
-                    {item.status === "lived" && (
-                      <Text style={{ color: palette.muted, fontSize: 12 }}>
-                        {item.livedFrom
-                          ? `${year(item.livedFrom)}–${item.livedTo ? year(item.livedTo) : "now"}`
-                          : "🏠"}
-                      </Text>
+                    {/* Stars on the right, as the boards have it. The status
+                        mark only while the list is unfiltered — once you have
+                        chosen "Want to go", every row is one, and a column of
+                        identical marks is noise. */}
+                    {item.rating ? <Stars value={item.rating} /> : null}
+                    {status === "all" && (
+                      <StatusIcon
+                        status={item.status}
+                        size={16}
+                        color={item.status === "wishlist" ? palette.accentText : palette.muted}
+                      />
                     )}
                   </Pressable>
                 )}
@@ -640,18 +707,21 @@ const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: SEMANTIC.danger, padding: 24, textAlign: "center" },
   pin: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2.5,
+    borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
+    // Softer and greener than black, as on the website: a hard black shadow
+    // under every pin reads as an effect rather than as depth.
+    shadowColor: "#12322B",
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
-  pinGlyph: { fontSize: 16 },
+  pinGlyph: { fontSize: 16, lineHeight: 19 },
   findMe: { position: "absolute", right: 12, bottom: 92 },
   findMeIcon: { width: 44, height: 44 },
   searchBar: {
@@ -727,6 +797,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   result: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  sheetTitle: { paddingHorizontal: 16, paddingBottom: 10 },
+  /// One control, four segments, the chosen one raised out of the trough.
+  segmented: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 3,
+    borderRadius: 999,
+  },
+  segment: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   sheet: {
     position: "absolute",
     left: 0,
@@ -752,6 +840,7 @@ const styles = StyleSheet.create({
   back: { paddingHorizontal: 14, paddingBottom: 8 },
   grabber: { width: 36, height: 4, borderRadius: 2, marginBottom: 8 },
   row: {
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,

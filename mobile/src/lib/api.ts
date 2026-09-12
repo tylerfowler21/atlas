@@ -110,6 +110,12 @@ export type Place = {
   countryCode: string | null;
   notes: string | null;
   rating: number | null;
+  /// Wikipedia's photograph of the place, and the credit the licence requires
+  /// travel with it. Null for most places — it has pictures of landmarks and
+  /// not of the bar round the corner.
+  photoUrl: string | null;
+  photoAttribution: string | null;
+  photoSourceUrl: string | null;
   /// Only meaningful for "lived": when you moved there, and when you left.
   livedFrom: string | null;
   livedTo: string | null;
