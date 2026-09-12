@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { api, type Person } from "@/lib/api";
 import { REPORT_REASONS } from "@/lib/report-reasons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { tabBarSpace } from "@/lib/layout";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -23,6 +25,7 @@ export default function PeopleList() {
   const path = query.trim() ? `/api/people?q=${encodeURIComponent(query.trim())}` : "/api/people";
   const { data, error, loading, reload } = useApi<{ people: Person[] }>(path);
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
 
   /// Follows are optimistic: the button flips immediately and the list is
   /// refetched afterwards. Waiting on the network to redraw a toggle makes the
@@ -164,6 +167,10 @@ export default function PeopleList() {
       <FlatList
         data={data?.people ?? []}
         keyExtractor={(p) => p.id}
+        // The tab bar floats over this list rather than sitting below it, so
+        // without this the last row is cut in half by it — or drawn past the
+        // bottom of the screen entirely.
+        contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
         ListEmptyComponent={
           <Text style={[styles.empty, { color: palette.muted }]}>

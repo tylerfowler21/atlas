@@ -18,6 +18,8 @@ import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 import { formatDay } from "@/lib/dates";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { tabBarSpace } from "@/lib/layout";
 import { REPORT_REASONS } from "@/lib/report-reasons";
 
 function dates(trip: FeedTrip) {
@@ -29,6 +31,7 @@ function dates(trip: FeedTrip) {
 export default function FeedList() {
   const { data, error, loading, reload } = useApi<{ trips: FeedTrip[] }>("/api/feed");
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   /// Reporting the trip itself, not only whoever published it.
   ///
@@ -76,6 +79,10 @@ export default function FeedList() {
       <FlatList
         data={data?.trips ?? []}
         keyExtractor={(t) => t.id}
+        // The tab bar floats over this list rather than sitting below it, so
+        // without this the last card is cut in half by it — or drawn past the
+        // bottom of the screen entirely.
+        contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
         ListEmptyComponent={
           <Text style={[styles.empty, { color: palette.muted }]}>
