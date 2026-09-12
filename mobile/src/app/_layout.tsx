@@ -34,7 +34,14 @@ function Routes() {
             default. A screen pushed on top of them needs it back — without a
             header there is no back button, and a trip becomes somewhere you
             can get into and not out of. */}
-        <Stack.Screen name="trip/[id]" options={{ headerShown: true }} />
+        {/* The title and the back label are set here rather than left to
+            expo-router, which otherwise names them after the files: a trip
+            opened with "trip/[id]" in the header and "(tabs)" on the back
+            button until the fetch came back. */}
+        <Stack.Screen
+          name="trip/[id]"
+          options={{ headerShown: true, title: "Trip", headerBackTitle: "Trips" }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={user === null}>
         <Stack.Screen name="sign-in" />
