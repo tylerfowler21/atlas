@@ -64,6 +64,9 @@ export type ItineraryItemDTO = {
   /// Days later that a travel leg lands. 0 for everything that arrives the
   /// day it left, which is nearly everything.
   endDayOffset: number;
+  /// How long an ordinary stop takes, in minutes. Travel legs keep their
+  /// clock times instead; nobody plans a museum to the quarter hour.
+  minutes: number | null;
   category: string;
   position: number;
   /// "needed", "booked", or null for the great majority of stops that are not
@@ -222,6 +225,9 @@ export type PublicItemDTO = {
   /// Days later that a journey lands, so a reader sees the "+1" on an
   /// overnight flight rather than an arrival before its departure.
   endDayOffset: number;
+  /// How long an ordinary stop takes, in minutes. Travel legs keep their
+  /// clock times instead; nobody plans a museum to the quarter hour.
+  minutes: number | null;
   category: string;
   position: number;
   place: PublicPlaceDTO | null;

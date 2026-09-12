@@ -8,6 +8,7 @@ import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
 import { currentPosition, nearbyPlaces, HERE_MESSAGES } from "@/lib/here";
 import { enrichSelectedPlace } from "@/lib/enrich-place";
+import { DURATIONS, durationOf, formatDuration, timingLabel } from "@/lib/duration";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useMemo, useState, useRef } from "react";
@@ -792,7 +793,7 @@ export default function TripPlanner({
             <ol ref={listRef} className="mt-3 space-y-2">
               {dayItems.map((item, index) => {
                 const meta = categoryOf(item.category);
-                const timed = dayItems.some((i) => i.startTime);
+                const timed = dayItems.some((i) => timingLabel(i));
                 const open = selectedId === item.id;
                 const leg = item.kind === "travel";
                 return (
@@ -806,12 +807,12 @@ export default function TripPlanner({
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      {/* The time column, once any stop on the day has one.
-                          A stop with no time keeps the column so the cards
-                          line up; a day with none gives the room back. */}
+                      {/* Once anything on the day says when or how long. A
+                          stop with neither keeps the column so the cards line
+                          up; a day with none gives the room back. */}
                       {timed && (
-                        <span className="w-11 shrink-0 text-xs tabular-nums text-muted">
-                          {item.startTime ?? ""}
+                        <span className="w-16 shrink-0 text-xs text-muted tabular-nums">
+                          {timingLabel(item)?.replace(/^about /, "") ?? ""}
                         </span>
                       )}
                       <span
@@ -896,18 +897,20 @@ export default function TripPlanner({
                           {item.booking === BOOKING_BOOKED && " · booked ✓"}
                         </p>
                       </button>
+                      {/* A leg keeps real clock times, because a flight leaves
+                          when it leaves. A stop takes about so long. */}
                       <div className="flex shrink-0 items-center gap-1">
-                        <input
-                          type="time"
-                          aria-label={leg ? "Departure time" : "Start time"}
-                          className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
-                          value={item.startTime ?? ""}
-                          onChange={(e) =>
-                            patchItem(item.id, { startTime: e.target.value || null })
-                          }
-                        />
-                        {leg && (
+                        {leg ? (
                           <>
+                            <input
+                              type="time"
+                              aria-label="Departure time"
+                              className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
+                              value={item.startTime ?? ""}
+                              onChange={(e) =>
+                                patchItem(item.id, { startTime: e.target.value || null })
+                              }
+                            />
                             <span aria-hidden className="text-xs text-muted">
                               →
                             </span>
@@ -921,6 +924,24 @@ export default function TripPlanner({
                               }
                             />
                           </>
+                        ) : (
+                          <select
+                            aria-label="How long this takes"
+                            className="input rounded-full px-2 py-1 text-xs"
+                            value={durationOf(item) ?? ""}
+                            onChange={(e) =>
+                              patchItem(item.id, {
+                                minutes: e.target.value ? Number(e.target.value) : null,
+                              })
+                            }
+                          >
+                            <option value="">How long?</option>
+                            {DURATIONS.map((m) => (
+                              <option key={m} value={m}>
+                                {formatDuration(m)}
+                              </option>
+                            ))}
+                          </select>
                         )}
                       </div>
                     </div>

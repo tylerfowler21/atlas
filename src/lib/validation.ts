@@ -101,6 +101,8 @@ const itemFields = {
   /// cargo ship; the cap is there so a typo cannot push an arrival into a
   /// different month.
   endDayOffset: z.number().int().min(0).max(3),
+  // A stop, not a schedule: minutes, capped at a day.
+  minutes: z.number().int().min(5).max(1440).nullable(),
   placeId: optionalText(40),
   notes: optionalText(1000),
   dayIndex: z.number().int().min(0).max(365),
@@ -127,6 +129,7 @@ export const itemCreateSchema = z
     kind: z.enum(["stop", "travel"]).default("stop"),
     // Same day unless somebody says otherwise, which is nearly always.
     endDayOffset: z.number().int().min(0).max(3).default(0),
+    minutes: z.number().int().min(5).max(1440).nullable().default(null),
   });
 
 /// A trip's apps, passes and paperwork.

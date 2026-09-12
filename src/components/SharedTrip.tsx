@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { timingLabel } from "@/lib/duration";
 import Image from "next/image";
 import { tripWhere } from "@/lib/trip-where";
 import DirectionsIcon from "@/components/DirectionsIcon";
@@ -282,7 +283,7 @@ export default function SharedTrip({
                                   <span className="block truncate text-xs text-muted">
                                     {stopIconOf(item)} {meta.label}
                                     {item.place?.city ? ` · ${item.place.city}` : ""}
-                                    {item.startTime ? ` · ${item.startTime}` : ""}
+                                    {timingLabel(item) ? ` · ${timingLabel(item)}` : ""}
                                   </span>
                                   {item.notes && (
                                     <span className="mt-1 block text-sm text-muted">{item.notes}</span>

@@ -389,8 +389,13 @@ model ItineraryItem {
   notes     String?
   /// 0-based day offset from the trip's first day
   dayIndex  Int      @default(0)
-  /// "HH:mm", local to the destination. Null means "sometime this day".
-  /// For travel this is the departure.
+  /// "HH:mm", local to the destination. For travel this is the departure, and
+  /// travel is the only kind that still asks for it: a flight leaves at 09:40
+  /// whatever anybody intended, but nobody plans a museum for 14:30 to 16:15.
+  ///
+  /// Ordinary stops set this before durations existed, and those values are
+  /// still read rather than discarded — a stop entered as 15:30 to 17:30 shows
+  /// as "about 2 hours".
   startTime String?
   /// Only for travel: the arrival time, local to where it lands.
   endTime   String?
@@ -402,6 +407,13 @@ model ItineraryItem {
   /// Nobody converts a boarding pass to UTC; they read "out at seven, in at
   /// eight, next morning".
   endDayOffset Int    @default(0)
+  /// How long an ordinary stop takes, in minutes.
+  ///
+  /// A day is a handful of things in an order with a rough sense of how long
+  /// each one eats. The moment a plan claims to know that a temple runs 14:30
+  /// to 16:15, it is wrong by ten in the morning, and everything after the
+  /// first overrun is a lie somebody then has to go and edit.
+  minutes   Int?
   category  String   @default("other")
   /// Overrides the icon for this stop only, so a place can look one way on the
   /// map and another on a particular day. Also the only emoji a stop with no

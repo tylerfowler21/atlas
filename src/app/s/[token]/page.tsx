@@ -91,6 +91,7 @@ export default async function SharedTripPage({
     startTime: item.startTime,
     endTime: item.endTime,
     endDayOffset: item.endDayOffset,
+    minutes: item.minutes,
     category: item.category,
     position: item.position,
     place: item.place ? toPublicPlace(item.place) : null,
