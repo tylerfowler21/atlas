@@ -329,6 +329,14 @@ h1,
     font-size: 0.875rem;
   }
 
+  /* Ghost text should read as a hint, not as something already typed. The
+     import box holds a long worked example, and at the browser's default
+     placeholder colour people were clicking straight past it. */
+  .input::placeholder {
+    color: var(--muted);
+    opacity: 0.65;
+  }
+
   .input:focus {
     outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
     outline-offset: 1px;

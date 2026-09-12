@@ -803,16 +803,32 @@ export default function TripImporter({
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={busy || preview.length === 0}
-          onClick={resolve}
-        >
-          {busy && progress.total > 0
-            ? `Looking up ${progress.done} of ${progress.total}…`
-            : "Find these places"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy || preview.length === 0}
+            onClick={resolve}
+          >
+            {busy && progress.total > 0
+              ? `Looking up ${progress.done} of ${progress.total}…`
+              : "Find these places"}
+          </button>
+          {/* A dead button that says nothing is the worst thing on this page:
+              the example in the box above is grey placeholder text, and it is
+              easy to read it as an itinerary you have already pasted. */}
+          {!busy && preview.length === 0 && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              Paste your itinerary above first, or upload the file you planned it in.
+            </span>
+          )}
+        </div>
+        {!busy && preview.length > 0 && (
+          <p className="text-xs text-muted">
+            Nothing is saved yet — you&apos;ll check every match on a map, then
+            {destination !== "places" ? " add the trip." : " add the places."}
+          </p>
+        )}
         {busy && (
           <p className="text-xs text-muted">
             One lookup a second — that&apos;s the free map service&apos;s limit, not slowness.
