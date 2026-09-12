@@ -21,3 +21,16 @@ export const TAB_BAR_RIGHT = 16 + FAB_SIZE + FAB_GAP;
 export function tabBarSpace(bottomInset: number) {
   return TAB_BAR_HEIGHT + TAB_BAR_MARGIN * 2 + bottomInset;
 }
+
+/// The grab handle and its label, which is all of the map's sheet that shows
+/// when the list is closed.
+export const SHEET_HANDLE = 72;
+
+/// How far up from the bottom of the map anything floating has to start.
+///
+/// The collapsed sheet is taller than the tab bar, so clearing the bar is not
+/// enough — the Sun button and the locate button were being drawn underneath
+/// it, which is why only a sliver of the Sun showed.
+export function mapFloorSpace(bottomInset: number) {
+  return SHEET_HANDLE + tabBarSpace(bottomInset);
+}

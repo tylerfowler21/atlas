@@ -10,7 +10,7 @@ import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
 import { type } from "@/lib/type";
 import Glass from "@/components/Glass";
-import { FAB_SIZE, tabBarSpace } from "@/lib/layout";
+import { FAB_SIZE, SHEET_HANDLE, mapFloorSpace, tabBarSpace } from "@/lib/layout";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PlaceThumb from "@/components/PlaceThumb";
 import Stars from "@/components/Stars";
@@ -366,7 +366,7 @@ export default function MapScreen() {
             center: { latitude: here.lat, longitude: here.lng },
           });
         }}
-        style={[styles.findMe, { bottom: tabBarSpace(insets.bottom) + FAB_SIZE + 24 }]}
+        style={[styles.findMe, { bottom: mapFloorSpace(insets.bottom) + FAB_SIZE + 24 }]}
         accessibilityLabel="Show where I am"
       >
         {/* The supplied artwork, which brings its own tile — so the button
@@ -388,7 +388,7 @@ export default function MapScreen() {
         }}
         style={[
           styles.fab,
-          { bottom: tabBarSpace(insets.bottom) + 12, backgroundColor: palette.accent },
+          { bottom: mapFloorSpace(insets.bottom) + 12, backgroundColor: palette.accent },
         ]}
         accessibilityLabel="Add a place here"
       >
@@ -509,7 +509,7 @@ export default function MapScreen() {
             // sheet keeps its own room underneath: without it the collapsed
             // handle poked out below the bar and read as a second bar.
             paddingBottom: tabBarSpace(insets.bottom),
-            maxHeight: 72 + tabBarSpace(insets.bottom),
+            maxHeight: SHEET_HANDLE + tabBarSpace(insets.bottom),
           },
           listOpen && styles.sheetOpen,
         ]}
