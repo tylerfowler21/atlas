@@ -6,13 +6,15 @@ import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { firstIssue, itemUpdateSchema } from "@/lib/validation";
 import type { CurrentUser } from "@/lib/user";
+import { placeForViewer } from "@/lib/types";
 
-/// An item is editable by anyone who can edit its trip.
+/// An item is editable by anyone who can edit its trip. The trip comes back
+/// too, because some checks are about its owner rather than the caller.
 async function loadEditable(id: string, user: CurrentUser) {
   const item = await prisma.itineraryItem.findUnique({ where: { id } });
   if (!item) return null;
   const access = await tripAccess(item.tripId, user);
-  return access ? item : null;
+  return access ? { item, access } : null;
 }
 
 export async function PATCH(
@@ -23,8 +25,9 @@ export async function PATCH(
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await loadEditable(id, user);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const editable = await loadEditable(id, user);
+  if (!editable) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { item: existing, access } = editable;
 
   const parsed = itemUpdateSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -32,11 +35,25 @@ export async function PATCH(
   }
 
   // A category id arrives as a plain string, so it is checked against the
-  // built-in ones and this person's own before it is stored.
-  if (parsed.data.category && !(await ownsCategory(user.id, parsed.data.category))) {
+  // built-in ones and the trip owner's own before it is stored. The owner's,
+  // not the caller's: a stop filed under an editor's private category would
+  // render as nothing on the owner's screen.
+  if (parsed.data.category && !(await ownsCategory(access.trip.userId, parsed.data.category))) {
     return NextResponse.json({ error: "No such category" }, { status: 400 });
   }
   const data = parsed.data;
+
+  // Everyone adds from their own library, so a place being attached must
+  // belong to whoever is asking — the same check the create route makes.
+  // Without it, any place id (and they are in every shared trip's payload)
+  // could be attached here and read back whole, notes and all.
+  for (const placeId of [data.placeId, data.toPlaceId]) {
+    if (!placeId) continue;
+    const place = await prisma.place.findUnique({ where: { id: placeId }, select: { userId: true } });
+    if (!place || place.userId !== user.id) {
+      return NextResponse.json({ error: "Unknown place" }, { status: 400 });
+    }
+  }
 
   // Moving an item to another day drops it at the end of that day unless the
   // caller said exactly where it should land.
@@ -54,7 +71,13 @@ export async function PATCH(
     data,
     include: { place: true, toPlace: true },
   });
-  return NextResponse.json({ item });
+  return NextResponse.json({
+    item: {
+      ...item,
+      place: item.place ? placeForViewer(item.place, user.id) : null,
+      toPlace: item.toPlace ? placeForViewer(item.toPlace, user.id) : null,
+    },
+  });
 }
 
 export async function DELETE(
@@ -65,8 +88,9 @@ export async function DELETE(
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await loadEditable(id, user);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!(await loadEditable(id, user))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   await prisma.itineraryItem.delete({ where: { id } });
   return NextResponse.json({ ok: true });

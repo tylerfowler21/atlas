@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { geocode } from "@/lib/geocode";
+import { getCurrentUser } from "@/lib/user";
+import { unauthorized } from "@/lib/api";
 
+/// Signed in only, like nearby. Nominatim is asked one question a second for
+/// the whole site, so an open endpoint is one anyone can use to put every
+/// signed-in person's search behind their queue.
 export async function GET(request: Request) {
+  if (!(await getCurrentUser())) return unauthorized();
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
   // The country or region the caller is looking in, used to rank and then

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { visibleTripsWhere } from "@/lib/trip-access";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
@@ -121,8 +122,10 @@ export async function DELETE(
       where: { userId: user.id, category: id },
       data: { category: "other" },
     }),
+    // Every trip this person can edit, not only their own: a stop they added
+    // to a friend's trip under this category would otherwise keep a dead id.
     prisma.itineraryItem.updateMany({
-      where: { category: id, trip: { userId: user.id } },
+      where: { category: id, trip: visibleTripsWhere(user) },
       data: { category: "other" },
     }),
     prisma.category.delete({ where: { id } }),

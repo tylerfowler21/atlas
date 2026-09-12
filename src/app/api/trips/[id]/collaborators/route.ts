@@ -32,8 +32,11 @@ export async function GET(
   const access = await tripAccess(id, user);
   if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Who has been invited but not yet arrived is the owner's business; an
+  // editor sees the people who are actually on the trip, not a list of
+  // email addresses that never answered.
   const collaborators = await prisma.tripCollaborator.findMany({
-    where: { tripId: id },
+    where: { tripId: id, ...(access.role === "owner" ? {} : { acceptedAt: { not: null } }) },
     orderBy: { invitedAt: "asc" },
     include: { user: { select: { name: true, image: true } } },
   });

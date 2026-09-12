@@ -171,6 +171,19 @@ export type PlaceDraft = {
   category: string;
 };
 
+/// A place on a trip, as whoever is looking at the trip may see it.
+///
+/// Editors on a shared trip see the owner's places, but the notes, rating and
+/// dates on a place belong to the person who saved it, not to the trip. Their
+/// own places come through whole.
+export function placeForViewer<
+  T extends Parameters<typeof serializePlace>[0] & { userId: string },
+>(p: T, viewerId: string): PlaceDTO {
+  const dto = serializePlace(p);
+  if (p.userId === viewerId) return dto;
+  return { ...dto, notes: null, rating: null, visitedAt: null, livedFrom: null, livedTo: null };
+}
+
 // --- public (shared-link) shapes -----------------------------------------
 //
 // A shared itinerary is readable by anyone holding the link, so these types

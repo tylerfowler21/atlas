@@ -58,7 +58,8 @@ export async function DELETE(
   const document = await loadReadable(id, user);
   if (!document) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.tripDocument.delete({ where: { id } });
+  // The file first, so a failure leaves a row to try again from.
   await removeDocument(document.pathname);
+  await prisma.tripDocument.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

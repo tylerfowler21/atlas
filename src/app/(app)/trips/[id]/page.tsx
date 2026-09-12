@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
-import { serializePlace, serializeTrip, type ItineraryItemDTO } from "@/lib/types";
+import { placeForViewer, serializePlace, serializeTrip, type ItineraryItemDTO } from "@/lib/types";
 import TripPlanner from "@/components/TripPlanner";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +40,10 @@ export default async function TripPage({
 
   // Loaded here rather than fetched on open, so the trip shows who is on it the
   // moment it renders instead of after a click.
+  // Who has been invited but not yet arrived is the owner's business; an
+  // editor sees the people who are actually on the trip.
   const collaborators = await prisma.tripCollaborator.findMany({
-    where: { tripId: id },
+    where: { tripId: id, ...(access.role === "owner" ? {} : { acceptedAt: { not: null } }) },
     orderBy: { invitedAt: "asc" },
     include: { user: { select: { name: true, image: true } } },
   });
@@ -55,8 +57,8 @@ export default async function TripPage({
     ...item,
     // A date crosses the wire as a string, like every other one here.
     bookBy: item.bookBy?.toISOString() ?? null,
-    place: item.place ? serializePlace(item.place) : null,
-    toPlace: item.toPlace ? serializePlace(item.toPlace) : null,
+    place: item.place ? placeForViewer(item.place, user.id) : null,
+    toPlace: item.toPlace ? placeForViewer(item.toPlace, user.id) : null,
   }));
 
   return (

@@ -4,12 +4,15 @@ import { getCurrentUser } from "@/lib/user";
 import { unauthorized } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
-/// Records why a token was refused.
+/// Records why a token could not be made.
 ///
 /// The page cannot report this itself: with no session its report would be
-/// refused for the same reason the token was. And the refusal is invisible
+/// refused for the same reason the token was. And the failure is invisible
 /// otherwise — the map simply draws the free basemap, which is what it does
 /// when everything is working correctly too.
+///
+/// Only for failures behind a session. Anonymous refusals used to be written
+/// too, and every crawler that hit this endpoint grew the table by a row.
 async function noteRefusal(reason: string) {
   await prisma.authError
     .create({ data: { kind: "MapKitFallback", message: reason } })
@@ -21,15 +24,11 @@ async function noteRefusal(reason: string) {
 /// quota — a shared itinerary can be opened by anyone, including crawlers.
 export async function GET(request: Request) {
   if (!mapkitConfigured) {
-    await noteRefusal("token refused: Apple Maps is not configured (404)");
     return NextResponse.json({ error: "Apple Maps is not configured" }, { status: 404 });
   }
 
   const user = await getCurrentUser();
-  if (!user) {
-    await noteRefusal("token refused: no session on the request (401)");
-    return unauthorized();
-  }
+  if (!user) return unauthorized();
 
   let token: string;
   try {
