@@ -10,6 +10,8 @@ import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
 import { type } from "@/lib/type";
 import Glass from "@/components/Glass";
+import { FAB_SIZE, TAB_BAR_MARGIN, tabBarSpace } from "@/lib/layout";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PlaceThumb from "@/components/PlaceThumb";
 import Stars from "@/components/Stars";
 import StatusIcon from "@/components/StatusIcon";
@@ -63,6 +65,7 @@ export default function MapScreen() {
   const { placeIconOf, categoryOf } = useCategories();
   const { data, error, loading, reload } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const map = useRef<MapView>(null);
   // Asked for when the map opens rather than when somebody presses "I'm here
   // now", so the dot is on the map for everyone who has agreed to it.
@@ -351,12 +354,30 @@ export default function MapScreen() {
             center: { latitude: here.lat, longitude: here.lng },
           });
         }}
-        style={styles.findMe}
+        style={[styles.findMe, { bottom: insets.bottom + TAB_BAR_MARGIN + FAB_SIZE + 12 }]}
         accessibilityLabel="Show where I am"
       >
         {/* The supplied artwork, which brings its own tile — so the button
             draws no surface of its own. */}
         <Image source={require("../../../assets/images/locate.png")} style={styles.findMeIcon} />
+      </Pressable>
+
+      {/* The kit's round Sun button, beside the tab bar.
+          
+          It asks the same question a long press does — what is at this point —
+          but about the middle of what you are looking at, which is where you
+          have just panned to. A "+" that opened an empty form would make you
+          type the name of the thing already under your thumb. */}
+      <Pressable
+        onPress={async () => {
+          const camera = await map.current?.getCamera();
+          if (!camera) return;
+          void offerWhatIsHere(camera.center.latitude, camera.center.longitude);
+        }}
+        style={[styles.fab, { bottom: insets.bottom + TAB_BAR_MARGIN, backgroundColor: palette.accent }]}
+        accessibilityLabel="Add a place here"
+      >
+        <Text style={[styles.fabGlyph, { color: palette.onAccent }]}>+</Text>
       </Pressable>
 
       <Glass style={styles.searchBar} radius={26}>
@@ -633,6 +654,7 @@ export default function MapScreen() {
                 key={`places-${view}-${within ?? "all"}`}
                 data={listed}
                 keyExtractor={(p) => p.id}
+                contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
                 ListHeaderComponent={<FirstSteps />}
                 ListEmptyComponent={
@@ -722,7 +744,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
   },
   pinGlyph: { fontSize: 16, lineHeight: 19 },
-  findMe: { position: "absolute", right: 12, bottom: 92 },
+  /// Above the round button, which now owns the bottom-right corner.
+  findMe: { position: "absolute", right: 19 },
+  fab: {
+    position: "absolute",
+    right: 16,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#12322B",
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  fabGlyph: { fontSize: 30, lineHeight: 34, fontWeight: "400" },
   findMeIcon: { width: 44, height: 44 },
   searchBar: {
     position: "absolute",

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { tabBarSpace } from "@/lib/layout";
 import {
   ActivityIndicator,
   FlatList,
@@ -33,6 +35,7 @@ export default function JournalScreen() {
   const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
   const { data: tripData } = useApi<{ trips: Trip[] }>("/api/trips");
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState<Memory | null>(null);
   const [writing, setWriting] = useState(false);
 
@@ -70,6 +73,7 @@ export default function JournalScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data?.memories ?? []}
+        contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         keyExtractor={(m) => m.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
         ListEmptyComponent={

@@ -6,6 +6,10 @@ import {
   TripsIcon,
   YourProfileIcon,
 } from "@/components/nav-icons";
+import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Glass from "@/components/Glass";
+import { TAB_BAR_HEIGHT, TAB_BAR_MARGIN, TAB_BAR_RIGHT } from "@/lib/layout";
 import { usePalette } from "@/lib/use-palette";
 
 /// Five destinations, down from eight, and nothing hidden behind "More".
@@ -21,18 +25,31 @@ import { usePalette } from "@/lib/use-palette";
 /// width.
 export default function TabsLayout() {
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
-        // Deep Ocean marks an active tab rather than the teal, which is a
-        // call-to-action colour and too pale to read as selection.
         tabBarActiveTintColor: palette.accentText,
         tabBarInactiveTintColor: palette.muted,
+        /// A floating pill rather than a strip across the foot, which is what
+        /// the kit draws and what gives the glass something to work with.
+        /// Transparent here because the glass underneath is the background.
         tabBarStyle: {
-          backgroundColor: palette.surface,
-          borderTopColor: palette.border,
+          position: "absolute",
+          left: 16,
+          right: TAB_BAR_RIGHT,
+          bottom: insets.bottom + TAB_BAR_MARGIN,
+          height: TAB_BAR_HEIGHT,
+          paddingBottom: 0,
+          borderRadius: TAB_BAR_HEIGHT / 2,
+          borderTopWidth: 0,
+          backgroundColor: "transparent",
+          elevation: 0,
         },
+        tabBarBackground: () => (
+          <Glass radius={TAB_BAR_HEIGHT / 2} style={StyleSheet.absoluteFill} />
+        ),
         headerStyle: { backgroundColor: palette.surface },
         headerTitleStyle: { color: palette.ink },
         headerTintColor: palette.ink,

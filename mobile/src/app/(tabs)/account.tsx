@@ -1,4 +1,6 @@
 import { useCallback, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { tabBarSpace } from "@/lib/layout";
 import { SEMANTIC } from "@/lib/brand";
 import CategoryManager from "@/components/CategoryManager";
 import {
@@ -29,6 +31,7 @@ function ago(iso: string) {
 
 export default function AccountScreen() {
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const { user, signOut, updateUser } = useAuth();
   const { data: me, reload: reloadMe } = useApi<{ user: Me }>("/api/me");
   const { data: notes, reload: reloadNotes } = useApi<{
@@ -97,7 +100,7 @@ export default function AccountScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         style={{ backgroundColor: palette.background }}
-        contentContainerStyle={styles.body}
+        contentContainerStyle={[styles.body, { paddingBottom: tabBarSpace(insets.bottom) }]}
       >
         <Text style={[styles.name, { color: palette.ink }]}>{user?.name ?? "You"}</Text>
 

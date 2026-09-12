@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { tabBarSpace } from "@/lib/layout";
 import { SEMANTIC } from "@/lib/brand";
 import { tripWhere } from "@/lib/trip-where";
 import {
@@ -29,6 +31,7 @@ function dateRange(trip: Trip) {
 export default function TripsScreen() {
   const { data, error, loading, reload } = useApi<{ trips: Trip[] }>("/api/trips");
   const palette = usePalette();
+  const insets = useSafeAreaInsets();
   const [creating, setCreating] = useState(false);
   const [planning, setPlanning] = useState(false);
 
@@ -76,6 +79,7 @@ export default function TripsScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data?.trips ?? []}
+        contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         keyExtractor={(t) => t.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
         ListEmptyComponent={<Text style={[styles.empty, { color: palette.muted }]}>No trips yet.</Text>}
