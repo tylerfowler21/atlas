@@ -4,6 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { firstIssue, tripImportSchema } from "@/lib/validation";
 import { tripAccess } from "@/lib/trip-access";
+import { ownsCategory } from "@/lib/categories";
 
 /// Two places within ~50m of each other with the same name are the same place.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -31,6 +32,16 @@ export async function POST(request: Request) {
   const existingTrip = tripId ? await tripAccess(tripId, user) : null;
   if (tripId && !existingTrip) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Categories arrive as ids chosen in the review step, so they are checked
+  // the same way any other write checks them — against the built-ins and the
+  // trip owner's own.
+  const ownerId = existingTrip?.trip.userId ?? user.id;
+  for (const entry of entries) {
+    if (!(await ownsCategory(ownerId, entry.category))) {
+      return NextResponse.json({ error: "No such category" }, { status: 400 });
+    }
   }
 
   const visitedAt = markVisited

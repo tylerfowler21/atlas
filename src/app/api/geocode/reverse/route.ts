@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { guessCategory } from "@/lib/taxonomy";
 import { reverse, toPlaceFields } from "@/lib/nominatim";
+import { getCurrentUser } from "@/lib/user";
+import { unauthorized } from "@/lib/api";
 
+/// Signed in only, for the same reason as the forward lookup.
 export async function GET(request: Request) {
+  if (!(await getCurrentUser())) return unauthorized();
+
   const { searchParams } = new URL(request.url);
   const lat = Number(searchParams.get("lat"));
   const lng = Number(searchParams.get("lng"));

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { resolvedCategories } from "@/lib/categories";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import SharedTrip from "@/components/SharedTrip";
 import SignUpInvite from "@/components/SignUpInvite";
@@ -58,10 +59,15 @@ export default async function SharedTripPage({
   // and one the owner has since turned off.
   if (!share) notFound();
 
-  await prisma.tripShare.update({
-    where: { id: share.id },
-    data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
-  });
+  // A view is a person. Link previews and crawlers fetch the page too, and
+  // counted them as friends opening it.
+  const agent = (await headers()).get("user-agent") ?? "";
+  if (!/bot|crawl|spider|preview|fetch|facebookexternalhit|slack|whatsapp|telegram|discord|twitter/i.test(agent)) {
+    await prisma.tripShare.update({
+      where: { id: share.id },
+      data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
+    });
+  }
 
   const trip: PublicTripDTO = {
     title: share.trip.title,

@@ -70,6 +70,13 @@ export async function removeDocument(pathname: string) {
     await del(pathname);
   } catch (error) {
     // A blob that has already gone should not stop the row being deleted.
-    console.warn("[trip-documents] could not delete blob", pathname, error);
+    // Anything else — no token, the store refusing — is rethrown so the row
+    // stays and the delete can be tried again, rather than leaving a file
+    // paid for and unreachable.
+    if (error instanceof Error && /not.?found|404/i.test(error.message)) {
+      console.warn("[trip-documents] blob already gone", pathname);
+      return;
+    }
+    throw error;
   }
 }

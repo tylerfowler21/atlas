@@ -60,8 +60,9 @@ export async function DELETE(
     select: { pathname: true },
   });
 
-  await prisma.memory.delete({ where: { id } });
+  // The files first, so a failure leaves the rows to try again from.
   await Promise.all(photos.map((p) => removePhoto(p.pathname)));
+  await prisma.memory.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });
 }

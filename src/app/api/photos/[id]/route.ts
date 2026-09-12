@@ -48,8 +48,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await prisma.photo.delete({ where: { id } });
+  // The file first: if it cannot be removed the row stays, and the delete can
+  // be tried again. The other order left files paid for and unreachable.
   await removePhoto(photo.pathname);
+  await prisma.photo.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });
 }

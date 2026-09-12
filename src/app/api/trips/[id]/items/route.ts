@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { placeForViewer } from "@/lib/types";
 import { ownsCategory } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
@@ -24,8 +25,10 @@ export async function POST(
   }
 
   // A category id arrives as a plain string, so it is checked against the
-  // built-in ones and this person's own before it is stored.
-  if (parsed.data.category && !(await ownsCategory(user.id, parsed.data.category))) {
+  // built-in ones and the trip owner's own before it is stored — the owner's,
+  // because a stop under an editor's private category renders as nothing on
+  // the owner's screen.
+  if (parsed.data.category && !(await ownsCategory(access.trip.userId, parsed.data.category))) {
     return NextResponse.json({ error: "No such category" }, { status: 400 });
   }
   const data = parsed.data;
@@ -51,5 +54,14 @@ export async function POST(
     include: { place: true, toPlace: true },
   });
 
-  return NextResponse.json({ item }, { status: 201 });
+  return NextResponse.json(
+    {
+      item: {
+        ...item,
+        place: item.place ? placeForViewer(item.place, user.id) : null,
+        toPlace: item.toPlace ? placeForViewer(item.toPlace, user.id) : null,
+      },
+    },
+    { status: 201 },
+  );
 }

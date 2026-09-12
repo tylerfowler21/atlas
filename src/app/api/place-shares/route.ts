@@ -6,6 +6,7 @@ import { unauthorized } from "@/lib/api";
 import { newShareToken } from "@/lib/share";
 import { DEFAULT_SHARE_STATUSES } from "@/lib/place-shares";
 import { STATUS_IDS } from "@/lib/taxonomy";
+import { ownsCategory } from "@/lib/categories";
 
 const bodySchema = z.object({
   area: z.string().trim().min(1).max(120),
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Check the details" }, { status: 400 });
+  }
+  for (const category of parsed.data.categories) {
+    if (!(await ownsCategory(user.id, category))) {
+      return NextResponse.json({ error: "No such category" }, { status: 400 });
+    }
   }
 
   const share = await prisma.placeShare.create({

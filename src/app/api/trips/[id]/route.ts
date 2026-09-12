@@ -4,7 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { firstIssue, tripUpdateSchema } from "@/lib/validation";
-import { serializePlace, serializeTrip } from "@/lib/types";
+import { placeForViewer, serializeTrip } from "@/lib/types";
 
 /// One trip with its itinerary.
 ///
@@ -54,8 +54,8 @@ export async function GET(
       ...item,
       // A date crosses the wire as a string, like every other one here.
       bookBy: item.bookBy?.toISOString() ?? null,
-      place: item.place ? serializePlace(item.place) : null,
-      toPlace: item.toPlace ? serializePlace(item.toPlace) : null,
+      place: item.place ? placeForViewer(item.place, user.id) : null,
+      toPlace: item.toPlace ? placeForViewer(item.toPlace, user.id) : null,
     })),
   });
 }
