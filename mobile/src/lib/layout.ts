@@ -33,8 +33,12 @@ export function fabBottom(bottomInset: number) {
 /// map visible behind it.
 export const SHEET_PEEK = 244;
 
+/// The grab handle alone, which is all the sheet shows while a search is on:
+/// the question then is about what was found, not about what you saved.
+export const SHEET_SHUT = 28;
+
 /// How much of the map's foot the resting sheet covers, bar included — so the
 /// locate button can sit above it rather than behind it.
-export function sheetPeekHeight(bottomInset: number) {
-  return SHEET_PEEK + tabBarSpace(bottomInset);
+export function sheetPeekHeight(bottomInset: number, shut = false) {
+  return (shut ? SHEET_SHUT : SHEET_PEEK) + tabBarSpace(bottomInset);
 }

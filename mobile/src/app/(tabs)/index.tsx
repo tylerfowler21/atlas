@@ -14,7 +14,7 @@ import {
   NavigationArrowIcon,
   WantToGoIcon,
 } from "@/components/nav-icons";
-import { inView, viewName, viewSubtitle, type Bounds } from "@/lib/map-view";
+import { WORLD_SPAN, inView, viewName, viewSubtitle, type Bounds } from "@/lib/map-view";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
@@ -23,6 +23,7 @@ import Glass from "@/components/Glass";
 import {
   FAB_SIZE,
   SHEET_PEEK,
+  SHEET_SHUT,
   fabBottom,
   sheetPeekHeight,
   tabBarSpace,
@@ -79,6 +80,19 @@ const PIN_SELECTED = 42;
 /// neighbour.
 const PIN_CALLOUT_WIDTH = 150;
 
+/// How much of the map the list of matches may cover. Shorter than it was:
+/// the pins are the answer to "which of these", so the list can stop being
+/// the whole of it.
+const RESULTS_MAX_HEIGHT = 200;
+
+/// How far from the best match another match still counts as the same
+/// neighbourhood, in degrees — roughly twenty-five kilometres.
+///
+/// Searching a chain gives you every branch the geocoder knows, and framing
+/// all of them means framing the country. The ones worth seeing together are
+/// the ones near the best answer.
+const SAME_AREA = 0.25;
+
 /// Enough of a margin that pins are not welded to the edge of the screen.
 const PADDING = 1.4;
 const MIN_SPAN = 0.02;
@@ -86,7 +100,7 @@ const MIN_SPAN = 0.02;
 /// The region containing every pin. Somebody with places in Lisbon and Tokyo
 /// legitimately gets the whole world; somebody with one place gets a
 /// neighbourhood rather than a point zoomed in to the paving stones.
-function regionFor(places: Place[]): Region | undefined {
+function regionFor(places: { lat: number; lng: number }[]): Region | undefined {
   if (places.length === 0) return undefined;
 
   const lats = places.map((p) => p.lat);
@@ -102,6 +116,37 @@ function regionFor(places: Place[]): Region | undefined {
     latitudeDelta: Math.max((maxLat - minLat) * PADDING, MIN_SPAN),
     longitudeDelta: Math.max((maxLng - minLng) * PADDING, MIN_SPAN),
   };
+}
+
+/// What a search found, as one place with a draft ready to save.
+///
+/// The row in the list and the pin on the map are the same offer, so they
+/// build the same draft rather than each writing out the fields again.
+function draftFromResult(r: SearchResult): PlaceDraft {
+  return {
+    name: r.name,
+    lat: r.lat,
+    lng: r.lng,
+    category: r.category,
+    address: r.address,
+    city: r.city,
+    country: r.country,
+    countryCode: r.countryCode,
+  };
+}
+
+/// The matches worth framing together: the best one, and anything near it.
+///
+/// "Lawson" in Tokyo is the case this exists for — the geocoder answers with
+/// branches across the country, and a view wide enough for all of them is a
+/// view of Japan with no way to tell which one you are standing outside.
+function sameArea(results: SearchResult[]) {
+  const best = results[0];
+  if (!best) return [];
+  return results.filter(
+    (r) =>
+      Math.abs(r.lat - best.lat) <= SAME_AREA && Math.abs(r.lng - best.lng) <= SAME_AREA,
+  );
 }
 
 export default function MapScreen() {
@@ -258,6 +303,16 @@ export default function MapScreen() {
     [listed, bounds],
   );
 
+  /// While matches are on the map the sheet gets out of their way. It answers
+  /// "what have I saved around here", which is not the question you are asking
+  /// when you are looking for somewhere new — and it was taking a third of the
+  /// screen the matches needed.
+  const matchesOnMap = results.length > 0 && !listOpen;
+
+  /// The matches as one string, so effects can depend on which places were
+  /// found rather than on the array that carries them.
+  const resultKey = results.map((r: SearchResult) => r.id).join(",");
+
   const frameName = useMemo(() => viewName(inFrame, bounds), [inFrame, bounds]);
   const frameSubtitle = useMemo(
     () => viewSubtitle(inFrame, frameName, listed.length),
@@ -275,6 +330,49 @@ export default function MapScreen() {
     if (index < 0) return;
     carousel.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
   }, [selected, listOpen, inFrame]);
+
+  /// Bring the matches into view — but only when none of them is there
+  /// already.
+  ///
+  /// Searching is usually a question about where you are standing: you have
+  /// panned to the street you are on and want to know which of the four shops
+  /// with this name is the one in front of you. Reframing the map then would
+  /// take away the very thing you were looking at. So the map moves only when
+  /// staying put would show you nothing.
+  useEffect(() => {
+    if (results.length === 0 || !bounds) return;
+    // A view this wide is not anywhere, and everything falls inside it —
+    // including matches drawn far off the sides of a screen that cannot show
+    // a hemisphere at once. The same threshold the heading uses to decide the
+    // view has no name.
+    if (bounds.span <= WORLD_SPAN && results.some((r) => inView(r, bounds))) return;
+
+    const cluster = sameArea(results);
+    if (cluster.length === 0) return;
+
+    // Framed into the strip of map you can actually see. The list of matches
+    // covers the top and the sheet covers the foot, and fitting to the whole
+    // frame put the pins behind the very list that was describing them.
+    if (cluster.length === 1) {
+      const region = regionFor(cluster);
+      if (region) map.current?.animateToRegion(region, 450);
+      return;
+    }
+    map.current?.fitToCoordinates(
+      cluster.map((r) => ({ latitude: r.lat, longitude: r.lng })),
+      {
+        edgePadding: {
+          top: insets.top + 8 + TOP_ROW_HEIGHT + 8 + RESULTS_MAX_HEIGHT + 16,
+          bottom: sheetPeekHeight(insets.bottom, true) + 16,
+          left: 40,
+          right: 40,
+        },
+        animated: true,
+      },
+    );
+    // Keyed on the matches themselves rather than the array, which is a new
+    // one on every render of a search that has not changed.
+  }, [resultKey, results, bounds, insets.top, insets.bottom]);
 
   /// Drilling into a city moves the map to it.
   ///
@@ -470,8 +568,12 @@ export default function MapScreen() {
                 callout rather than more marker: MapKit keeps it the right way
                 up and on screen at the edges, and — the reason this is not
                 drawn in the marker itself — it may overhang the pin, where
-                anything inside the marker's own view is clipped to it. */}
-            <Callout tooltip onPress={() => setDraft(placeToDraft(place))}>
+                anything inside the marker's own view is clipped to it.
+
+                A label and nothing more. Opening the place is the card's job
+                in the sheet below, because a tooltip callout's press does not
+                reach React on iOS. */}
+            <Callout tooltip>
               {/* The fixed width is the callout's, not the pill's. MapKit
                   measures a custom callout against the marker it belongs to
                   and would otherwise squeeze this into 44 points and clip the
@@ -480,6 +582,57 @@ export default function MapScreen() {
                 <View style={[styles.pinLabel, { backgroundColor: palette.surface }]}>
                   <Text style={[type.metaStrong, { color: palette.ink }]} numberOfLines={1}>
                     {place.name}
+                  </Text>
+                </View>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
+
+        {/* What the search found, on the map rather than only in the list.
+            
+            The list answers "which of these is it" with names and addresses,
+            which is no help at all when a chain has four branches in one
+            district and every one of them is called the same thing. Where they
+            are is the thing that tells them apart, so they are drawn where
+            they are, and tapping one offers to save that one.
+            
+            Sun rather than the category's colour: these are not saved places
+            and should not be dressed as them — it is the colour of the button
+            that adds things. */}
+        {results.map((r: SearchResult, n: number) => (
+          <Marker
+            key={`found-${r.id}`}
+            coordinate={{ latitude: r.lat, longitude: r.lng }}
+            // Above the saved pins: these are what you are looking at now, and
+            // a match hidden behind somewhere you saved last year is a match
+            // you cannot tap.
+            zIndex={4}
+          >
+            <View style={styles.pinBox}>
+              <View style={[styles.pin, { backgroundColor: palette.accent }]}>
+                <Text style={[styles.foundNumber, { color: palette.onAccent }]}>
+                  {n + 1}
+                </Text>
+              </View>
+            </View>
+
+            {/* Pressing a pin names it, and nothing more.
+
+                Saving is done from the numbered row in the list rather than
+                from the map, because on iOS a marker's press does not reach
+                React reliably — a callout's own onPress falls through to the
+                map, where it reads as a long press and offers whatever is
+                under your finger; a CalloutSubview's is never called; and a
+                marker's own is swallowed by its callout. The number is what
+                ties the two together: the pin tells you which of them is the
+                one you are standing outside, and the row with that number is
+                how you save it. */}
+            <Callout tooltip>
+              <View style={styles.pinCallout}>
+                <View style={[styles.pinLabel, { backgroundColor: palette.surface }]}>
+                  <Text style={[type.metaStrong, { color: palette.ink }]} numberOfLines={1}>
+                    {r.name}
                   </Text>
                 </View>
               </View>
@@ -499,7 +652,10 @@ export default function MapScreen() {
             center: { latitude: here.lat, longitude: here.lng },
           });
         }}
-        style={[styles.findMe, { bottom: sheetPeekHeight(insets.bottom) + 14 }]}
+        style={[
+          styles.findMe,
+          { bottom: sheetPeekHeight(insets.bottom, matchesOnMap) + 14 },
+        ]}
         accessibilityLabel="Show where I am"
       >
         {/* Drawn rather than the supplied artwork, which baked its own pale
@@ -661,11 +817,18 @@ export default function MapScreen() {
 
       {results.length > 0 && (
         <ScrollView
-          style={[styles.results, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[
+            styles.results,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              top: insets.top + 8 + TOP_ROW_HEIGHT + 8,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {results.map((r: SearchResult) => (
+          {results.map((r: SearchResult, n: number) => (
             <Pressable
               key={r.id}
               onPress={() => {
@@ -674,25 +837,27 @@ export default function MapScreen() {
                 // search has nothing to do with the sheet that follows it, and
                 // arrives on top of it.
                 Keyboard.dismiss();
-                setDraft({
-                  name: r.name,
-                  lat: r.lat,
-                  lng: r.lng,
-                  category: r.category,
-                  address: r.address,
-                  city: r.city,
-                  country: r.country,
-                  countryCode: r.countryCode,
-                });
+                setDraft(draftFromResult(r));
               }}
               style={[styles.result, { borderBottomColor: palette.border }]}
             >
-              <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
-                {r.name}
-              </Text>
-              <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
-                {r.context}
-              </Text>
+              {/* The same number as its pin. Four branches of one chain are
+                  four identical rows, and the only thing that tells them
+                  apart is where they are — so the row carries the mark that
+                  points at the map. */}
+              <View style={[styles.resultNumber, { backgroundColor: palette.accent }]}>
+                <Text style={[styles.foundNumber, { color: palette.onAccent }]}>
+                  {n + 1}
+                </Text>
+              </View>
+              <View style={styles.resultBody}>
+                <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                  {r.name}
+                </Text>
+                <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                  {r.context}
+                </Text>
+              </View>
             </Pressable>
           ))}
         </ScrollView>
@@ -708,7 +873,8 @@ export default function MapScreen() {
             // sheet keeps its own room underneath: without it the collapsed
             // handle poked out below the bar and read as a second bar.
             paddingBottom: tabBarSpace(insets.bottom),
-            maxHeight: SHEET_PEEK + tabBarSpace(insets.bottom),
+            maxHeight:
+              (matchesOnMap ? SHEET_SHUT : SHEET_PEEK) + tabBarSpace(insets.bottom),
           },
           listOpen && styles.sheetOpen,
         ]}
@@ -721,7 +887,7 @@ export default function MapScreen() {
             at, how much of it you have saved, and the first few of them. It
             used to read "Show list", which named the gesture rather than
             saying anything about the place under it. */}
-        {!listOpen && (
+        {!listOpen && !matchesOnMap && (
           <>
             <Pressable onPress={() => setListOpen(true)} style={styles.peekHead}>
               <View style={styles.peekHeadText}>
@@ -1174,14 +1340,31 @@ const styles = StyleSheet.create({
   },
   results: {
     position: "absolute",
-    top: 104,
     left: 12,
     right: 12,
-    maxHeight: 260,
+    maxHeight: RESULTS_MAX_HEIGHT,
     borderWidth: 1,
     borderRadius: 10,
   },
-  result: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  result: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  resultBody: { flex: 1 },
+  resultNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  /// The same face and size in the pin and in the row, so the two read as one
+  /// mark in two places rather than as two marks.
+  foundNumber: { ...type.metaStrong, fontSize: 13, lineHeight: 16 },
   sheetTitle: { paddingHorizontal: 16, paddingBottom: 10 },
   /// One control, four segments, the chosen one raised out of the trough.
   segmented: {
