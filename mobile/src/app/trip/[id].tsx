@@ -20,6 +20,9 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import TripEditor from "@/components/TripEditor";
 import ItemEditor, { type ItemDraft } from "@/components/ItemEditor";
 import TripCover from "@/components/TripCover";
+import TripDays from "@/components/TripDays";
+import PlaceThumb from "@/components/PlaceThumb";
+import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
 import { dayLabel } from "@/lib/dates";
@@ -36,7 +39,6 @@ import {
   type TripDocument,
 } from "@/lib/api";
 import TripBookings from "@/components/TripBookings";
-import TripCalendar from "@/components/TripCalendar";
 import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
@@ -116,8 +118,19 @@ function dayUnder(pageY: number): number | null {
   return null;
 }
 
+/// "Fushimi to Gion" — where a day starts and where it ends, when those are
+/// different places. Cities, because that is the coarsest thing a stop
+/// reliably knows; a day spent entirely in one of them says nothing here.
+function dayJourney(stops: { place?: { city?: string | null } | null }[]): string | null {
+  const cities = stops.map((s) => s.place?.city?.trim()).filter(Boolean) as string[];
+  const from = cities[0];
+  const to = cities[cities.length - 1];
+  if (!from || !to || from === to) return null;
+  return `${from} to ${to}`;
+}
+
 export default function TripScreen() {
-  const { stopIconOf } = useCategories();
+  const { stopIconOf, categoryOf } = useCategories();
   const { id, shareUrl } = useLocalSearchParams<{ id: string; shareUrl?: string }>();
   const { data, error, loading, reload } = useApi<TripResponse>(`/api/trips/${id}`);
   const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
@@ -212,33 +225,6 @@ export default function TripScreen() {
   /// Moving something within its day. The API assigns positions in order, so
   /// swapping two is a matter of trading them — no renumbering, and no chance
   /// of two entries claiming the same slot.
-  const move = useCallback(
-    async (entry: ItineraryItem, direction: -1 | 1) => {
-      const sameDay = (data?.items ?? [])
-        .filter((i) => i.dayIndex === entry.dayIndex)
-        .sort((a, b) => a.position - b.position);
-      const at = sameDay.findIndex((i) => i.id === entry.id);
-      const swap = sameDay[at + direction];
-      if (!swap) return;
-
-      try {
-        await Promise.all([
-          api(`/api/items/${entry.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ position: swap.position }),
-          }),
-          api(`/api/items/${swap.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ position: entry.position }),
-          }),
-        ]);
-        reload();
-      } catch (e) {
-        Alert.alert("Could not move that", e instanceof Error ? e.message : "Try again");
-      }
-    },
-    [data, reload],
-  );
 
   /// Moving a stop to another day.
   ///
@@ -320,26 +306,6 @@ export default function TripScreen() {
     [data?.items, reload],
   );
 
-  const remove = useCallback(
-    (entry: ItineraryItem) => {
-      Alert.alert(entry.title, "Remove this from the trip?", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await api(`/api/items/${entry.id}`, { method: "DELETE" });
-              reload();
-            } catch (e) {
-              Alert.alert("Could not remove that", e instanceof Error ? e.message : "Try again");
-            }
-          },
-        },
-      ]);
-    },
-    [reload],
-  );
 
   if (loading && !data) {
     return (
@@ -416,12 +382,6 @@ export default function TripScreen() {
           onEdit={() => setSettings(true)}
         />
 
-        <TripMap
-          items={
-            mapDay === null ? data.items : data.items.filter((i) => i.dayIndex === mapDay)
-          }
-          color={data.trip.color}
-        />
 
         {/* Three lists, not three screens. The counts sit on the tabs because
             something unbooked that has been forgotten about is the only one of
@@ -473,44 +433,19 @@ export default function TripScreen() {
 
         {view === "days" && (
           <>
-        {/* A calendar once the trip has dates, because "day 3" is a number you
-            have to convert before it tells you anything. A trip with no dates
-            has nothing to align to, so it keeps the row of chips. */}
-        {data.trip.startDate ? (
-          <TripCalendar
-            startDate={data.trip.startDate}
-            days={days}
-            color={data.trip.color}
-            activeDay={mapDay}
-            counts={dayCounts}
-            onPick={setMapDay}
-          />
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.dayChips}
-          >
-            {[null, ...Array.from({ length: days }, (_, d) => d)].map((d) => {
-              const on = mapDay === d;
-              return (
-                <Pressable
-                  key={d ?? "all"}
-                  onPress={() => setMapDay(d)}
-                  style={[
-                    styles.dayChip,
-                    { backgroundColor: palette.surface, borderColor: palette.border },
-                    on && { backgroundColor: palette.primary, borderColor: palette.primary },
-                  ]}
-                >
-                  <Text style={{ fontSize: 13, color: on ? palette.onPrimary : palette.muted }}>
-                    {d === null ? "Whole trip" : `Day ${d + 1}`}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+        <TripDays
+          startDate={data.trip.startDate}
+          days={days}
+          active={mapDay}
+          counts={dayCounts}
+          onPick={setMapDay}
+        />
+
+        {/* The whole trip's shape, once, above all of its days. A map inside
+            each day section would be the better arrangement — and is what a
+            single day gets below — but a fortnight would mount fourteen of
+            them, and a MapView is not a cheap thing to mount. */}
+        {mapDay === null && <TripMap items={data.items} color={data.trip.color} />}
 
         {/* Picking a date shows that day. It used to only move the map, which
             made the calendar look broken: you tap the 20th, the list underneath
@@ -527,18 +462,38 @@ export default function TripScreen() {
               }
             >
               <View style={styles.dayHeading}>
-                <Text
-                  style={[
-                    styles.dayLabel,
-                    { color: mapDay === day ? palette.accentText : palette.muted },
-                    // The day under the finger, so a drop is aimed rather than
-                    // hoped for.
-                    drag?.onto === day && { color: palette.accentText },
-                  ]}
-                >
-                  {dayLabel(data.trip, day)}
-                  {drag?.onto === day ? "  · drop here" : ""}
-                </Text>
+                <View style={styles.dayTitles}>
+                  <Text
+                    style={[
+                      type.section,
+                      {
+                        color:
+                          drag?.onto === day ? palette.accentText : palette.ink,
+                      },
+                    ]}
+                  >
+                    Day {day + 1}
+                    {drag?.onto === day ? " · drop here" : ""}
+                  </Text>
+                  {/* What the day is, in one line: how much of it there is and
+                      where it goes. The second half only appears when the day
+                      actually moves between two places — most days do not, and
+                      "Lisbon to Lisbon" says nothing. */}
+                  <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
+                    {[
+                      // Journeys are not stops. A day with two places and a
+                      // tram between them is a two-stop day.
+                      (() => {
+                        const n = stops.filter((i) => i.kind !== "travel").length;
+                        return `${n} ${n === 1 ? "stop" : "stops"}`;
+                      })(),
+                      dayJourney(stops),
+                      dayLabel(data.trip, day),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                </View>
                 {/* Only when there is something real to say. A day beyond the
                     forecast shows nothing rather than a number to pack from. */}
                 {(() => {
@@ -556,6 +511,10 @@ export default function TripScreen() {
                   );
                 })()}
               </View>
+
+              {mapDay === day && stops.length > 0 && (
+                <TripMap items={stops} color={data.trip.color} />
+              )}
 
               {/* An overnight flight belongs to the evening it left, but the
                   morning it lands is a real part of this day and the one thing
@@ -638,22 +597,42 @@ export default function TripScreen() {
                     }}
                     style={[
                       styles.stop,
-                      { backgroundColor: palette.surface, borderColor: palette.border },
+                      // A journey is not a card at all. The day reads as a
+                      // sequence of places, and the thing that carries you
+                      // between two of them is the line between them rather
+                      // than another place on the list.
+                      leg
+                        ? styles.legRow
+                        : { backgroundColor: palette.surface, borderColor: palette.border },
                       held && { opacity: 0.4 },
                       target && !held && { borderColor: palette.primary, borderWidth: 2 },
-                      // A journey is drawn differently from a stop: the day
-                      // reads as a sequence, and the thing that moves you
-                      // between places should not look like another place.
-                      leg && { borderStyle: "dashed", borderColor: palette.primary },
                     ]}
                   >
                     <Pressable
                       style={styles.stopMain}
                       onPress={() => setItem({ mode: "edit", item: entry })}
                     >
-                      <Text style={styles.glyph}>
-                        {entry.emoji || mode?.icon || stopIconOf(entry)}
-                      </Text>
+                      {leg ? (
+                        <Text style={styles.legGlyph}>
+                          {entry.emoji || mode?.icon || "→"}
+                        </Text>
+                      ) : (
+                        // The same number the pin on the map above carries, so
+                        // the two can be read against each other.
+                        <View>
+                          <PlaceThumb
+                            icon={entry.emoji || stopIconOf(entry)}
+                            color={categoryOf(entry.category).color}
+                            photoUrl={entry.place?.photoUrl}
+                            size={52}
+                          />
+                          <View style={[styles.stopNumber, { backgroundColor: palette.primary }]}>
+                            <Text style={[styles.stopNumberText, { color: palette.onPrimary }]}>
+                              {stops.filter((x, i) => i < index && x.kind !== "travel").length + 1}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>
                           {entry.title}
@@ -700,32 +679,6 @@ export default function TripScreen() {
                           />
                         </Pressable>
                       )}
-                      <Pressable
-                        onPress={() => move(entry, -1)}
-                        disabled={index === 0}
-                        hitSlop={8}
-                      >
-                        <Text style={{ color: index === 0 ? palette.border : palette.muted, fontSize: 16 }}>
-                          ↑
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => move(entry, 1)}
-                        disabled={index === stops.length - 1}
-                        hitSlop={8}
-                      >
-                        <Text
-                          style={{
-                            color: index === stops.length - 1 ? palette.border : palette.muted,
-                            fontSize: 16,
-                          }}
-                        >
-                          ↓
-                        </Text>
-                      </Pressable>
-                      <Pressable onPress={() => remove(entry)} hitSlop={8}>
-                        <Text style={{ color: palette.muted, fontSize: 18 }}>×</Text>
-                      </Pressable>
                     </View>
                   </View>
                 );
@@ -778,10 +731,28 @@ const styles = StyleSheet.create({
   views: { flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingTop: 12 },
   viewTab: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   dayChips: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingVertical: 12 },
+  dayTitles: { flex: 1, minWidth: 0 },
   dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   day: { paddingHorizontal: 12, paddingTop: 16 },
   dayHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
   dayLabel: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  /// Sits on the corner of the picture, the way the pin on the map sits on
+  /// the place — small, and out of the way of the picture itself.
+  stopNumber: {
+    position: "absolute",
+    top: -5,
+    left: -5,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stopNumberText: { ...type.metaStrong, fontSize: 12, lineHeight: 15 },
+  /// No surface and no border — a line of text between two cards.
+  legRow: { backgroundColor: "transparent", borderWidth: 0, paddingVertical: 2, marginTop: 6 },
+  legGlyph: { fontSize: 15, marginLeft: 4 },
   stop: {
     flexDirection: "row",
     alignItems: "center",

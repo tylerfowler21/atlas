@@ -127,6 +127,29 @@ export default function ItemEditor({
   const { categories } = useCategories();
   const palette = usePalette();
   const existing = draft?.mode === "edit" ? draft.item : null;
+
+  function remove() {
+    if (!existing) return;
+    Alert.alert(existing.title, "Remove this from the trip?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await api(`/api/items/${existing.id}`, { method: "DELETE" });
+            onSaved();
+            onClose();
+          } catch (e) {
+            Alert.alert(
+              "Could not remove that",
+              e instanceof Error ? e.message : "Try again",
+            );
+          }
+        },
+      },
+    ]);
+  }
   const kind = existing?.kind ?? (draft?.mode === "create" ? draft.kind : "stop");
 
   const [title, setTitle] = useState(existing?.title ?? "");
@@ -715,6 +738,17 @@ export default function ItemEditor({
             placeholderTextColor={palette.muted}
             style={[styles.input, styles.notes, field]}
           />
+
+          {/* Taking something off the trip belongs with editing it, not on the
+              row. The row used to carry the only × there was, which meant the
+              list could never be the clean thing the kit draws. */}
+          {existing && (
+            <Pressable onPress={remove} style={styles.remove}>
+              <Text style={{ color: SEMANTIC.danger, fontSize: 15 }}>
+                Remove from trip
+              </Text>
+            </Pressable>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -742,6 +776,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
+  remove: { alignItems: "center", paddingVertical: 18, marginTop: 6 },
   notes: { minHeight: 80, textAlignVertical: "top" },
   check: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16 },
   dayChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
