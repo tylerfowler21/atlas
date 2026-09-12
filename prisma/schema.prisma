@@ -254,6 +254,12 @@ model Trip {
   notes       String?
   /// Hex colour used for this trip's pins and accents
   color       String    @default("#0F2D4A")
+  /// A photograph chosen for this trip, stored privately like a journal
+  /// photo and read back through /api/trips/[id]/cover. Null for the many
+  /// trips nobody picks one for — those borrow a photograph of one of their
+  /// own stops instead, which is usually a picture of the trip anyway.
+  coverPathname String?
+  coverType     String?
   /// Null means private. Set when the owner publishes it to their profile,
   /// and doubles as the ordering key for followers' feeds.
   publishedAt DateTime?

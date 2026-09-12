@@ -40,6 +40,10 @@ export type TripDTO = {
   endDate: string | null;
   notes: string | null;
   color: string;
+  /// Where to read the cover photograph, or null when nobody chose one. A
+  /// path rather than the blob's own address: the blob is private and this
+  /// route is the only way in.
+  coverUrl: string | null;
   /// ISO timestamp when the owner published it, or null while private.
   publishedAt: string | null;
 };
@@ -148,16 +152,25 @@ export function serializePlace<
 
 export function serializeTrip<
   T extends {
+    id: string;
     startDate: DateLike | null;
     endDate: DateLike | null;
     publishedAt?: DateLike | null;
+    coverPathname?: string | null;
   },
 >(t: T): TripDTO {
+  // The pathname is deliberately dropped rather than passed through. It is
+  // where the blob lives, and the blob is private; what a client needs is the
+  // route that will check whether they may read it.
+  const { coverPathname, coverType, ...rest } = t as T & { coverType?: string | null };
+  void coverType;
+
   return {
-    ...(t as unknown as TripDTO),
+    ...(rest as unknown as TripDTO),
     startDate: t.startDate ? t.startDate.toISOString() : null,
     endDate: t.endDate ? t.endDate.toISOString() : null,
     publishedAt: t.publishedAt ? t.publishedAt.toISOString() : null,
+    coverUrl: coverPathname ? `/api/trips/${t.id}/cover` : null,
   };
 }
 
