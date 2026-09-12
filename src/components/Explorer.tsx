@@ -686,7 +686,11 @@ export default function Explorer({
                 first thing the map showed you was its own controls. Statuses
                 first because they are the coarser cut, then the categories. */}
             <div
-              className={`no-scrollbar -mx-3 overflow-x-auto px-3 pb-0.5 lg:mx-0 lg:px-0 ${
+              // shrink-0 because this is a flex item in a column that
+              // overflows, and without it the row gets squeezed — and since
+              // setting overflow-x also makes overflow-y clip, the chips were
+              // sliced off top and bottom rather than simply being cramped.
+              className={`no-scrollbar -mx-3 shrink-0 overflow-x-auto px-3 py-1 lg:mx-0 lg:px-0 ${
                 listOpen ? "" : "hidden lg:block"
               }`}
             >
@@ -716,7 +720,14 @@ export default function Explorer({
                       type="button"
                       aria-pressed={on}
                       className={`chip shrink-0 ${on ? "is-on" : ""}`}
-                      style={on ? { borderColor: c.color } : { opacity: 0.5 }}
+                      style={
+                        on
+                          ? {
+                              borderColor: c.color,
+                              background: `color-mix(in srgb, ${c.color} 12%, transparent)`,
+                            }
+                          : { opacity: 0.5 }
+                      }
                       onClick={() =>
                         setHidden((prev) => {
                           const next = new Set(prev);
@@ -726,7 +737,6 @@ export default function Explorer({
                         })
                       }
                     >
-                      <span aria-hidden>{c.icon}</span>
                       {c.label}
                     </button>
                   );
