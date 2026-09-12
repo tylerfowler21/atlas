@@ -6,6 +6,7 @@
 /// way to be read at all. The website has had a page for this since trips
 /// could be published; this is the same thing on the phone.
 import { useCallback, useState } from "react";
+import { timingLabel } from "@/lib/duration";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -140,14 +141,12 @@ export default function PublishedTripScreen() {
                     <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={2}>
                       {entry.title}
                     </Text>
-                    {(entry.startTime || entry.notes) && (
+                    {(timingLabel(entry) || entry.notes) && (
                       <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={2}>
                         {[
-                          entry.startTime && entry.endTime
-                            ? `${entry.startTime}–${entry.endTime}${
-                                (entry.endDayOffset ?? 0) > 0 ? ` +${entry.endDayOffset}` : ""
-                              }`
-                            : entry.startTime,
+                          entry.kind === "travel" && (entry.endDayOffset ?? 0) > 0
+                            ? `${timingLabel(entry)} +${entry.endDayOffset}`
+                            : timingLabel(entry),
                           entry.notes,
                         ]
                           .filter(Boolean)

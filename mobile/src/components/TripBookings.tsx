@@ -4,6 +4,7 @@
 /// day it happens on — which is no use for the question people actually ask,
 /// which is what is still not booked. So they collect here, outstanding first.
 import { useState } from "react";
+import { timingLabel } from "@/lib/duration";
 import { SEMANTIC } from "@/lib/brand";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BOOKING_BOOKED, nextState, outstanding, tracked } from "@/lib/bookings";
@@ -95,7 +96,7 @@ export default function TripBookings({
             {item.title}
           </Text>
           <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
-            {[dayLabel(trip, item.dayIndex), item.startTime, item.place?.city]
+            {[dayLabel(trip, item.dayIndex), timingLabel(item), item.place?.city]
               .filter(Boolean)
               .join(" · ")}
           </Text>

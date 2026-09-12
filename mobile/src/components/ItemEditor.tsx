@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { SEMANTIC } from "@/lib/brand";
+import { DURATIONS, durationOf, formatDuration } from "@/lib/duration";
+import { type } from "@/lib/type";
 import DateRangePicker from "@/components/DateRangePicker";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import TripFiles from "@/components/TripFiles";
@@ -146,6 +148,12 @@ export default function ItemEditor({
   /// Null for the great majority of stops, which are not bookings at all.
   const [booking, setBooking] = useState<string | null>(existing?.booking ?? null);
   const [bookBy, setBookBy] = useState(existing?.bookBy?.slice(0, 10) ?? "");
+  /// Seeded from the duration if there is one, and otherwise from the old
+  /// start and end times, so a stop entered before durations existed opens
+  /// with the right answer already chosen rather than empty.
+  const [minutes, setMinutes] = useState<number | null>(
+    existing ? durationOf(existing) : null,
+  );
   const [startTime, setStartTime] = useState(existing?.startTime ?? "");
   const [endTime, setEndTime] = useState(existing?.endTime ?? "");
   /// Whether a journey lands the next day. A tick rather than a number,
@@ -245,7 +253,9 @@ export default function ItemEditor({
       Alert.alert("Give it a title");
       return;
     }
-    if (!isTime(startTime) || !isTime(endTime)) {
+    // Only a journey has times to check. A stop's duration comes from a list
+    // and cannot be mistyped.
+    if (travel && (!isTime(startTime) || !isTime(endTime))) {
       Alert.alert("Check the times", `Use ${TIME_HINT}, or leave them empty.`);
       return;
     }
@@ -257,8 +267,9 @@ export default function ItemEditor({
         notes: notes.trim() || null,
         emoji: emoji.trim() || null,
         category: travel ? "transport" : category,
-        startTime: startTime || null,
+        startTime: travel ? startTime || null : null,
         endTime: travel ? endTime || null : null,
+        minutes: travel ? null : minutes,
         endDayOffset: travel && endTime && nextDay ? 1 : 0,
         mode: travel ? travelMode : null,
         placeId,
@@ -378,21 +389,22 @@ export default function ItemEditor({
             </>
           )}
 
-          <View style={styles.times}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.label, { color: palette.muted }]}>
-                {travel ? "Departs" : "Time"}
-              </Text>
-              <TextInput
-                value={startTime}
-                onChangeText={setStartTime}
-                placeholder={TIME_HINT}
-                placeholderTextColor={palette.muted}
-                keyboardType="numbers-and-punctuation"
-                style={[styles.input, field]}
-              />
-            </View>
-            {travel && (
+          {/* A journey leaves when it leaves; a stop takes about so long.
+              Nobody plans a temple for 14:30 to 16:15, and a plan that claims
+              to is wrong by mid-morning. */}
+          {travel ? (
+            <View style={styles.times}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: palette.muted }]}>Departs</Text>
+                <TextInput
+                  value={startTime}
+                  onChangeText={setStartTime}
+                  placeholder={TIME_HINT}
+                  placeholderTextColor={palette.muted}
+                  keyboardType="numbers-and-punctuation"
+                  style={[styles.input, field]}
+                />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { color: palette.muted }]}>Arrives</Text>
                 <TextInput
@@ -404,8 +416,37 @@ export default function ItemEditor({
                   style={[styles.input, field]}
                 />
               </View>
-            )}
-          </View>
+            </View>
+          ) : (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>How long?</Text>
+              <View style={styles.durations}>
+                {DURATIONS.map((m) => {
+                  const on = minutes === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => setMinutes(on ? null : m)}
+                      style={[
+                        styles.duration,
+                        { borderColor: on ? palette.primary : palette.border },
+                        on && { backgroundColor: palette.primary },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          type.meta,
+                          { color: on ? palette.onPrimary : palette.ink },
+                        ]}
+                      >
+                        {formatDuration(m)?.replace(/^about /, "")}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           {/* Offered once there is an arrival to qualify. Suggested when the
               clock appears to run backwards, which is exactly what a flight
@@ -694,6 +735,13 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 18, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   emoji: { width: 90, fontSize: 22 },
+  durations: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
+  duration: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
   notes: { minHeight: 80, textAlignVertical: "top" },
   check: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16 },
   dayChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

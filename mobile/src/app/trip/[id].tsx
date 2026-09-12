@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { timingLabel } from "@/lib/duration";
 import { tripRegion } from "@/lib/place-groups";
 import { useCategories } from "@/lib/categories";
 import {
@@ -657,14 +658,15 @@ export default function TripScreen() {
                         <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>
                           {entry.title}
                         </Text>
-                        {(entry.startTime || entry.notes || entry.booking) && (
+                        {(timingLabel(entry) || entry.notes || entry.booking) && (
                           <Text style={[styles.stopMeta, { color: palette.muted }]} numberOfLines={1}>
                             {[
-                              entry.startTime && entry.endTime
-                                ? `${entry.startTime}–${entry.endTime}${
-                                    entry.endDayOffset > 0 ? ` +${entry.endDayOffset}` : ""
-                                  }`
-                                : entry.startTime,
+                              // A journey reads as its times, a stop as how
+                              // long it takes; the +1 stays on a flight that
+                              // lands the next morning.
+                              entry.kind === "travel" && entry.endDayOffset > 0
+                                ? `${timingLabel(entry)} +${entry.endDayOffset}`
+                                : timingLabel(entry),
                               entry.notes,
                               entry.booking === BOOKING_BOOKED ? "booked ✓" : null,
                               entry.booking === BOOKING_NEEDED ? "to book" : null,

@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
@@ -25,7 +24,6 @@ const CREDIT = "https://commons.wikimedia.org/wiki/File:Oeschinensee_D8A_8808.jp
 
 export default function SignIn() {
   const { signIn, signInOnTheWeb } = useAuth();
-  const scheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const [error, setError] = useState<string | null>(null);
 

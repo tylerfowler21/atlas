@@ -233,6 +233,8 @@ export type ItineraryItem = {
   /// Days later that a journey lands. A flight east across the Atlantic
   /// leaves at seven and arrives at eight the next morning.
   endDayOffset: number;
+  /// How long an ordinary stop takes, in minutes. Journeys keep clock times.
+  minutes: number | null;
   category: string;
   position: number;
   /// "needed", "booked", or null for the many stops that are not bookings.
