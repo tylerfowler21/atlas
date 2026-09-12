@@ -333,6 +333,11 @@ export default function TripPlanner({
   /// places list and the been map. Anything the map has never heard of has no
   /// place to write to, so those keep a per-stop emoji of their own.
   async function setStopEmoji(item: ItineraryItemDTO, emoji: string | null) {
+    // Picking one is the end of the job, so the picker goes away. It used to
+    // stay open over the rest of the stop's fields with the grid still up,
+    // which reads as the screen having got stuck rather than as having worked.
+    setEmojiFor(null);
+
     if (!item.placeId || !item.place) {
       await patchItem(item.id, { emoji });
       return;
