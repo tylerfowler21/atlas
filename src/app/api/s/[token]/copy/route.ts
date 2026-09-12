@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { copyTripInto } from "@/lib/copy-trip";
+import { requestedDays } from "@/lib/copy-days";
 import { isBlockedBetween } from "@/lib/moderation";
 import { notify } from "@/lib/notifications";
 
@@ -13,7 +14,7 @@ import { notify } from "@/lib/notifications";
 /// a copy gives away nothing further. What it needs beyond that is an account
 /// to copy it into, which is the one thing reading does not.
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   const user = await getCurrentUser();
@@ -36,7 +37,11 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const created = await copyTripInto({ sourceTripId: share.trip.id, userId: user.id });
+  const created = await copyTripInto({
+    sourceTripId: share.trip.id,
+    userId: user.id,
+    days: await requestedDays(request),
+  });
   if (!created) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await notify({

@@ -136,6 +136,8 @@ export default async function SharedTripPage({
           actions={
             <>
               <CopyTripButton
+                trip={trip}
+                items={items}
                 endpoint={`/api/s/${token}/copy`}
                 signedIn={viewer !== null}
                 isOwn={viewer?.id === share.trip.userId}

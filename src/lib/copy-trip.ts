@@ -18,6 +18,13 @@ const SAME_PLACE_DEGREES = 0.0005;
 export async function copyTripInto(input: {
   sourceTripId: string;
   userId: string;
+  /// Which of the source's days to take, by their index in it. Undefined
+  /// means all of them, which is what most people want.
+  ///
+  /// The days that come across are renumbered from the start, so taking days
+  /// three and five of somebody's week gives you a two-day trip rather than a
+  /// five-day one with holes where their other days were.
+  days?: number[];
 }) {
   const source = await prisma.trip.findUnique({
     where: { id: input.sourceTripId },
@@ -30,11 +37,21 @@ export async function copyTripInto(input: {
   });
   if (!source) return null;
 
+  const wanted = input.days?.length ? [...new Set(input.days)].sort((a, b) => a - b) : null;
+  const items = wanted
+    ? source.items.filter((i) => wanted.includes(i.dayIndex))
+    : source.items;
+  if (items.length === 0) return null;
+
+  /// Their day index to yours.
+  const dayFor = (dayIndex: number) =>
+    wanted ? wanted.indexOf(dayIndex) : dayIndex;
+
   return prisma.$transaction(async (tx) => {
     const placeIds = new Map<string, string>();
 
     // Both ends of a travel leg need copying, not just the origin.
-    for (const p of source.items.flatMap((i) => [i.place, i.toPlace])) {
+    for (const p of items.flatMap((i) => [i.place, i.toPlace])) {
       if (!p || placeIds.has(p.id)) continue;
 
       const existing = await tx.place.findFirst({
@@ -77,13 +94,13 @@ export async function copyTripInto(input: {
         color: source.color,
         copiedFromId: source.id,
         items: {
-          create: source.items.map((item) => ({
+          create: items.map((item) => ({
             kind: item.kind,
             mode: item.mode,
             title: item.title,
             emoji: item.emoji,
             notes: item.notes,
-            dayIndex: item.dayIndex,
+            dayIndex: dayFor(item.dayIndex),
             startTime: item.startTime,
             endTime: item.endTime,
             // How long a stop takes, and the day a journey lands on. Both were

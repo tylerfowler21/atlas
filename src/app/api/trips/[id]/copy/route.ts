@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/user";
 import { notify } from "@/lib/notifications";
 import { isBlockedBetween } from "@/lib/moderation";
 import { copyTripInto } from "@/lib/copy-trip";
+import { requestedDays } from "@/lib/copy-days";
 
 /// Copies someone's published trip into your own account.
 ///
@@ -12,7 +13,7 @@ import { copyTripInto } from "@/lib/copy-trip";
 /// across, but the dates do not — they were their dates — and the places land
 /// on your wishlist rather than being marked as somewhere you have been.
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
@@ -35,7 +36,11 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const created = await copyTripInto({ sourceTripId: source.id, userId: user.id });
+  const created = await copyTripInto({
+    sourceTripId: source.id,
+    userId: user.id,
+    days: await requestedDays(request),
+  });
   if (!created) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await notify({
