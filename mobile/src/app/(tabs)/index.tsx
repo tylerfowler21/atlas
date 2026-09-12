@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SEMANTIC } from "@/lib/brand";
 import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
@@ -186,6 +186,17 @@ export default function MapScreen() {
     );
   }, [places, view, within, preview]);
 
+  /// Drilling into a city moves the map to it.
+  ///
+  /// Keyed on the name rather than on the list, which is a new array on most
+  /// renders — depending on that would re-frame the map every time anything
+  /// changed, including while you were panning it yourself.
+  useEffect(() => {
+    if (!within) return;
+    const region = regionFor(all.filter((p) => p.city === within || p.country === within));
+    if (region) map.current?.animateToRegion(region, 450);
+  }, [within, all]);
+
   if (loading && !data) {
     return (
       <View style={styles.centre}>
@@ -315,10 +326,11 @@ export default function MapScreen() {
           void offerWhatIsHere(latitude, longitude);
         }}
       >
-        {/* The map shows what the list shows. While a link is being composed
-            that means the link, so turning a category off takes its pins off
-            the map too. */}
-        {(preview ? listed : places).map((place) => (
+        {/* The map shows what the list shows — including when the list has
+            been narrowed to one city. It used to show every pin regardless,
+            so drilling into Kyoto gave you a list of Kyoto over a map of
+            everywhere, and the two disagreed about what you were looking at. */}
+        {listed.map((place) => (
           <Marker
             key={place.id}
             coordinate={{ latitude: place.lat, longitude: place.lng }}
