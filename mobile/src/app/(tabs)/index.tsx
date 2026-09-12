@@ -8,6 +8,8 @@ import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
 import { usePalette } from "@/lib/use-palette";
+import { type } from "@/lib/type";
+import Glass from "@/components/Glass";
 import { useMyLocation } from "@/lib/use-my-location";
 import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
 import { type Place, type SearchResult } from "@/lib/api";
@@ -133,6 +135,12 @@ export default function MapScreen() {
   /// Derived above the loading and error branches: hooks must run in the same
   /// order on every render, and an early return between them changes that.
   const all = useMemo(() => data?.places ?? [], [data]);
+
+  /// How many places are still to go, which is the one count the chips carry.
+  const wishlistCount = useMemo(
+    () => all.filter((p) => p.status === "wishlist").length,
+    [all],
+  );
 
   const places = useMemo(() => {
     const chosen = status === "all" ? all : all.filter((p) => p.status === status);
@@ -350,15 +358,15 @@ export default function MapScreen() {
         <Image source={require("../../../assets/images/locate.png")} style={styles.findMeIcon} />
       </Pressable>
 
-      <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <Glass style={styles.searchBar} radius={26}>
         <TextInput
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => Keyboard.dismiss()}
           returnKeyType="search"
-          placeholder="Search anywhere in the world…"
+          placeholder="Search places or anywhere"
           placeholderTextColor={palette.muted}
-          style={{ flex: 1, fontSize: 15, color: palette.ink }}
+          style={[type.body, { flex: 1, color: palette.ink }]}
         />
         {searching && <ActivityIndicator />}
         {/* The way back to the map. Without it the keyboard covers half the
@@ -376,29 +384,40 @@ export default function MapScreen() {
             <Text style={{ color: palette.muted, fontSize: 17 }}>✕</Text>
           </Pressable>
         )}
-      </View>
+      </Glass>
 
       <View style={styles.statusRow}>
         {[
-          { id: "all", label: "All" },
-          { id: "wishlist", label: "Want to go" },
-          { id: "visited", label: "Been" },
-          { id: "lived", label: "Lived" },
+          { id: "all", label: "All", count: 0 },
+          { id: "wishlist", label: "Want to go", count: wishlistCount },
+          { id: "visited", label: "Been", count: 0 },
+          { id: "lived", label: "Lived", count: 0 },
         ].map((s) => {
           const on = status === s.id;
           return (
-            <Pressable
-              key={s.id}
-              onPress={() => setStatus(s.id)}
-              style={[
-                styles.statusChip,
-                { backgroundColor: palette.surface, borderColor: palette.border },
-                on && { backgroundColor: palette.primary, borderColor: palette.primary },
-              ]}
-            >
-              <Text style={{ fontSize: 12, color: on ? palette.onPrimary : palette.muted }}>
-                {s.label}
-              </Text>
+            <Pressable key={s.id} onPress={() => setStatus(s.id)}>
+              <Glass
+                radius={999}
+                style={[
+                  styles.statusChip,
+                  on && { backgroundColor: palette.primary, borderColor: palette.primary },
+                ]}
+              >
+                <Text
+                  style={[type.metaStrong, { color: on ? palette.onPrimary : palette.ink }]}
+                >
+                  {s.label}
+                </Text>
+                {/* The boards put the number on the one chip it means
+                    something for: how many places are still to go. */}
+                {s.count > 0 && (
+                  <View style={[styles.chipCount, { backgroundColor: palette.accent }]}>
+                    <Text style={[type.meta, styles.chipCountText, { color: palette.onAccent }]}>
+                      {s.count}
+                    </Text>
+                  </View>
+                )}
+              </Glass>
             </Pressable>
           );
         })}
@@ -643,9 +662,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 10,
   },
   statusRow: {
@@ -657,7 +674,23 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6,
   },
-  statusChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5 },
+  statusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  /// The count on "Want to go": Sun, carrying Ink, as the kit has it.
+  chipCount: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  chipCountText: { fontSize: 11, lineHeight: 14 },
   looking: {
     position: "absolute",
     top: 104,

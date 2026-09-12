@@ -41,7 +41,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "./plugins/withLocalNotificationsOnly"
     ],
     "experiments": {
       "typedRoutes": true,
