@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import {
   JournalIcon,
   MapIcon,
-  PeopleIcon,
+  DiscoverIcon,
   TripsIcon,
   YourProfileIcon,
 } from "@/components/nav-icons";
@@ -52,7 +52,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="discover"
-        options={{ title: "Discover", tabBarIcon: ({ color }) => <PeopleIcon color={color} /> }}
+        options={{ title: "Discover", tabBarIcon: ({ color }) => <DiscoverIcon color={color} /> }}
       />
       <Tabs.Screen
         name="account"

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  DiscoverIcon,
   JournalIcon,
   MapIcon,
   NotificationsIcon,
@@ -24,7 +25,7 @@ export const LINKS = [
   { href: "/", label: "Map", Icon: MapIcon },
   { href: "/trips", label: "Trips", Icon: TripsIcon },
   { href: "/journal", label: "Journal", Icon: JournalIcon },
-  { href: "/discover", label: "Discover", Icon: PeopleIcon },
+  { href: "/discover", label: "Discover", Icon: DiscoverIcon },
 ];
 
 /// All four fit across a phone now, so nothing hides behind "More". There were

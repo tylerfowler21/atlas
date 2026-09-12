@@ -44,6 +44,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.7",
     "@electric-sql/pglite-socket": "^0.2.10",
+    "@phosphor-icons/core": "^2.1.1",
     "@prisma/adapter-better-sqlite3": "^7.9.1",
     "@tailwindcss/postcss": "^4",
     "@types/apple-mapkit-js-browser": "^5.78.1",

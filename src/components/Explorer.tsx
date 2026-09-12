@@ -684,7 +684,7 @@ export default function Explorer({
                 first thing the map showed you was its own controls. Statuses
                 first because they are the coarser cut, then the categories. */}
             <div
-              className={`-mx-3 overflow-x-auto px-3 pb-0.5 lg:mx-0 lg:px-0 ${
+              className={`no-scrollbar -mx-3 overflow-x-auto px-3 pb-0.5 lg:mx-0 lg:px-0 ${
                 listOpen ? "" : "hidden lg:block"
               }`}
             >

@@ -39,6 +39,11 @@
   /* Not in the kit — nothing on the boards is wrong or overdue. Mirrors
      SEMANTIC.danger in src/lib/brand.ts. */
   --danger: #d65a4a;
+
+  /* Without this the browser assumes a light page and draws its own furniture
+     to match — scrollbars, date pickers, select menus. In dark mode that put a
+     white scrollbar track across the sidebar under the filter chips. */
+  color-scheme: light dark;
 }
 
 /* Raw paint, and deliberately not redefined for dark mode. Anything drawn on
@@ -155,6 +160,17 @@ h1,
   select {
     font-size: 16px !important;
   }
+}
+
+/* A horizontally scrolling row — the map's filters — where a visible bar
+   under the chips is furniture rather than information. Still scrolls by
+   wheel, swipe, and keyboard. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* --- map pins ----------------------------------------------------------- */

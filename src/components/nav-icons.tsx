@@ -11,14 +11,29 @@ const DEFAULT = "h-5 w-5";
 export function BeenIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="32" cy="32" r="23" stroke="currentColor" strokeWidth="3"/><path d="M10 31h44M32 9c7 7 10 15 10 23s-3 16-10 23M32 9c-7 7-10 15-10 23s3 16 10 23" stroke="currentColor" strokeWidth="2.5"/><path d="M17 18c5 4 10 5 15 4 5-1 10-1 15 3M18 46c5-3 10-4 14-3 5 1 10 0 15-3" stroke="currentColor" strokeWidth="2"/>
+      <path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/>
+    </svg>
+  );
+}
+
+export function DiscoverIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 256 256"
+      className={className ?? DEFAULT}
+      fill="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z"/>
     </svg>
   );
 }
@@ -26,14 +41,14 @@ export function BeenIcon({ className }: IconProps) {
 export function FeedIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="13" y="10" width="38" height="44" rx="6" stroke="currentColor" strokeWidth="3"/><circle cx="22" cy="20" r="3.5" fill="#F98746" stroke="currentColor" strokeWidth="2"/><path d="M29 20h10" stroke="currentColor" strokeWidth="2.5"/><path d="m18 41 9-10 8 8 5-5 7 7" stroke="currentColor" strokeWidth="3"/><circle cx="43" cy="25" r="3" fill="#F98746"/><path d="M20 47h22" stroke="currentColor" strokeWidth="2.5"/>
+      <path d="M106.91,149.09A71.53,71.53,0,0,1,128,200a8,8,0,0,1-16,0,56,56,0,0,0-56-56,8,8,0,0,1,0-16A71.53,71.53,0,0,1,106.91,149.09ZM56,80a8,8,0,0,0,0,16A104,104,0,0,1,160,200a8,8,0,0,0,16,0A120,120,0,0,0,56,80Zm118.79,1.21A166.9,166.9,0,0,0,56,32a8,8,0,0,0,0,16A151,151,0,0,1,163.48,92.52,151,151,0,0,1,208,200a8,8,0,0,0,16,0A166.9,166.9,0,0,0,174.79,81.21ZM60,184a12,12,0,1,0,12,12A12,12,0,0,0,60,184Z"/>
     </svg>
   );
 }
@@ -41,14 +56,14 @@ export function FeedIcon({ className }: IconProps) {
 export function JournalIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M10 14c0-3 2-5 5-5h15c4 0 7 2 8 5v38c-2-2-5-3-8-3H15c-3 0-5-2-5-5V14Z" stroke="currentColor" strokeWidth="3"/><path d="M54 14c0-3-2-5-5-5H34c-4 0-7 2-8 5v38c2-2 5-3 8-3h15c3 0 5-2 5-5V14Z" stroke="currentColor" strokeWidth="3"/><path d="M17 22h10M17 29h10M17 36h8" stroke="currentColor" strokeWidth="2.5"/><rect x="37" y="22" width="11" height="13" rx="1" stroke="currentColor" strokeWidth="2.5"/><path d="m39 33 3-4 2 2 4-5" stroke="#245247" strokeWidth="2.2"/><circle cx="46" cy="24" r="2" fill="#F98746"/>
+      <path d="M184,112a8,8,0,0,1-8,8H112a8,8,0,0,1,0-16h64A8,8,0,0,1,184,112Zm-8,24H112a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16Zm48-88V208a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48ZM48,208H72V48H48Zm160,0V48H88V208H208Z"/>
     </svg>
   );
 }
@@ -56,14 +71,14 @@ export function JournalIcon({ className }: IconProps) {
 export function MapIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M8 16 22 10l20 8 14-6v36l-14 6-20-8-14 6V16Z" stroke="currentColor" strokeWidth="3"/><path d="M22 10v36M42 18v36" stroke="currentColor" strokeWidth="3"/><path d="M18 36c6 4 10-2 16-2 7 0 8 7 14 4" stroke="currentColor" strokeWidth="2.5" strokeDasharray="4 5"/><path d="M50 8c-6 0-11 5-11 11 0 8 11 19 11 19s11-11 11-19C61 13 56 8 50 8Z" fill="#F98746" stroke="currentColor" strokeWidth="3"/><circle cx="50" cy="19" r="4" fill="#E4EDE8" stroke="currentColor" strokeWidth="2"/>
+      <path d="M228.92,49.69a8,8,0,0,0-6.86-1.45L160.93,63.52,99.58,32.84a8,8,0,0,0-5.52-.6l-64,16A8,8,0,0,0,24,56V200a8,8,0,0,0,9.94,7.76l61.13-15.28,61.35,30.68A8.15,8.15,0,0,0,160,224a8,8,0,0,0,1.94-.24l64-16A8,8,0,0,0,232,200V56A8,8,0,0,0,228.92,49.69ZM104,52.94l48,24V203.06l-48-24ZM40,62.25l48-12v127.5l-48,12Zm176,131.5-48,12V78.25l48-12Z"/>
     </svg>
   );
 }
@@ -71,14 +86,14 @@ export function MapIcon({ className }: IconProps) {
 export function NotificationsIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M32 8c-1.7 0-3 1.3-3 3v2.3C21.5 14.7 16 21.2 16 29v9.5l-3.4 5.1A2 2 0 0 0 14.3 47h35.4a2 2 0 0 0 1.7-3.4L48 38.5V29c0-7.8-5.5-14.3-13-15.7V11c0-1.7-1.3-3-3-3Z" fill="#E4EDE8" stroke="currentColor" strokeWidth="3"/><path d="M38 22.5c2.6 2 4.2 5 4.4 8.3" stroke="#F98746" strokeWidth="2.5"/><path d="M25 47a7 7 0 0 0 14 0" fill="#F98746" stroke="currentColor" strokeWidth="3"/>
+      <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/>
     </svg>
   );
 }
@@ -86,14 +101,14 @@ export function NotificationsIcon({ className }: IconProps) {
 export function PeopleIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="24" cy="22" r="7" stroke="currentColor" strokeWidth="3"/><path d="M12 47c1-10 6-15 12-15s11 5 12 15H12Z" stroke="currentColor" strokeWidth="3"/><circle cx="43" cy="26" r="5" fill="#245247" fillOpacity=".75" stroke="currentColor" strokeWidth="2.5"/><path d="M36 47c1-7 4-11 9-11s8 4 9 11H36Z" fill="#245247" fillOpacity=".4" stroke="currentColor" strokeWidth="2.5"/>
+      <path d="M244.8,150.4a8,8,0,0,1-11.2-1.6A51.6,51.6,0,0,0,192,128a8,8,0,0,1-7.37-4.89,8,8,0,0,1,0-6.22A8,8,0,0,1,192,112a24,24,0,1,0-23.24-30,8,8,0,1,1-15.5-4A40,40,0,1,1,219,117.51a67.94,67.94,0,0,1,27.43,21.68A8,8,0,0,1,244.8,150.4ZM190.92,212a8,8,0,1,1-13.84,8,57,57,0,0,0-98.16,0,8,8,0,1,1-13.84-8,72.06,72.06,0,0,1,33.74-29.92,48,48,0,1,1,58.36,0A72.06,72.06,0,0,1,190.92,212ZM128,176a32,32,0,1,0-32-32A32,32,0,0,0,128,176ZM72,120a8,8,0,0,0-8-8A24,24,0,1,1,87.24,82a8,8,0,1,0,15.5-4A40,40,0,1,0,37,117.51,67.94,67.94,0,0,0,9.6,139.19a8,8,0,1,0,12.8,9.61A51.6,51.6,0,0,1,64,128,8,8,0,0,0,72,120Z"/>
     </svg>
   );
 }
@@ -101,14 +116,14 @@ export function PeopleIcon({ className }: IconProps) {
 export function PlacesIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M31 11v42" stroke="currentColor" strokeWidth="3"/><path d="M17 17h28l7 7-7 7H17V17Z" fill="#F98746" fillOpacity=".55" stroke="currentColor" strokeWidth="3"/><path d="M47 36H19l-7 7 7 7h28V36Z" fill="#E4EDE8" stroke="currentColor" strokeWidth="3"/>
+      <path d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z"/>
     </svg>
   );
 }
@@ -116,14 +131,14 @@ export function PlacesIcon({ className }: IconProps) {
 export function SignOutIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M34 12H18c-3 0-5 2-5 5v30c0 3 2 5 5 5h16" stroke="currentColor" strokeWidth="3"/><path d="M30 32h24" stroke="#F98746" strokeWidth="4"/><path d="m47 24 8 8-8 8" stroke="#F98746" strokeWidth="4"/>
+      <path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/>
     </svg>
   );
 }
@@ -131,14 +146,14 @@ export function SignOutIcon({ className }: IconProps) {
 export function TripsIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="14" y="18" width="36" height="34" rx="6" stroke="currentColor" strokeWidth="3"/><path d="M24 18v-5c0-2 2-4 4-4h8c2 0 4 2 4 4v5" stroke="currentColor" strokeWidth="3"/><path d="M20 18v34M44 18v34" stroke="currentColor" strokeWidth="2.5"/><circle cx="27" cy="32" r="4" fill="#F98746"/><path d="m34 38 8-5 5 7-8 5-5-7Z" fill="#E4EDE8"/>
+      <path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v72H40V72Zm0,128H40V160H216v40Z"/>
     </svg>
   );
 }
@@ -146,14 +161,14 @@ export function TripsIcon({ className }: IconProps) {
 export function WhosUsingRoavaIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="32" cy="32" r="24" fill="#E4EDE8"/><circle cx="32" cy="24" r="6" fill="currentColor"/><path d="M22 46c1-9 5-14 10-14s9 5 10 14" fill="currentColor"/><circle cx="18" cy="29" r="5" fill="#F98746"/><path d="M10 46c1-7 4-11 8-11s7 4 8 11" fill="#F98746"/><circle cx="46" cy="29" r="5" fill="#F98746"/><path d="M38 46c1-7 4-11 8-11s7 4 8 11" fill="#F98746"/>
+      <path d="M27.2,126.4a8,8,0,0,0,11.2-1.6,52,52,0,0,1,83.2,0,8,8,0,0,0,11.2,1.59,7.73,7.73,0,0,0,1.59-1.59h0a52,52,0,0,1,83.2,0,8,8,0,0,0,12.8-9.61A67.85,67.85,0,0,0,203,93.51a40,40,0,1,0-53.94,0,67.27,67.27,0,0,0-21,14.31,67.27,67.27,0,0,0-21-14.31,40,40,0,1,0-53.94,0A67.88,67.88,0,0,0,25.6,115.2,8,8,0,0,0,27.2,126.4ZM176,40a24,24,0,1,1-24,24A24,24,0,0,1,176,40ZM80,40A24,24,0,1,1,56,64,24,24,0,0,1,80,40ZM203,197.51a40,40,0,1,0-53.94,0,67.27,67.27,0,0,0-21,14.31,67.27,67.27,0,0,0-21-14.31,40,40,0,1,0-53.94,0A67.88,67.88,0,0,0,25.6,219.2a8,8,0,1,0,12.8,9.6,52,52,0,0,1,83.2,0,8,8,0,0,0,11.2,1.59,7.73,7.73,0,0,0,1.59-1.59h0a52,52,0,0,1,83.2,0,8,8,0,0,0,12.8-9.61A67.85,67.85,0,0,0,203,197.51ZM80,144a24,24,0,1,1-24,24A24,24,0,0,1,80,144Zm96,0a24,24,0,1,1-24,24A24,24,0,0,1,176,144Z"/>
     </svg>
   );
 }
@@ -161,14 +176,14 @@ export function WhosUsingRoavaIcon({ className }: IconProps) {
 export function YourProfileIcon({ className }: IconProps) {
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 256 256"
       className={className ?? DEFAULT}
-      fill="none"
+      fill="currentColor"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="32" cy="32" r="23" stroke="currentColor" strokeWidth="3"/><circle cx="32" cy="25" r="7" fill="currentColor"/><path d="M18 48c2-9 7-14 14-14s12 5 14 14" fill="#245247" fillOpacity=".7" stroke="currentColor" strokeWidth="3"/>
+      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"/>
     </svg>
   );
 }

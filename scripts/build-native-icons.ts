@@ -39,6 +39,11 @@ function componentName(file: string) {
 
 function convert(svg: string) {
   const viewBox = /viewBox="([^"]+)"/.exec(svg)?.[1] ?? "0 0 64 64";
+  // See build-nav-icons: filled sets inherit from the root, stroked ones do
+  // not. "currentColor" has no meaning in react-native-svg, so a filled icon
+  // takes the colour prop directly.
+  const rootFill = /<svg[^>]*\sfill="([^"]+)"/.exec(svg)?.[1] ?? "none";
+  const fill = rootFill === "currentColor" ? "{color}" : `"${rootFill}"`;
   let inner = svg.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>[\s\S]*$/, "");
 
   for (const [from, to] of Object.entries(ATTRS)) inner = inner.replaceAll(`${from}=`, `${to}=`);
@@ -54,7 +59,7 @@ function convert(svg: string) {
   for (const tag of Object.values(ELEMENTS)) {
     if (inner.includes(`<${tag} `)) used.add(tag);
   }
-  return { inner: inner.trim(), viewBox, used };
+  return { inner: inner.trim(), viewBox, used, fill };
 }
 
 const files = readdirSync(SOURCE_DIR).filter((f) => f.endsWith(".svg")).sort();
@@ -62,11 +67,11 @@ const allUsed = new Set<string>(["Svg"]);
 const parts: string[] = [];
 
 for (const file of files) {
-  const { inner, viewBox, used } = convert(readFileSync(`${SOURCE_DIR}/${file}`, "utf8"));
+  const { inner, viewBox, used, fill } = convert(readFileSync(`${SOURCE_DIR}/${file}`, "utf8"));
   used.forEach((u) => allUsed.add(u));
   parts.push(`export function ${componentName(file)}({ size = 24, color = INK }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="${viewBox}" fill="none">
+    <Svg width={size} height={size} viewBox="${viewBox}" fill=${fill}>
       ${inner}
     </Svg>
   );
