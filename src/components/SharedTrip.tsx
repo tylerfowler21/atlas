@@ -114,10 +114,15 @@ export default function SharedTrip({
   /// it is the reason for the trip. Wikipedia has pictures of landmarks and
   /// not of restaurants, which sorts them in roughly the right order by
   /// itself.
-  const cover = useMemo(
-    () => stops.map((i) => i.place).find((pl) => pl?.photoUrl) ?? null,
+  const coverStop = useMemo(
+    () => stops.find((i) => i.place?.photoUrl) ?? null,
     [stops],
   );
+  const cover = coverStop?.place ?? null;
+  /// Which day the photograph is from, so the caption can say so. It is the
+  /// difference between a stock picture of the city and a picture of
+  /// something on this trip.
+  const coverDay = coverStop?.dayIndex ?? null;
 
   const facts = [
     formatRange(trip) !== "No dates yet" ? `📅 ${formatRange(trip)}` : null,
@@ -172,10 +177,21 @@ export default function SharedTrip({
                 sizes="(min-width: 1024px) 640px, 100vw"
                 className="object-cover"
               />
+              {/* Which stop this is, on the photograph rather than under it.
+                  A picture of somewhere on the trip is doing two jobs — making
+                  the page worth looking at, and saying "this is a real place
+                  you will go" — and only the second needs words. */}
+              <figcaption className="glass-opaque absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-medium">
+                <span aria-hidden>{coverStop ? stopIconOf(coverStop) : coverEmoji}</span>
+                <span className="truncate">{cover.name}</span>
+                {coverDay !== null && (
+                  <span className="shrink-0 text-muted">· Day {coverDay + 1}</span>
+                )}
+              </figcaption>
             </div>
             {cover.photoAttribution && (
-              <figcaption className="mt-2 text-[11px] text-muted">
-                {cover.name} ·{" "}
+              <p className="mt-2 text-[11px] text-muted">
+                Photo:{" "}
                 {cover.photoSourceUrl ? (
                   <a
                     href={cover.photoSourceUrl}
@@ -189,7 +205,7 @@ export default function SharedTrip({
                   cover.photoAttribution
                 )}{" "}
                 · via Wikipedia
-              </figcaption>
+              </p>
             )}
           </figure>
         ) : (
@@ -206,8 +222,12 @@ export default function SharedTrip({
         )}
       </section>
 
+      {/* min-w-0 on both columns. A grid item's minimum width is its content
+          by default, so the widest thing inside — a long stop name, the map —
+          pushes the column past the page and the text runs off the right edge
+          on a phone. */}
       <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_520px] lg:items-start">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="display text-2xl">The plan</h2>
             <p className="text-sm text-muted">Day by day, with times and notes</p>
@@ -289,6 +309,23 @@ export default function SharedTrip({
                                     <span className="mt-1 block text-sm text-muted">{item.notes}</span>
                                   )}
                                 </span>
+                                {/* The picture, where there is one and where
+                                    there is room. A shared itinerary is read
+                                    by somebody deciding whether they want the
+                                    trip, and a photograph argues for a place
+                                    better than its name does — but on a phone
+                                    it takes the width the category and the
+                                    duration need, and the boards leave it out
+                                    there for exactly that reason. */}
+                                {item.place?.photoUrl && (
+                                  <Image
+                                    src={item.place.photoUrl}
+                                    alt=""
+                                    width={64}
+                                    height={48}
+                                    className="hidden h-12 w-16 shrink-0 rounded-[var(--radius-photo)] object-cover sm:block"
+                                  />
+                                )}
                                 {item.place && (
                                   <a
                                     href={directionsUrl({
@@ -329,7 +366,7 @@ export default function SharedTrip({
           )}
         </div>
 
-        <div className="lg:sticky lg:top-6">
+        <div className="min-w-0 lg:sticky lg:top-6">
           <div className="card overflow-hidden">
             {/* A real height, not a minimum: the map fills its box by
                 percentage and needs something definite to resolve against. */}

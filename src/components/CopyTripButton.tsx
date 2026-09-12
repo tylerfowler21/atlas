@@ -4,12 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function CopyTripButton({
-  tripId,
+  endpoint,
   signedIn,
   isOwn,
   returnTo,
 }: {
-  tripId: string;
+  /// Where to POST. A published trip is copied by its id; one somebody sent
+  /// you a link to is copied by that link's token, because the token is the
+  /// only thing the reader has and the only thing that proves they may.
+  endpoint: string;
   signedIn: boolean;
   isOwn: boolean;
   /// This page, so signing in comes back to the trip somebody was reading
@@ -38,7 +41,7 @@ export default function CopyTripButton({
     setBusy(true);
     setError(null);
 
-    const res = await fetch(`/api/trips/${tripId}/copy`, { method: "POST" });
+    const res = await fetch(endpoint, { method: "POST" });
     const body = await res.json().catch(() => ({}));
 
     if (!res.ok) {

@@ -4,6 +4,8 @@ import { resolvedCategories } from "@/lib/categories";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
+import CopyTripButton from "@/components/CopyTripButton";
 import SharedTrip from "@/components/SharedTrip";
 import SignUpInvite from "@/components/SignUpInvite";
 import { getCurrentUser } from "@/lib/user";
@@ -106,6 +108,25 @@ export default async function SharedTripPage({
   return (
     <div className="h-full overflow-y-auto">
       <div className="flex min-h-full flex-col">
+        {/* This page is the one most likely to be somebody's first sight of
+            Roava — it is what a friend sends. So it says whose it is at the
+            top, and offers the way in without getting between them and the
+            itinerary they came to read. */}
+        <header className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-5 pt-6 lg:px-10">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/brand/mark.png" alt="" width={30} height={30} className="rounded-lg" />
+            <span className="display text-lg">Roava</span>
+          </Link>
+          {!viewer && (
+            <a
+              href={`/signin?next=${encodeURIComponent(`/s/${token}`)}`}
+              className="btn btn-ghost"
+            >
+              Sign in
+            </a>
+          )}
+        </header>
+
         <SharedTrip
           viewerSignedIn={viewer !== null}
           trip={trip}
@@ -113,21 +134,45 @@ export default async function SharedTripPage({
           categories={await resolvedCategories(share.trip.userId)}
           author={author}
           actions={
-            viewer ? (
-              <Link href="/" className="btn btn-primary">
-                Open in Roava
-              </Link>
-            ) : (
-              <a href={`/signin?next=${encodeURIComponent(`/s/${token}`)}`} className="btn btn-accent">
-                Save this trip
-              </a>
-            )
+            <>
+              <CopyTripButton
+                endpoint={`/api/s/${token}/copy`}
+                signedIn={viewer !== null}
+                isOwn={viewer?.id === share.trip.userId}
+                returnTo={`/s/${token}`}
+              />
+              {viewer && (
+                <Link href="/" className="btn btn-primary">
+                  Open in Roava
+                </Link>
+              )}
+              <p className="basis-full text-xs text-muted">
+                Free. Every stop and note lands on your own map.
+              </p>
+            </>
           }
         />
 
         {/* A secret link is the one most likely to reach somebody with no
             account: it is what you send a friend. */}
         {!viewer && <SignUpInvite author={author} returnTo={`/s/${token}`} />}
+
+        <footer className="mx-auto mt-auto flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-3 px-5 py-8 text-xs text-muted lg:px-10">
+          <span>
+            Planned with <Link href="/" className="font-medium text-foreground">Roava</Link>
+          </span>
+          <span className="flex gap-4">
+            <Link href="/privacy" className="hover:underline">
+              Privacy
+            </Link>
+            {/* Somewhere to go when a shared link turns out to be something it
+                should not be. The link is unlisted, so this page is the only
+                place a reader could report it from. */}
+            <a href={`mailto:hello@roava.co?subject=${encodeURIComponent(`Report a shared trip (${token})`)}`} className="hover:underline">
+              Report this trip
+            </a>
+          </span>
+        </footer>
       </div>
     </div>
   );

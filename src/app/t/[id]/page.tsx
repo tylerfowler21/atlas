@@ -72,7 +72,7 @@ export default async function PublishedTripPage({
         actions={
           <>
             <CopyTripButton
-              tripId={trip.id}
+              endpoint={`/api/trips/${trip.id}/copy`}
               signedIn={Boolean(viewer)}
               isOwn={viewer?.id === trip.userId}
               returnTo={`/t/${trip.id}`}
