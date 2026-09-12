@@ -206,6 +206,8 @@ export default function MapScreen() {
   /// it. Null is the resting state — a map of pins, none of them singled out.
   const [selected, setSelected] = useState<string | null>(null);
   const carousel = useRef<FlatList<Place>>(null);
+  /// Which set of matches the map has already been framed around.
+  const fittedFor = useRef<string | null>(null);
   /// The places list, which used to be its own tab. A panel rather than a
   /// separate screen: it is the same places under the same filters, and the
   /// map is the thing you want behind it.
@@ -339,7 +341,12 @@ export default function MapScreen() {
   /// take away the very thing you were looking at. So the map moves only when
   /// staying put would show you nothing.
   useEffect(() => {
-    if (results.length === 0 || !bounds) return;
+    if (results.length === 0) {
+      // A new search gets a fresh chance to move the map.
+      fittedFor.current = null;
+      return;
+    }
+    if (fittedFor.current === resultKey || !bounds) return;
     // A view this wide is not anywhere, and everything falls inside it —
     // including matches drawn far off the sides of a screen that cannot show
     // a hemisphere at once. The same threshold the heading uses to decide the
@@ -348,6 +355,12 @@ export default function MapScreen() {
 
     const cluster = sameArea(results);
     if (cluster.length === 0) return;
+    // Once per set of matches, whatever happens afterwards. Framing the map
+    // moves the map, which is a region change, which runs this again — and
+    // the second framing restarts the first one's animation from wherever it
+    // had got to. The map crept toward the matches a fraction of a degree at
+    // a time and never arrived.
+    fittedFor.current = resultKey;
 
     // Framed into the strip of map you can actually see. The list of matches
     // covers the top and the sheet covers the foot, and fitting to the whole
@@ -618,15 +631,11 @@ export default function MapScreen() {
 
             {/* Pressing a pin names it, and nothing more.
 
-                Saving is done from the numbered row in the list rather than
-                from the map, because on iOS a marker's press does not reach
-                React reliably — a callout's own onPress falls through to the
-                map, where it reads as a long press and offers whatever is
-                under your finger; a CalloutSubview's is never called; and a
-                marker's own is swallowed by its callout. The number is what
-                ties the two together: the pin tells you which of them is the
-                one you are standing outside, and the row with that number is
-                how you save it. */}
+                Saving is done from the numbered row in the list. A callout of
+                our own takes no presses on iOS, and the system's — which does
+                — saved a different match from the one it was showing, for
+                reasons I could not pin down. A wrong place saved silently is
+                worse than a second tap. */}
             <Callout tooltip>
               <View style={styles.pinCallout}>
                 <View style={[styles.pinLabel, { backgroundColor: palette.surface }]}>
@@ -843,7 +852,8 @@ export default function MapScreen() {
               {/* The same number as its pin. Four branches of one chain are
                   four identical rows, and the only thing that tells them
                   apart is where they are — so the row carries the mark that
-                  points at the map. */}
+                  points at the map, and the map carries the mark that points
+                  back. Either end saves it. */}
               <View style={[styles.resultNumber, { backgroundColor: palette.accent }]}>
                 <Text style={[styles.foundNumber, { color: palette.onAccent }]}>
                   {n + 1}
