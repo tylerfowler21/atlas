@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "latest"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.roava.co"
@@ -18,7 +19,8 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "latest"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.roava.co"
@@ -30,7 +32,10 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://www.roava.co"
       },
-      "channel": "production"
+      "channel": "production",
+      "ios": {
+        "image": "latest"
+      }
     }
   },
   "submit": {
