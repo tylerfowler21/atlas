@@ -1,5 +1,6 @@
 /// Sign in with Apple on the device, exchanged for the app's own token.
 import * as AppleAuthentication from "expo-apple-authentication";
+import { router } from "expo-router";
 import { Alert, Linking } from "react-native";
 import { useRef , createContext, use, useCallback, useEffect, useState } from "react";
 import { API_URL, clearToken, storeToken, storedToken } from "@/lib/api";
@@ -151,6 +152,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const body = await response.json();
         await storeToken(body.token);
         setUser(body.user);
+        // The router tried to match "roava://auth" as a path while this was in
+        // flight and landed on the not-found screen, because signing in is not
+        // a place in the app. Being signed in unlocks the real screens, so send
+        // them there — otherwise a sign-in that worked ends on a 404.
+        router.replace("/");
       } catch {
         Alert.alert(
           "That sign-in didn't finish",
