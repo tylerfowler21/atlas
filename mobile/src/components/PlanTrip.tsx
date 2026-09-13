@@ -25,6 +25,16 @@ import { useCategories } from "@/lib/categories";
 import { usePalette } from "@/lib/use-palette";
 import { searchPlaces } from "@/lib/search-places";
 import { TRIP_STYLES } from "@/lib/trip-styles";
+import DateRangePicker from "@/components/DateRangePicker";
+
+/// A date this many days after the given one, as "YYYY-MM-DD". Noon UTC rather
+/// than midnight, so adding days west of Greenwich does not land on the evening
+/// before.
+function dayAfter(date: string, days: number) {
+  const at = new Date(`${date}T12:00:00Z`);
+  at.setUTCDate(at.getUTCDate() + days);
+  return at.toISOString().slice(0, 10);
+}
 
 type Stop = {
   day: number;
@@ -64,6 +74,10 @@ export default function PlanTrip({
     { city: "", days: "3" },
   ]);
   const [kinds, setKinds] = useState<string[]>([]);
+  /// The first day, which is all anybody has to say: the days-per-city above
+  /// already decide how long it runs, so the last day follows. A trip with no
+  /// dates is still a trip, so this stays optional.
+  const [start, setStart] = useState("");
   const [interests, setInterests] = useState("");
   const [pace, setPace] = useState<"relaxed" | "balanced" | "packed">("balanced");
 
@@ -76,6 +90,10 @@ export default function PlanTrip({
   /// The same fortnight the server will not go past, said before the button is
   /// pressed rather than after.
   const tooLong = total > 14;
+
+  /// Worked out rather than asked for, so the dates and the day counts cannot
+  /// disagree with each other.
+  const end = start && total > 0 ? dayAfter(start, total - 1) : "";
 
   function setLeg(index: number, patch: Partial<{ city: string; days: string }>) {
     setLegs((current) => current.map((leg, i) => (i === index ? { ...leg, ...patch } : leg)));
@@ -157,7 +175,15 @@ export default function PlanTrip({
       const { tripId } = await api<{ tripId: string }>("/api/trips/import", {
         method: "POST",
         body: JSON.stringify({
-          trip: { title: title.trim() || where, destination: where },
+          trip: {
+            title: title.trim() || where,
+            destination: where,
+            // What the model said the trip is, kept as the trip's own notes
+            // rather than shown once and dropped.
+            notes: summary || null,
+            startDate: start || null,
+            endDate: end || null,
+          },
           // A trip somebody is about to take, not one they have taken.
           markVisited: false,
           entries: keeping.map((c) => ({
@@ -268,6 +294,19 @@ export default function PlanTrip({
 
             {/* The handful of answers that change the shape of an itinerary
                 rather than its details. Free text below covers the details. */}
+            <Text style={[styles.label, { color: palette.muted, marginTop: 18 }]}>
+              When{end ? ` — through ${end}` : ""}
+            </Text>
+            {/* One date, not a range: the days above already say how long it
+                runs, and asking twice invites the two to disagree. */}
+            <DateRangePicker
+              single
+              start={start}
+              end={start}
+              emptyHint="Tap the first day, or leave it for a trip with no dates."
+              onChange={(next) => setStart(next.start)}
+            />
+
             <Text style={[styles.label, { color: palette.muted, marginTop: 18 }]}>
               What kind of trip
             </Text>

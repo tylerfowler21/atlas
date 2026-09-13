@@ -50,6 +50,17 @@ type Row = ParsedEntry & {
 
 /// A spreadsheet's Category column ends up at the front of the note, because
 /// that is where the columns it came from put it. These read it back out.
+/// A date this many days after the given one, as "YYYY-MM-DD".
+///
+/// Parsed as UTC noon rather than midnight: a date-only string is midnight UTC,
+/// and adding days to that in a timezone behind Greenwich lands on the evening
+/// before.
+function dayAfter(date: string, days: number) {
+  const at = new Date(`${date}T12:00:00Z`);
+  at.setUTCDate(at.getUTCDate() + days);
+  return at.toISOString().slice(0, 10);
+}
+
 function leadingWord(note: string | null) {
   return note ? (note.split(",")[0] ?? "").trim() : null;
 }
@@ -111,6 +122,9 @@ export default function TripImporter({
   /// years later is a fortnight in Amsterdam whether or not anybody still has
   /// the list of what they did each day.
   const [endDate, setEndDate] = useState("");
+  /// How many days the draft came back with, so setting a first day afterwards
+  /// still fills the last one in.
+  const [draftDays, setDraftDays] = useState(0);
   const [markVisited, setMarkVisited] = useState(
     // Opened from a trip means somebody is planning it, and what you add to a
     // plan is somewhere you want to go rather than somewhere you have been.
@@ -124,6 +138,12 @@ export default function TripImporter({
     // mistake in a different doorway.
     !initialTrip && initialMode !== "draft",
   );
+  /// What the trip is about, in a sentence or two.
+  ///
+  /// The model writes this and it used to be shown once in the form and then
+  /// dropped, which left every drafted trip with empty notes — one of the
+  /// things that made a generated trip look unlike one somebody planned.
+  const [tripNotes, setTripNotes] = useState("");
   const [text, setText] = useState("");
 
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -173,6 +193,7 @@ export default function TripImporter({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: name,
+          notes: tripNotes.trim() || null,
           destination: region.trim() || null,
           destinations: regions,
           destinationPins: pinsFor(regions, cityPins),
@@ -409,6 +430,7 @@ export default function TripImporter({
                 : {
                     trip: {
                       title: title.trim(),
+                      notes: tripNotes.trim() || null,
                       destination: region.trim() || null,
                       startDate: startDate || null,
                       endDate: lastDay,
@@ -763,28 +785,42 @@ export default function TripImporter({
           {destination !== "places" && (
             <>
               <label className="text-xs text-muted">
-                First day (optional)
+                {destination === "draft" ? "First day" : "First day (optional)"}
                 <input
                   type="date"
                   className="input mt-1"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    // A drafted trip already knows how long it is, so naming
+                    // the first day is enough to give it real dates — which is
+                    // what turns "no dates yet" into a countdown, the weather
+                    // and everything else that needs to know when.
+                    if (e.target.value && draftDays > 0 && !endDate) {
+                      setEndDate(dayAfter(e.target.value, draftDays - 1));
+                    }
+                  }}
                 />
               </label>
               {/* Counting from the itinerary only knows about days somebody
                   wrote something on. A trip remembered years later is a
                   fortnight in Amsterdam whether or not the middle week has a
                   list, so it can be said outright. */}
-              <label className="text-xs text-muted">
-                Last day (optional)
-                <input
-                  type="date"
-                  className="input mt-1"
-                  min={startDate || undefined}
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </label>
+              {/* Worked out from the days-per-city below while drafting, so
+                  asking for it there too is asking somebody to contradict
+                  themselves. */}
+              {destination !== "draft" && (
+                <label className="text-xs text-muted">
+                  Last day (optional)
+                  <input
+                    type="date"
+                    className="input mt-1"
+                    min={startDate || undefined}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </label>
+              )}
             </>
           )}
           <label className="flex items-end gap-2 text-xs text-muted">
@@ -811,7 +847,16 @@ export default function TripImporter({
               // and the model has just supplied both.
               if (!title.trim()) setTitle(draft.title);
               if (regions.length === 0 && draft.destination) setRegions([draft.destination]);
-              setFileNote("Drafted. Read it through — the next step checks every place against a real map.");
+              if (!tripNotes.trim()) setTripNotes(draft.summary);
+              // The draft knows how long it is, so a first day is all anybody
+              // has to supply for the trip to have real dates.
+              setDraftDays(draft.days);
+              if (startDate && !endDate) setEndDate(dayAfter(startDate, draft.days - 1));
+              setFileNote(
+                startDate
+                  ? "Drafted. Read it through — the next step checks every place against a real map."
+                  : "Drafted. Add a first day above and it gets real dates; then read it through — the next step checks every place against a real map.",
+              );
             }}
           />
         )}

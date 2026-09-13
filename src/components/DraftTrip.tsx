@@ -21,7 +21,16 @@ export default function DraftTrip({
 }: {
   /// Where they said they are going, in order. Empty until they say.
   cities: string[];
-  onDrafted: (draft: { text: string; title: string; destination: string }) => void;
+  /// Everything the drafted trip is, not only its itinerary: the summary
+  /// becomes the trip's notes and the length gives it an end date, which is
+  /// the difference between a saved trip and a list of days.
+  onDrafted: (draft: {
+    text: string;
+    title: string;
+    destination: string;
+    summary: string;
+    days: number;
+  }) => void;
 }) {
   /// Days per city, keyed by the city as it is written above.
   ///
@@ -75,7 +84,13 @@ export default function DraftTrip({
       setSummary(
         `${body.stops.length} stops across ${total} ${total === 1 ? "day" : "days"}. ${body.summary}`,
       );
-      onDrafted({ text: body.text, title: body.title, destination: body.destination });
+      onDrafted({
+        text: body.text,
+        title: body.title,
+        destination: body.destination,
+        summary: body.summary,
+        days: total,
+      });
     } catch {
       setError("That draft didn't come back");
     } finally {

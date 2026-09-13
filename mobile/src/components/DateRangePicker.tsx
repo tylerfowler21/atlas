@@ -23,13 +23,18 @@ export default function DateRangePicker({
   end,
   onChange,
   single = false,
+  emptyHint,
 }: {
   /// "2026-09-18", or "" for unset.
   start: string;
   end: string;
   onChange: (next: { start: string; end: string }) => void;
-  /// One date rather than a range — a deadline has no second end.
+  /// One date rather than a range — a booking deadline has no second end, and
+  /// neither does a trip whose length is already decided somewhere else.
   single?: boolean;
+  /// What the one date is for, when it is not a deadline. Shown under the
+  /// calendar before anything is picked.
+  emptyHint?: string;
 }) {
   const palette = usePalette();
 
@@ -140,7 +145,7 @@ export default function DateRangePicker({
         {single
           ? start
             ? `${start} · tap again to clear`
-            : "Tap a day, or leave it for no deadline."
+            : (emptyHint ?? "Tap a day, or leave it for no deadline.")
           : !start
           ? "Tap the first day."
           : !end
