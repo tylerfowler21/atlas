@@ -32,3 +32,47 @@ export function tripWhere(trip: Where): string | null {
 export function searchRegionFor(trip: Where): string | null {
   return tripRegions(trip)[0] ?? null;
 }
+
+/// Lowercased and stripped of accents, so "Québec" matches "Quebec".
+function fold(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+
+/// The words a trip's destinations are made of. "Porto, Portugal" gives
+/// "porto" and "portugal", so a saved place can be checked against them.
+export function destinationWords(
+  destination: string[] | string | null | undefined,
+): string[] {
+  const labels = Array.isArray(destination) ? destination : destination ? [destination] : [];
+  return [
+    ...new Set(
+      labels
+        .flatMap((label) => label.split(","))
+        .map(fold)
+        .filter((part) => part.length > 1),
+    ),
+  ];
+}
+
+/// Whether a saved place is somewhere the trip actually goes.
+///
+/// The idle list under "Add a stop" is a list of suggestions, and the first few
+/// places somebody saved in alphabetical order are not suggestions: on a trip
+/// to Porto it offered a shop in Tokyo, a walk in Japan, and Amsterdam.
+///
+/// The country decides it, with the city as the other way in — a destination
+/// somebody typed as just "Tokyo" names no country, and matching the city is
+/// what makes that one work at all.
+export function goesTo(
+  place: { city?: string | null; country?: string | null },
+  words: string[],
+): boolean {
+  if (words.length === 0) return true;
+  const country = fold(place.country ?? "");
+  const city = fold(place.city ?? "");
+  return words.some((word) => country === word || city === word);
+}

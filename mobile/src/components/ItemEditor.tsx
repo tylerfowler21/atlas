@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SEMANTIC, RADIUS } from "@/lib/brand";
 import {
   DURATIONS,
@@ -15,6 +15,7 @@ import TripFiles from "@/components/TripFiles";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
+import { destinationWords, goesTo } from "@/lib/trip-where";
 import { currentPosition, nearbyPlaces } from "@/lib/here";
 import {
   ActivityIndicator,
@@ -225,7 +226,15 @@ export default function ItemEditor({
   /// Places created here, so they appear in the pickers without refetching.
   const [added, setAdded] = useState<Place[]>([]);
 
-  const options = [...added, ...places];
+  /// The places worth offering as chips: the ones saved on this trip's
+  /// travels, plus anything added here in this sitting.
+  ///
+  /// Narrowed to where the trip goes, for the same reason the website's list
+  /// is: a row of chips beginning with a shop in Tokyo, on a trip to Porto, is
+  /// not a row of suggestions. Anything added in this sitting stays whatever
+  /// it is — somebody just made it on purpose.
+  const whereItGoes = useMemo(() => destinationWords(destination), [destination]);
+  const options = [...added, ...places.filter((p) => goesTo(p, whereItGoes))];
 
   /// Searched as you type, the same as the map tab and the website.
   const { results, searching } = usePlaceSearch(query, (q, mode) =>

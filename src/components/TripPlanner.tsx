@@ -2,7 +2,7 @@
 
 import { useCategories } from "@/components/CategoriesProvider";
 import PlaceThumb from "@/components/PlaceThumb";
-import { tripWhere, tripRegions } from "@/lib/trip-where";
+import { tripWhere, tripRegions, destinationWords, goesTo } from "@/lib/trip-where";
 
 import { PAINT } from "@/lib/brand";
 import { usePlaceSearch } from "@/lib/use-place-search";
@@ -1911,17 +1911,40 @@ function AddStop({
 
   const shown = shownResults;
 
+  const whereItGoes = useMemo(() => destinationWords(destination), [destination]);
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return places
-      .filter((p) => !usedPlaceIds.has(p.id))
-      .filter(
-        (p) =>
-          q.length === 0 ||
+    const unused = places.filter((p) => !usedPlaceIds.has(p.id));
+
+    // Somebody typing has said what they want, and it is not this component's
+    // business to decide that a trip to Portugal cannot include a flight home
+    // from Amsterdam.
+    if (q.length > 0) {
+      return unused
+        .filter((p) =>
           [p.name, p.city, p.country].filter(Boolean).some((f) => f!.toLowerCase().includes(q)),
-      )
-      .slice(0, 6);
-  }, [places, usedPlaceIds, query]);
+        )
+        .slice(0, 6);
+    }
+
+    /// Idle, this is a list of suggestions, and the first six places somebody
+    /// saved in alphabetical order are not suggestions — on a trip to Porto it
+    /// offered a shop in Tokyo, a walk in Japan and Amsterdam. Narrowed to
+    /// where the trip actually goes, it is either useful or empty, and empty
+    /// says something true.
+    if (whereItGoes.length === 0) return unused.slice(0, 6);
+
+    return unused.filter((p) => goesTo(p, whereItGoes)).slice(0, 6);
+  }, [places, usedPlaceIds, query, whereItGoes]);
+
+  /// Whether the narrowing is what emptied the list, as opposed to having no
+  /// saved places at all.
+  const noneHere =
+    query.trim().length === 0 &&
+    whereItGoes.length > 0 &&
+    matches.length === 0 &&
+    places.some((p) => !usedPlaceIds.has(p.id));
 
   return (
     <div className="border-t border-line pt-4">
@@ -2017,6 +2040,13 @@ function AddStop({
             ))}
           </ul>
         </>
+      )}
+
+      {noneHere && (
+        <p className="mt-2 text-xs text-muted">
+          None of your saved places are where this trip goes — search above for
+          somewhere new.
+        </p>
       )}
 
       {matches.length > 0 && (
