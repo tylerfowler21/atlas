@@ -10,6 +10,7 @@ import {
 import { type } from "@/lib/type";
 import DateRangePicker from "@/components/DateRangePicker";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
+import SearchMap from "@/components/SearchMap";
 import TripFiles from "@/components/TripFiles";
 import { useCategories } from "@/lib/categories";
 import { usePlaceSearch } from "@/lib/use-place-search";
@@ -535,6 +536,11 @@ export default function ItemEditor({
                 </Text>
               </Pressable>
 
+              {/* Where the matches are, numbered to match the rows. This sheet
+                  covers the trip's own map completely, so without it a list of
+                  four identical names is all anybody gets. */}
+              <SearchMap results={around ?? shownResults} />
+
               {around !== null && around.length > 0 && (
                 <View style={styles.aroundHeader}>
                   <Text style={{ color: palette.muted, fontSize: 12, flex: 1 }}>Around you</Text>
@@ -544,14 +550,21 @@ export default function ItemEditor({
                 </View>
               )}
 
-              {(around ?? []).map((r) => (
+              {(around ?? []).map((r, n) => (
                 <View
                   key={`near-${r.id}`}
                   style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
                 >
-                  <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
-                    {r.name}
-                  </Text>
+                  <View style={styles.resultHead}>
+                    <View style={[styles.resultNumber, { backgroundColor: palette.accent }]}>
+                      <Text style={[type.metaStrong, { color: palette.onAccent, fontSize: 11 }]}>
+                        {n + 1}
+                      </Text>
+                    </View>
+                    <Text style={{ color: palette.ink, fontSize: 15, flex: 1 }} numberOfLines={1}>
+                      {r.name}
+                    </Text>
+                  </View>
                   <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
                     {r.address ?? r.city ?? ""}
                   </Text>
@@ -571,14 +584,22 @@ export default function ItemEditor({
                 </View>
               ))}
 
-              {shownResults.map((r) => (
+              {shownResults.map((r, n) => (
                 <View
                   key={r.id}
                   style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
                 >
-                  <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
-                    {r.name}
-                  </Text>
+                  <View style={styles.resultHead}>
+                    {/* The number on the pin above. */}
+                    <View style={[styles.resultNumber, { backgroundColor: palette.accent }]}>
+                      <Text style={[type.metaStrong, { color: palette.onAccent, fontSize: 11 }]}>
+                        {n + 1}
+                      </Text>
+                    </View>
+                    <Text style={{ color: palette.ink, fontSize: 15, flex: 1 }} numberOfLines={1}>
+                      {r.name}
+                    </Text>
+                  </View>
                   <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
                     {r.context}
                   </Text>
@@ -1056,6 +1077,14 @@ const styles = StyleSheet.create({
   },
   aroundHeader: { flexDirection: "row", alignItems: "center", marginTop: 14, marginBottom: 4 },
   result: { borderWidth: 1, borderRadius: 10, padding: 12, marginTop: 8 },
+  resultHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  resultNumber: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   resultActions: { flexDirection: "row", gap: 20, marginTop: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, maxWidth: 200 },
 });
