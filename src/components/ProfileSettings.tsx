@@ -6,14 +6,20 @@ export default function ProfileSettings({
   initialUsername,
   initialBio,
   initialHomeCity,
+  initialWantsToGo,
+  initialTravelStyle,
 }: {
   initialUsername: string | null;
   initialBio: string | null;
   initialHomeCity: string | null;
+  initialWantsToGo: string | null;
+  initialTravelStyle: string | null;
 }) {
   const [username, setUsername] = useState(initialUsername ?? "");
   const [bio, setBio] = useState(initialBio ?? "");
   const [homeCity, setHomeCity] = useState(initialHomeCity ?? "");
+  const [wantsToGo, setWantsToGo] = useState(initialWantsToGo ?? "");
+  const [travelStyle, setTravelStyle] = useState(initialTravelStyle ?? "");
   const [saved, setSaved] = useState<string | null>(initialUsername);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +35,8 @@ export default function ProfileSettings({
         username: username.trim() || null,
         bio: bio.trim() || null,
         homeCity: homeCity.trim() || null,
+        wantsToGo: wantsToGo.trim() || null,
+        travelStyle: travelStyle.trim() || null,
       }),
     });
     const body = await res.json().catch(() => ({}));
@@ -84,6 +92,32 @@ export default function ProfileSettings({
           In your own words, and as rough as you like — it sits under your name
           on your profile. It is not a pin and goes on nobody&apos;s map.
         </span>
+      </label>
+
+      {/* The two questions somebody actually wants answered about a stranger
+          before following them, and the two no count of countries answers.
+          Prose rather than a list of pins: a wishlist is built out of saved
+          places, and those stay private. */}
+      <label className="block text-xs text-muted">
+        Where you want to go next
+        <textarea
+          className="input mt-1 min-h-14 resize-y"
+          placeholder="Patagonia, if the flights ever behave. Seoul again."
+          maxLength={200}
+          value={wantsToGo}
+          onChange={(e) => setWantsToGo(e.target.value)}
+        />
+      </label>
+
+      <label className="block text-xs text-muted">
+        How you travel
+        <textarea
+          className="input mt-1 min-h-14 resize-y"
+          placeholder="Slowly, one city at a time. Trains over planes wherever there's a train."
+          maxLength={200}
+          value={travelStyle}
+          onChange={(e) => setTravelStyle(e.target.value)}
+        />
       </label>
 
       {error && <p className="text-xs text-red-500">{error}</p>}

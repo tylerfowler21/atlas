@@ -20,6 +20,8 @@ async function loadProfile(username: string) {
       image: true,
       bio: true,
       homeCity: true,
+      wantsToGo: true,
+      travelStyle: true,
       _count: { select: { followers: true, following: true } },
     },
   });
@@ -115,6 +117,26 @@ export default async function ProfilePage({
           />
         )}
       </div>
+
+      {/* Two lines that say more about a stranger than any count of countries
+          does. Each stands alone — most people will fill in one and not the
+          other, and a heading with nothing under it is worse than no heading. */}
+      {(profile.wantsToGo || profile.travelStyle) && (
+        <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+          {profile.wantsToGo && (
+            <div className="card p-4">
+              <dt className="text-xs text-muted">Wants to go</dt>
+              <dd className="mt-1 text-sm">{profile.wantsToGo}</dd>
+            </div>
+          )}
+          {profile.travelStyle && (
+            <div className="card p-4">
+              <dt className="text-xs text-muted">How they travel</dt>
+              <dd className="mt-1 text-sm">{profile.travelStyle}</dd>
+            </div>
+          )}
+        </dl>
+      )}
 
       {!isSelf && profile.username && (
         <div className="mt-4">

@@ -36,7 +36,7 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
-  const { username, bio, homeCity, onboarded } = parsed.data;
+  const { username, bio, homeCity, wantsToGo, travelStyle, onboarded } = parsed.data;
 
   if (username) {
     const taken = await prisma.user.findUnique({
@@ -54,9 +54,18 @@ export async function PATCH(request: Request) {
       ...(username !== undefined ? { username } : {}),
       ...(bio !== undefined ? { bio } : {}),
       ...(homeCity !== undefined ? { homeCity } : {}),
+      ...(wantsToGo !== undefined ? { wantsToGo } : {}),
+      ...(travelStyle !== undefined ? { travelStyle } : {}),
       ...(onboarded ? { onboardedAt: new Date() } : {}),
     },
-    select: { username: true, bio: true, homeCity: true, onboardedAt: true },
+    select: {
+      username: true,
+      bio: true,
+      homeCity: true,
+      wantsToGo: true,
+      travelStyle: true,
+      onboardedAt: true,
+    },
   });
 
   return NextResponse.json({ profile: updated });

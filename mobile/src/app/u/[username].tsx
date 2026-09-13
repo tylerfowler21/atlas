@@ -37,6 +37,8 @@ type Profile = {
   image: string | null;
   bio: string | null;
   homeCity: string | null;
+  wantsToGo: string | null;
+  travelStyle: string | null;
   followers: number;
   following: number;
   isFollowing: boolean;
@@ -203,6 +205,25 @@ export default function ProfileScreen() {
           {profile.following} following
         </Text>
 
+        {/* Each stands alone — most people fill in one and not the other, and
+            a heading with nothing under it is worse than no heading. */}
+        {profile.wantsToGo && (
+          <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            <Text style={[type.meta, { color: palette.muted }]}>Wants to go</Text>
+            <Text style={[type.body, { color: palette.ink, marginTop: 2 }]}>
+              {profile.wantsToGo}
+            </Text>
+          </View>
+        )}
+        {profile.travelStyle && (
+          <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            <Text style={[type.meta, { color: palette.muted }]}>How they travel</Text>
+            <Text style={[type.body, { color: palette.ink, marginTop: 2 }]}>
+              {profile.travelStyle}
+            </Text>
+          </View>
+        )}
+
         {!profile.isSelf && (
           <View style={styles.actions}>
             <Pressable
@@ -249,7 +270,7 @@ export default function ProfileScreen() {
                 router.push({ pathname: "/published/[id]", params: { id: trip.id } })
               }
               style={[
-                styles.card,
+                styles.tripCard,
                 { backgroundColor: palette.surface, borderColor: palette.border },
               ]}
             >
@@ -287,7 +308,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   more: { paddingHorizontal: 6 },
-  card: {
+  card: { borderWidth: 1, borderRadius: RADIUS.card, padding: 14 },
+  tripCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,

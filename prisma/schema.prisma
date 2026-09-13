@@ -68,6 +68,14 @@ model User {
   /// public profile and cannot be followed.
   username      String?   @unique
   bio           String?
+  /// Where they are headed next, in their own words — "Patagonia, if the
+  /// flights ever behave". Prose rather than a list of places: a wishlist is
+  /// built out of saved places, and those are private.
+  wantsToGo     String?
+  /// How they travel — "slowly, one city at a time", "trains only". The thing
+  /// you actually want to know about somebody before following them, and the
+  /// thing no count of countries tells you.
+  travelStyle   String?
   /// Set once someone has been through (or skipped) the welcome. Null means
   /// they have never seen it, which is what sends them there.
   onboardedAt   DateTime?

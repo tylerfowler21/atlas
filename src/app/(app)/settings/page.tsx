@@ -19,6 +19,8 @@ export default async function SettingsPage() {
       username: true,
       bio: true,
       homeCity: true,
+      wantsToGo: true,
+      travelStyle: true,
       email: true,
       _count: {
         select: { followers: true, following: true, trips: true, places: true, memories: true },
@@ -39,6 +41,8 @@ export default async function SettingsPage() {
           initialUsername={me.username}
           initialBio={me.bio}
           initialHomeCity={me.homeCity}
+          initialWantsToGo={me.wantsToGo}
+          initialTravelStyle={me.travelStyle}
         />
       </div>
 

@@ -29,6 +29,8 @@ export async function GET(
       image: true,
       bio: true,
       homeCity: true,
+      wantsToGo: true,
+      travelStyle: true,
       _count: { select: { followers: true, following: true } },
     },
   });
@@ -63,6 +65,8 @@ export async function GET(
       image: profile.image,
       bio: profile.bio,
       homeCity: profile.homeCity,
+      wantsToGo: profile.wantsToGo,
+      travelStyle: profile.travelStyle,
       followers: profile._count.followers,
       following: profile._count.following,
       isFollowing: Boolean(follow),

@@ -231,6 +231,11 @@ export const profileSchema = z.object({
   /// Berlin and Lisbon". Not geocoded and not a place on anybody's map: it is
   /// the line under your name that says where you are answering from.
   homeCity: optionalText(80),
+  /// Both short on purpose. These are lines on a profile, not an essay: a
+  /// sentence about where you are headed and a sentence about how you travel
+  /// tell a reader more than either would at four times the length.
+  wantsToGo: optionalText(200),
+  travelStyle: optionalText(200),
 });
 
 export const followSchema = z.object({
