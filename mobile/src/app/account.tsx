@@ -18,6 +18,7 @@ import {
 import { API_URL, api, type Me, type Notification } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
+import { useRouter } from "expo-router";
 import { usePalette } from "@/lib/use-palette";
 
 function ago(iso: string) {
@@ -38,6 +39,7 @@ export default function AccountScreen() {
     unread: number;
   }>("/api/notifications");
 
+  const router = useRouter();
   const [username, setUsername] = useState(user?.username ?? "");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState("");
@@ -93,6 +95,10 @@ export default function AccountScreen() {
     );
   }, [confirm, me, user, signOut]);
 
+  /// The handle as the server has it, rather than whatever is in the field.
+  /// Half a username mid-edit would otherwise link to a profile nobody has.
+  const savedUsername = me?.user.username ?? user?.username ?? null;
+
   const unread = notes?.unread ?? 0;
 
   return (
@@ -132,6 +138,22 @@ export default function AccountScreen() {
         <Text style={[styles.hint, { color: palette.muted }]}>
           Picking one is what gives you a profile others can follow.
         </Text>
+
+        {/* Your own profile is the one you could not reach: every other
+            person's opens from a tap, and the way to check how yours reads
+            was to go and find a laptop. Only once there is a handle, because
+            without one there is no profile to look at. */}
+        {savedUsername && (
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: "/u/[username]", params: { username: savedUsername } })
+            }
+            style={[styles.viewProfile, { borderColor: palette.border, backgroundColor: palette.surface }]}
+          >
+            <Text style={{ color: palette.ink, fontSize: 15 }}>View your profile</Text>
+            <Text style={{ color: palette.muted, fontSize: 18 }}>›</Text>
+          </Pressable>
+        )}
 
         <View style={styles.between}>
           <Text style={[styles.label, { color: palette.muted }]}>Notifications</Text>
@@ -242,6 +264,16 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   save: { borderRadius: 10, paddingHorizontal: 18, alignItems: "center", justifyContent: "center" },
   hint: { fontSize: 12, marginTop: 6, lineHeight: 17 },
+  viewProfile: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    marginTop: 12,
+  },
   card: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
   note: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
   link: { paddingVertical: 8 },
