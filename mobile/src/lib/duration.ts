@@ -3,6 +3,7 @@
 /// run `npm run sync:mirror`.
 export type Timed = {
   kind?: string | null;
+  mode?: string | null;
   minutes?: number | null;
   startTime?: string | null;
   endTime?: string | null;
@@ -73,6 +74,74 @@ export function formatLegTime(item: Timed): string | null {
 
 /// One line for a stop, whichever kind it is.
 export function timingLabel(item: Timed): string | null {
-  if (isTravel(item)) return formatLegTime(item);
+  if (isTravel(item)) {
+    // A journey that knows both reads as both: when it goes, and how long you
+    // are on it. Either alone is the whole line.
+    return (
+      [formatLegTime(item), takesTime(item) ? formatDuration(item.minutes) : null]
+        .filter(Boolean)
+        .join(" · ") || null
+    );
+  }
   return formatDuration(durationOf(item));
+}
+
+/// Journeys that are not flights can say how long they take.
+///
+/// A flight is the one leg whose clock times are the fact: it leaves at 09:40
+/// and lands at 13:05, and the hours in between are somebody else's problem.
+/// Everything else — a train, a drive, a ferry, a walk across town — is known
+/// the other way round. You know it is about two hours; you find out when you
+/// are leaving on the day.
+export function takesTime(item: { kind?: string | null; mode?: string | null }) {
+  return isTravel(item) && item.mode !== "plane";
+}
+
+/// Reads a length of time the way somebody would write one.
+///
+/// An open field rather than a list of choices, because the list was built for
+/// stops — a museum is an hour or two — and journeys run from a ten-minute
+/// walk to a fourteen-hour drive. No list covers that without becoming a
+/// scrolling menu of numbers.
+///
+/// A bare number is minutes, which is the unit everything is stored in. Every
+/// other reading is spelled out, and whatever is understood is echoed back
+/// under the field, so a wrong guess is visible rather than silent.
+export function parseDuration(text: string): number | null {
+  const clean = text.trim().toLowerCase();
+  if (!clean) return null;
+
+  let minutes: number | null = null;
+
+  // "2:15", the way a timetable writes it.
+  const clock = /^(\d{1,2}):([0-5]\d)$/.exec(clean);
+  if (clock) {
+    minutes = Number(clock[1]) * 60 + Number(clock[2]);
+  } else {
+    // "2h30" — the minutes unmarked, which is how most people write two and a
+    // half hours in a hurry. Tried first: the general pattern below would read
+    // the "2h" and throw the 30 away.
+    const stuck = /^(\d{1,2})\s*h\s*(\d{1,2})$/.exec(clean);
+    if (stuck) {
+      minutes = Number(stuck[1]) * 60 + Number(stuck[2]);
+    } else {
+      // "2h 15m", "2 hours", "90 min", "1.5h" — either part alone is enough.
+      const hours = /(\d+(?:[.,]\d+)?)\s*(?:h|hr|hrs|hour|hours)/.exec(clean);
+      const mins = /(\d+)\s*(?:m|min|mins|minute|minutes)\b/.exec(clean);
+
+      if (hours || mins) {
+        const h = hours ? Number(hours[1].replace(",", ".")) : 0;
+        const m = mins ? Number(mins[1]) : 0;
+        minutes = Math.round(h * 60 + m);
+      } else if (/^\d+$/.test(clean)) {
+        minutes = Number(clean);
+      }
+    }
+  }
+
+  if (minutes === null || !Number.isFinite(minutes)) return null;
+  // The bounds the itinerary itself keeps: nothing shorter than five minutes
+  // is worth recording, and nothing on one leg runs past a day.
+  if (minutes < 5 || minutes > 1440) return null;
+  return minutes;
 }

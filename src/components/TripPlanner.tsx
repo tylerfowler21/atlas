@@ -8,7 +8,14 @@ import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
 import { currentPosition, nearbyPlaces, HERE_MESSAGES } from "@/lib/here";
 import { enrichSelectedPlace } from "@/lib/enrich-place";
-import { DURATIONS, durationOf, formatDuration, timingLabel } from "@/lib/duration";
+import {
+  DURATIONS,
+  durationOf,
+  formatDuration,
+  parseDuration,
+  takesTime,
+  timingLabel,
+} from "@/lib/duration";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
 import { useMemo, useState, useRef } from "react";
@@ -923,6 +930,8 @@ export default function TripPlanner({
                                 patchItem(item.id, { endTime: e.target.value || null })
                               }
                             />
+                            {/* Only a flight is known by its clock. */}
+                            {takesTime(item) && <LegLength item={item} onSave={patchItem} />}
                           </>
                         ) : (
                           <select
@@ -1427,6 +1436,7 @@ function AddTravel({
     mode?: string;
     startTime?: string | null;
     endTime?: string | null;
+    minutes?: number | null;
     endDayOffset?: number;
   }) => Promise<boolean>;
   busy: boolean;
@@ -1437,6 +1447,8 @@ function AddTravel({
   const [toId, setToId] = useState("");
   const [departs, setDeparts] = useState("");
   const [arrives, setArrives] = useState("");
+  /// Kept as typed; what it was understood as is shown under the field.
+  const [length, setLength] = useState("");
   /// Days later it lands. Offered as a tick rather than a number because the
   /// only case anybody meets is the overnight one.
   const [nextDay, setNextDay] = useState(false);
@@ -1530,6 +1542,31 @@ function AddTravel({
         </label>
       </div>
 
+      {/* A train is known as "about two hours" long before anybody knows which
+          train. A flight is the exception: its clock times are the fact. */}
+      {mode !== "plane" && (
+        <label className="text-xs text-muted">
+          How long?
+          <input
+            className="input mt-1"
+            placeholder="2h 15m"
+            value={length}
+            onChange={(e) => setLength(e.target.value)}
+          />
+          <span
+            className={`mt-1 block text-xs ${
+              length.trim() && !parseDuration(length) ? "text-amber-600 dark:text-amber-400" : "text-muted"
+            }`}
+          >
+            {length.trim() === ""
+              ? "However you'd say it — 2h, 90 min, 1:45."
+              : parseDuration(length)
+                ? `Understood as ${formatDuration(parseDuration(length))}.`
+                : "Not understood — try 2h, 90 min or 1:45."}
+          </span>
+        </label>
+      )}
+
       {/* Only once there is an arrival to qualify, and suggested when the
           clock appears to run backwards — which is exactly what an overnight
           flight east looks like. */}
@@ -1576,6 +1613,7 @@ function AddTravel({
             category: "transport",
             startTime: departs || null,
             endTime: arrives || null,
+            minutes: mode === "plane" ? null : parseDuration(length),
             endDayOffset: nextDay ? 1 : 0,
           });
           if (ok) {
@@ -1584,6 +1622,7 @@ function AddTravel({
             setToId("");
             setDeparts("");
             setArrives("");
+            setLength("");
             setNextDay(false);
           }
         }}
@@ -1591,6 +1630,43 @@ function AddTravel({
         {busy ? "Adding…" : "Add this journey"}
       </button>
     </div>
+  );
+}
+
+/// How long a journey takes, on a leg already in the plan.
+///
+/// Open text rather than a menu: the list of durations was drawn for stops,
+/// and a journey runs from a ten-minute walk to a fourteen-hour drive. What
+/// was typed stays as typed and is committed when the field is left, so the
+/// itinerary is not saved on every keystroke.
+function LegLength({
+  item,
+  onSave,
+}: {
+  item: { id: string; minutes: number | null };
+  onSave: (id: string, patch: { minutes: number | null }) => void;
+}) {
+  const [text, setText] = useState(
+    item.minutes ? (formatDuration(item.minutes)?.replace(/^about /, "") ?? "") : "",
+  );
+  const parsed = parseDuration(text);
+  const wrong = text.trim().length > 0 && parsed === null;
+
+  return (
+    <input
+      aria-label="How long this journey takes"
+      className={`input w-24 rounded-full px-2 py-1 text-xs ${
+        wrong ? "text-amber-600 dark:text-amber-400" : ""
+      }`}
+      placeholder="2h 15m"
+      title={wrong ? "Not understood — try 2h, 90 min or 1:45." : undefined}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (wrong) return;
+        if (parsed !== item.minutes) onSave(item.id, { minutes: parsed });
+      }}
+    />
   );
 }
 

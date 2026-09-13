@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { SEMANTIC } from "@/lib/brand";
-import { DURATIONS, durationOf, formatDuration } from "@/lib/duration";
+import {
+  DURATIONS,
+  durationOf,
+  formatDuration,
+  parseDuration,
+  takesTime,
+} from "@/lib/duration";
 import { type } from "@/lib/type";
 import DateRangePicker from "@/components/DateRangePicker";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
@@ -177,6 +183,15 @@ export default function ItemEditor({
   const [minutes, setMinutes] = useState<number | null>(
     existing ? durationOf(existing) : null,
   );
+  /// What was typed into "How long?", which is not the same as what it means.
+  /// The field stays exactly as written — correcting somebody's typing under
+  /// their cursor is maddening — and what it was understood as is shown below
+  /// it instead.
+  const [legLength, setLegLength] = useState(
+    existing?.kind === "travel" && existing.minutes
+      ? formatDuration(existing.minutes)?.replace(/^about /, "") ?? ""
+      : "",
+  );
   const [startTime, setStartTime] = useState(existing?.startTime ?? "");
   const [endTime, setEndTime] = useState(existing?.endTime ?? "");
   /// Whether a journey lands the next day. A tick rather than a number,
@@ -269,6 +284,7 @@ export default function ItemEditor({
 
   if (!draft) return null;
   const travel = kind === "travel";
+  const flightLike = travel && !takesTime({ kind, mode: travelMode });
 
   async function save() {
     const name = title.trim();
@@ -292,7 +308,8 @@ export default function ItemEditor({
         category: travel ? "transport" : category,
         startTime: travel ? startTime || null : null,
         endTime: travel ? endTime || null : null,
-        minutes: travel ? null : minutes,
+        // A flight is the one journey whose clock times are the fact.
+        minutes: travel ? (flightLike ? null : parseDuration(legLength)) : minutes,
         endDayOffset: travel && endTime && nextDay ? 1 : 0,
         mode: travel ? travelMode : null,
         placeId,
@@ -416,6 +433,39 @@ export default function ItemEditor({
               Nobody plans a temple for 14:30 to 16:15, and a plan that claims
               to is wrong by mid-morning. */}
           {travel ? (
+            <>
+            {/* Only a flight is known by its clock. A train, a drive or a
+                ferry is known as "about two hours" long before anybody knows
+                which train. An open field rather than a list, because the
+                list was drawn for stops and journeys run from a ten-minute
+                walk to a fourteen-hour drive. */}
+            {!flightLike && (
+              <>
+                <Text style={[styles.label, { color: palette.muted }]}>How long?</Text>
+                <TextInput
+                  value={legLength}
+                  onChangeText={setLegLength}
+                  placeholder="2h 15m"
+                  placeholderTextColor={palette.muted}
+                  style={[styles.input, field]}
+                />
+                <Text
+                  style={{
+                    color: legLength.trim() && !parseDuration(legLength)
+                      ? SEMANTIC.danger
+                      : palette.muted,
+                    fontSize: 12,
+                    marginTop: 4,
+                  }}
+                >
+                  {legLength.trim() === ""
+                    ? "However you'd say it — 2h, 90 min, 1:45."
+                    : parseDuration(legLength)
+                      ? `Understood as ${formatDuration(parseDuration(legLength))}.`
+                      : "Not understood — try 2h, 90 min or 1:45."}
+                </Text>
+              </>
+            )}
             <View style={styles.times}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.label, { color: palette.muted }]}>Departs</Text>
@@ -440,6 +490,7 @@ export default function ItemEditor({
                 />
               </View>
             </View>
+            </>
           ) : (
             <>
               <Text style={[styles.label, { color: palette.muted }]}>How long?</Text>
