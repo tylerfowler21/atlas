@@ -132,3 +132,15 @@ export function tripCalendar(
 export function todayUTC(now = new Date()): number {
   return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 }
+
+/// The date this many days after the given one, as "YYYY-MM-DD".
+///
+/// Read at noon UTC rather than midnight. A date-only string is midnight UTC,
+/// and adding days to that anywhere west of Greenwich lands on the evening
+/// before — which turns a five-day trip into a four-day one for half the
+/// people using it.
+export function dayAfter(date: string, days: number): string {
+  const at = new Date(`${date}T12:00:00Z`);
+  at.setUTCDate(at.getUTCDate() + days);
+  return at.toISOString().slice(0, 10);
+}

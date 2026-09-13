@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { TRIP_STYLES } from "@/lib/trip-styles";
+import DestinationField from "@/components/DestinationField";
+import DatePicker from "@/components/DatePicker";
+import { dayAfter } from "@/lib/trip-calendar";
+import type { SearchResult } from "@/lib/types";
 
 /// Asking for a first draft of a trip.
 ///
@@ -17,10 +21,22 @@ import { TRIP_STYLES } from "@/lib/trip-styles";
 /// Lisbon and saved under Canada.
 export default function DraftTrip({
   cities,
+  onCities,
+  onPick,
+  startDate,
+  onStartDate,
   onDrafted,
 }: {
   /// Where they said they are going, in order. Empty until they say.
+  ///
+  /// Held by the importer rather than here, because the trip it eventually
+  /// saves needs them — but asked for here, because this is the form somebody
+  /// is actually filling in.
   cities: string[];
+  onCities: (next: string[]) => void;
+  onPick: (label: string, result: SearchResult) => void;
+  startDate: string;
+  onStartDate: (date: string) => void;
   /// Everything the drafted trip is, not only its itinerary: the summary
   /// becomes the trip's notes and the length gives it an end date, which is
   /// the difference between a saved trip and a list of days.
@@ -98,31 +114,41 @@ export default function DraftTrip({
     }
   }
 
+  /// The last day, worked out rather than asked for, so the dates and the day
+  /// counts cannot contradict each other.
+  const lastDay = startDate && total > 0 ? dayAfter(startDate, total - 1) : "";
+
   return (
-    <div className="space-y-4 rounded-lg border border-line p-3">
-      {/* How long in each. Two weeks in Canada is three days in Montréal and
-          two in Québec, and which is which is the thing only they know — a
-          model given the total alone splits it evenly and gets both wrong. */}
-      <div>
-        <p className="mb-1.5 text-xs text-muted">
-          How long in each
+    <div className="space-y-6">
+      {/* One question after another, in the order somebody answers them.
+          Where, how long, when, what kind — the same run the app asks, so the
+          two do not put the same question in two different shapes. */}
+      <section>
+        <h2 className="mb-2 text-sm font-semibold">
+          Where, and how long in each
           {cities.length > 1 && (
-            <span className="text-foreground">
-              {" "}
-              — {total} {total === 1 ? "day" : "days"} altogether
+            <span className="ml-2 text-xs font-normal text-muted">
+              {total} {total === 1 ? "day" : "days"} altogether
             </span>
           )}
-        </p>
+        </h2>
+
+        <DestinationField
+          value={cities}
+          onChange={onCities}
+          onPick={onPick}
+          placeholder="Montréal"
+        />
 
         {cities.length === 0 ? (
-          <p className="text-xs text-muted">
-            Say where you&apos;re going above and each place gets its own number
-            of days.
+          <p className="mt-2 text-xs text-muted">
+            Add as many as the trip visits, in the order you&apos;ll go. Each
+            one gets its own number of days.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="mt-3 space-y-1.5">
             {cities.map((city) => (
-              <div key={city} className="flex items-center gap-2">
+              <div key={city} className="flex items-center gap-3">
                 <span className="min-w-0 flex-1 truncate text-sm">{city}</span>
                 <input
                   type="number"
@@ -138,22 +164,42 @@ export default function DraftTrip({
                     }))
                   }
                 />
-                <span className="w-8 shrink-0 text-xs text-muted">
+                <span className="w-10 shrink-0 text-xs text-muted">
                   {daysIn(city) === 1 ? "day" : "days"}
                 </span>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* The last day follows from the days above, so only the first is asked
+          for — and it is a calendar rather than a box wanting mm/dd/yyyy,
+          because "is that a Monday" is half of what somebody is checking. */}
+      <section>
+        <h2 className="mb-2 text-sm font-semibold">
+          When
+          {lastDay && (
+            <span className="ml-2 text-xs font-normal text-muted">
+              through {lastDay}
+            </span>
+          )}
+        </h2>
+        <DatePicker
+          single
+          start={startDate}
+          onChange={(next) => onStartDate(next.start)}
+          emptyHint="Click the first day, or leave it for a trip with no dates."
+        />
+      </section>
 
       {/* The handful of answers that change the shape of the itinerary rather
           than its details. A trip with a four-year-old and a trip built around
           dinner are different plans of the same city. */}
-      <div>
-        <p className="mb-1.5 text-xs text-muted">
-          What kind of trip <span className="text-muted">(pick any)</span>
-        </p>
+      <section>
+        <h2 className="mb-2 text-sm font-semibold">
+          What kind of trip <span className="text-xs font-normal text-muted">(pick any)</span>
+        </h2>
         <div className="flex flex-wrap gap-1.5">
           {TRIP_STYLES.map((style) => {
             const on = styles.includes(style.id);
@@ -174,20 +220,22 @@ export default function DraftTrip({
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <label className="block text-xs text-muted">
-        Anything else (optional)
+      <section>
+        <h2 className="mb-2 text-sm font-semibold">
+          Anything else <span className="text-xs font-normal text-muted">(optional)</span>
+        </h2>
         <input
-          className="input mt-1"
+          className="input"
           placeholder="seafood, walking, not too many museums"
           value={interests}
           onChange={(e) => setInterests(e.target.value)}
         />
-      </label>
+      </section>
 
-      <div>
-        <p className="mb-1.5 text-xs text-muted">Pace</p>
+      <section>
+        <h2 className="mb-2 text-sm font-semibold">Pace</h2>
         <div className="flex flex-wrap gap-1.5">
           {(
             [
@@ -207,15 +255,15 @@ export default function DraftTrip({
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
       {error && <p className="text-xs text-red-500">{error}</p>}
       {summary && <p className="text-xs text-muted">{summary}</p>}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="space-y-2">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary w-full justify-center py-3 text-sm"
           disabled={busy || cities.length === 0 || tooLong}
           onClick={() => void draft()}
         >

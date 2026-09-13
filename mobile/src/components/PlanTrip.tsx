@@ -26,16 +26,8 @@ import { usePalette } from "@/lib/use-palette";
 import { searchPlaces } from "@/lib/search-places";
 import { TRIP_STYLES } from "@/lib/trip-styles";
 import { TRAVEL_MODES } from "@/lib/taxonomy";
+import { dayAfter } from "@/lib/trip-calendar";
 import DateRangePicker from "@/components/DateRangePicker";
-
-/// A date this many days after the given one, as "YYYY-MM-DD". Noon UTC rather
-/// than midnight, so adding days west of Greenwich does not land on the evening
-/// before.
-function dayAfter(date: string, days: number) {
-  const at = new Date(`${date}T12:00:00Z`);
-  at.setUTCDate(at.getUTCDate() + days);
-  return at.toISOString().slice(0, 10);
-}
 
 type Stop = {
   day: number;

@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
 import { travelMode } from "@/lib/taxonomy";
+import { dayAfter } from "@/lib/trip-calendar";
 import DestinationField from "@/components/DestinationField";
 import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import DraftTrip from "@/components/DraftTrip";
@@ -51,17 +52,6 @@ type Row = ParsedEntry & {
 
 /// A spreadsheet's Category column ends up at the front of the note, because
 /// that is where the columns it came from put it. These read it back out.
-/// A date this many days after the given one, as "YYYY-MM-DD".
-///
-/// Parsed as UTC noon rather than midnight: a date-only string is midnight UTC,
-/// and adding days to that in a timezone behind Greenwich lands on the evening
-/// before.
-function dayAfter(date: string, days: number) {
-  const at = new Date(`${date}T12:00:00Z`);
-  at.setUTCDate(at.getUTCDate() + days);
-  return at.toISOString().slice(0, 10);
-}
-
 function leadingWord(note: string | null) {
   return note ? (note.split(",")[0] ?? "").trim() : null;
 }
@@ -764,7 +754,7 @@ export default function TripImporter({
           whether the trip is already written down somewhere, and that is a
           question worth asking here rather than in a row of buttons that all
           look alike. */}
-      {destination !== "places" && (
+      {destination === "trip" && (
         <div className="mt-3 rounded-lg border border-line p-3 text-xs">
           <p className="text-muted">
             Nothing written down? Pick the dates and click through the days
@@ -781,7 +771,11 @@ export default function TripImporter({
 
       <div className="mt-6 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          {destination !== "places" && (
+          {/* Naming a trip and choosing where it goes are questions about a
+              trip that exists. While drafting there is nothing to name yet,
+              and the model supplies a title anyway — so these wait until the
+              draft is back. */}
+          {destination !== "places" && (destination !== "draft" || text.trim().length > 0) && (
             <div className="text-xs text-muted">
               {/* Where it goes. A feed is where the next trip gets planned:
                   six places off a reel belong on the trip you already have for
@@ -829,7 +823,7 @@ export default function TripImporter({
           {/* This matters more for a list, not less. A note full of restaurants
               is a note about one place, and without saying which, "Husk" finds
               the one in Sydney. */}
-          <div className="text-xs text-muted">
+          <div className={`text-xs text-muted ${destination === "draft" ? "hidden" : ""}`}>
             {destination === "draft"
               ? "Which cities"
               : destination === "trip"
@@ -860,49 +854,40 @@ export default function TripImporter({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {/* A list of places has no first day. */}
-          {destination !== "places" && (
+          {/* A list of places has no first day, and while drafting the calendar
+              in the form below asks the same question better. */}
+          {destination === "trip" && (
             <>
               <label className="text-xs text-muted">
-                {destination === "draft" ? "First day" : "First day (optional)"}
+                First day (optional)
                 <input
                   type="date"
                   className="input mt-1"
                   value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    // A drafted trip already knows how long it is, so naming
-                    // the first day is enough to give it real dates — which is
-                    // what turns "no dates yet" into a countdown, the weather
-                    // and everything else that needs to know when.
-                    if (e.target.value && draftDays > 0 && !endDate) {
-                      setEndDate(dayAfter(e.target.value, draftDays - 1));
-                    }
-                  }}
+                  onChange={(e) => setStartDate(e.target.value)}
                 />
               </label>
               {/* Counting from the itinerary only knows about days somebody
                   wrote something on. A trip remembered years later is a
                   fortnight in Amsterdam whether or not the middle week has a
                   list, so it can be said outright. */}
-              {/* Worked out from the days-per-city below while drafting, so
-                  asking for it there too is asking somebody to contradict
-                  themselves. */}
-              {destination !== "draft" && (
-                <label className="text-xs text-muted">
-                  Last day (optional)
-                  <input
-                    type="date"
-                    className="input mt-1"
-                    min={startDate || undefined}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </label>
-              )}
+              <label className="text-xs text-muted">
+                Last day (optional)
+                <input
+                  type="date"
+                  className="input mt-1"
+                  min={startDate || undefined}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </label>
             </>
           )}
-          <label className="flex items-end gap-2 text-xs text-muted">
+          <label
+            className={`flex items-end gap-2 text-xs text-muted ${
+              destination === "draft" && text.trim().length === 0 ? "hidden" : ""
+            }`}
+          >
             <input
               type="checkbox"
               checked={markVisited}
@@ -920,6 +905,18 @@ export default function TripImporter({
         {destination === "draft" && (
           <DraftTrip
             cities={regions}
+            onCities={setRegions}
+            onPick={(label, result) =>
+              setCityPins((current) => ({ ...current, [label]: pinFrom(label, result) }))
+            }
+            startDate={startDate}
+            onStartDate={(date) => {
+              setStartDate(date);
+              // A drafted trip already knows how long it is, so naming the
+              // first day is enough to give it real dates.
+              if (date && draftDays > 0) setEndDate(dayAfter(date, draftDays - 1));
+              if (!date) setEndDate("");
+            }}
             onDrafted={(draft) => {
               setText(draft.text);
               // A drafted trip is still a trip: it needs a name and a region,
