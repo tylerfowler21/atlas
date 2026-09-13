@@ -21,6 +21,13 @@ export const BUILT_IN_CATEGORIES = [
   { id: "hotel", label: "Stay", icon: "🛏️", color: "#5566B0" },
   { id: "shop", label: "Shop", icon: "🛍️", color: "#C4578A" },
   { id: "transport", label: "Transport", icon: "✈️", color: "#5F7C8C" },
+  // Somewhere you go, rather than somewhere you stand in. A travel app is
+  // mostly a list of cities with things inside them, and without this every
+  // one of them arrived as Other — enough people made their own "City" that
+  // the gap was being filled by hand, one account at a time. Teal is the one
+  // hue the other ten leave free, and 4.0:1 on a pale map puts it in the same
+  // band as the rest.
+  { id: "city", label: "City", icon: "🏙️", color: "#2F8C8C" },
   { id: "other", label: "Other", icon: "📍", color: "#12322B" },
 ] as const;
 
@@ -256,6 +263,18 @@ const BY_TYPE: Record<string, BuiltInCategoryId> = {
   taxi: "transport",
   car_rental: "transport",
 
+  city: "city",
+  town: "city",
+  village: "city",
+  hamlet: "city",
+  suburb: "city",
+  neighbourhood: "city",
+  quarter: "city",
+  borough: "city",
+  district: "city",
+  municipality: "city",
+  locality: "city",
+
   // --- the rest of what people actually search for ----------------------
   //
   // Everything above was here from the start and covers the obvious cases.
@@ -372,9 +391,9 @@ const BY_CLASS: Record<string, BuiltInCategoryId> = {
   waterway: "nature",
   craft: "shop",
   sport: "activity",
-  // A city, a town, a suburb. There is no built-in category for somewhere you
-  // go rather than somewhere you stand in, so these still land on Other — but
-  // saying so here is better than reaching the end of the table by accident.
+  // Settlements are named above and land on City. This catches the rest of
+  // the class — a country, a state, an island group — which is not a city and
+  // has no better home than Other.
   place: "other",
   boundary: "other",
   office: "other",
