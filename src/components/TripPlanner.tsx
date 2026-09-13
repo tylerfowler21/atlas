@@ -1071,13 +1071,40 @@ export default function TripPlanner({
                           ))}
                         </select>
 
+                        {/* What you wrote about the place itself, on your own
+                            map. Two different notes have always existed — one
+                            about the place, which follows it onto every trip it
+                            is ever on, and one about this stop on this day —
+                            and only the second was ever shown here, so a note
+                            written on the map looked lost the moment the place
+                            went on a trip.
+
+                            Shown rather than edited: two note fields side by
+                            side with no way to tell which one you are changing
+                            is worse than one and a reminder. */}
+                        {item.place?.notes && (
+                          <div className="rounded-xl border border-line bg-surface p-2.5">
+                            <p className="text-xs text-muted">
+                              Your note on {item.place.name}
+                            </p>
+                            <p className="mt-1 text-xs whitespace-pre-line">{item.place.notes}</p>
+                            <p className="mt-1.5 text-[11px] text-muted">
+                              On the place, so it shows on every trip it is on.
+                            </p>
+                          </div>
+                        )}
+
                         <textarea
                           // Uncontrolled and saved on blur: no keystroke-by-keystroke
                           // requests, and `key` resets it when the stop changes.
                           key={item.id}
                           aria-label="Notes for this stop"
                           className="input min-h-14 resize-y text-xs"
-                          placeholder="Notes — booking reference, what to order…"
+                          placeholder={
+                            item.place?.notes
+                              ? "Notes for this stop — booking reference, what to order…"
+                              : "Notes — booking reference, what to order…"
+                          }
                           defaultValue={item.notes ?? ""}
                           onBlur={(e) => {
                             const next = e.target.value.trim() || null;

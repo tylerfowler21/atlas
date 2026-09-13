@@ -292,6 +292,10 @@ type ItemPlace = {
   /// Wikipedia's photograph of the place. What a stop shows beside its name,
   /// and what a trip borrows for its cover when nobody has chosen one.
   photoUrl: string | null;
+  /// What you wrote about the place itself, on your own map — not about this
+  /// stop on this day. Sent only to whoever saved it; a shared trip never
+  /// carries it.
+  notes: string | null;
 };
 
 export type Trip = {

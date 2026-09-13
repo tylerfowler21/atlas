@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SEMANTIC } from "@/lib/brand";
+import { SEMANTIC, RADIUS } from "@/lib/brand";
 import {
   DURATIONS,
   durationOf,
@@ -780,7 +780,42 @@ export default function ItemEditor({
             ))}
           </View>
 
-          <Text style={[styles.label, { color: palette.muted }]}>Notes</Text>
+          {/* What you wrote about the place itself, on your own map.
+          
+              Two different notes have always existed — one about the place,
+              which follows it onto every trip it is ever on, and one about
+              this stop on this day. Only the second was ever shown here, so a
+              note written on the map looked lost the moment the place was
+              added to a trip.
+          
+              Read-only, and said to belong to the place: editing it here would
+              put two note fields side by side with no way to tell which one
+              you were changing. */}
+          {existing?.place?.notes && (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>
+                Your note on {existing.place.name}
+              </Text>
+              <View
+                style={[
+                  styles.placeNote,
+                  { borderColor: palette.border, backgroundColor: palette.surface },
+                ]}
+              >
+                <Text style={{ color: palette.ink, fontSize: 14, lineHeight: 19 }}>
+                  {existing.place.notes}
+                </Text>
+                <Text style={{ color: palette.muted, fontSize: 12, marginTop: 6 }}>
+                  On the place, so it shows on every trip it is on. Change it
+                  from the map.
+                </Text>
+              </View>
+            </>
+          )}
+
+          <Text style={[styles.label, { color: palette.muted }]}>
+            {existing?.place?.notes ? "Notes for this stop" : "Notes"}
+          </Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
@@ -829,6 +864,7 @@ const styles = StyleSheet.create({
   },
   remove: { alignItems: "center", paddingVertical: 18, marginTop: 6 },
   notes: { minHeight: 80, textAlignVertical: "top" },
+  placeNote: { borderWidth: 1, borderRadius: RADIUS.card, padding: 12 },
   check: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16 },
   dayChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
