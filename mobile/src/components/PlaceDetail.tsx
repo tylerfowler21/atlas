@@ -30,7 +30,17 @@ import { usePalette } from "@/lib/use-palette";
 const PHOTO_HEIGHT = 300;
 const AVATAR = 64;
 
-type OnTrip = { id: string; title: string; color: string; dayIndex: number; times: number };
+type OnTrip = {
+  id: string;
+  title: string;
+  color: string;
+  dayIndex: number;
+  times: number;
+  /// What was written against this place on that trip's own days. A note on a
+  /// stop used to be readable only from inside the trip, so the empty note
+  /// field on this screen sat on top of something already written.
+  notes: { dayIndex: number; text: string }[];
+};
 
 /// A saved place, as something to read rather than a form to fill in.
 ///
@@ -346,6 +356,20 @@ export default function PlaceDetail({
                       Day {t.dayIndex + 1}
                       {t.times > 1 ? ` · ${t.times}×` : ""}
                     </Text>
+                    {/* What was written against this place on that trip. It
+                        belongs to the day rather than to the place, so it sits
+                        under the trip it came from rather than being poured
+                        into the note field above — which is the place's own,
+                        and a different thing. */}
+                    {t.notes.map((n) => (
+                      <Text
+                        key={n.dayIndex}
+                        style={{ color: palette.ink, fontSize: 13, lineHeight: 18, marginTop: 4 }}
+                      >
+                        <Text style={{ color: palette.muted }}>Day {n.dayIndex + 1} — </Text>
+                        {n.text}
+                      </Text>
+                    ))}
                   </View>
                   <Text style={{ color: palette.muted, fontSize: 18 }}>›</Text>
                 </Pressable>

@@ -50,7 +50,17 @@ export default function PlaceDetail({
   /// the previous place must not be shown against this one meanwhile.
   const [fetched, setFetched] = useState<{
     placeId: string;
-    trips: { id: string; title: string; color: string; dayIndex: number; times: number }[];
+    trips: {
+      id: string;
+      title: string;
+      color: string;
+      dayIndex: number;
+      times: number;
+      /// What was written against this place on that trip's own days. A note
+      /// on a stop used to be readable only from inside the trip, so the empty
+      /// field below sat on top of something already written.
+      notes: { dayIndex: number; text: string }[];
+    }[];
   } | null>(null);
 
   useEffect(() => {
@@ -405,21 +415,34 @@ export default function PlaceDetail({
           {onTrips.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs text-muted">Already on</p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {onTrips.map((t) => (
-                  <li key={t.id} className="flex items-center gap-2 text-xs">
-                    <span
-                      aria-hidden
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ background: t.color }}
-                    />
-                    <Link href={`/trips/${t.id}`} className="truncate hover:underline">
-                      {t.title}
-                    </Link>
-                    <span className="shrink-0 text-muted">
-                      day {t.dayIndex + 1}
-                      {t.times > 1 ? ` · ${t.times} times` : ""}
-                    </span>
+                  <li key={t.id} className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: t.color }}
+                      />
+                      <Link href={`/trips/${t.id}`} className="truncate hover:underline">
+                        {t.title}
+                      </Link>
+                      <span className="shrink-0 text-muted">
+                        day {t.dayIndex + 1}
+                        {t.times > 1 ? ` · ${t.times} times` : ""}
+                      </span>
+                    </div>
+                    {/* What was written against this place on that trip. It
+                        belongs to the day rather than to the place, so it sits
+                        under the trip it came from rather than being poured
+                        into the note field below — which is the place's own,
+                        and a different thing. */}
+                    {t.notes.map((n) => (
+                      <p key={n.dayIndex} className="mt-0.5 ml-[1.125rem] whitespace-pre-line">
+                        <span className="text-muted">Day {n.dayIndex + 1} — </span>
+                        {n.text}
+                      </p>
+                    ))}
                   </li>
                 ))}
               </ul>

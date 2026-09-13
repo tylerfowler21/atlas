@@ -37,21 +37,36 @@ export async function GET(
     select: {
       dayIndex: true,
       kind: true,
+      notes: true,
       trip: { select: { id: true, title: true, color: true } },
     },
   });
 
   // One entry per trip, keeping the earliest day it appears on: "on this trip,
   // from day two" is the useful shape, not a list of every time it recurs.
+  //
+  // Its notes are the exception and are all kept. What somebody wrote against
+  // a stop is the part of a trip worth reading back — and until now it could
+  // only be read from inside that trip, so opening the place showed an empty
+  // note field over the top of something they had already written.
   const byTrip = new Map<
     string,
-    { id: string; title: string; color: string; dayIndex: number; times: number }
+    {
+      id: string;
+      title: string;
+      color: string;
+      dayIndex: number;
+      times: number;
+      notes: { dayIndex: number; text: string }[];
+    }
   >();
   for (const item of items) {
     const existing = byTrip.get(item.trip.id);
+    const note = item.notes?.trim() ? { dayIndex: item.dayIndex, text: item.notes } : null;
     if (existing) {
       existing.times += 1;
       existing.dayIndex = Math.min(existing.dayIndex, item.dayIndex);
+      if (note) existing.notes.push(note);
     } else {
       byTrip.set(item.trip.id, {
         id: item.trip.id,
@@ -59,6 +74,7 @@ export async function GET(
         color: item.trip.color,
         dayIndex: item.dayIndex,
         times: 1,
+        notes: note ? [note] : [],
       });
     }
   }
