@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
-import { placesForDestinations } from "@/lib/trip-destinations";
+import { pinsByLabel, placesForDestinations } from "@/lib/trip-destinations";
 import { firstIssue, tripUpdateSchema } from "@/lib/validation";
 import { placeForViewer, serializeTrip } from "@/lib/types";
 
@@ -91,7 +91,7 @@ export async function PATCH(
     return NextResponse.json({ error: "The trip ends before it starts" }, { status: 400 });
   }
 
-  const { published, ...fields } = parsed.data;
+  const { published, destinationPins, ...fields } = parsed.data;
   const trip = await prisma.trip.update({
     where: { id },
     data: {
@@ -112,6 +112,7 @@ export async function PATCH(
     await placesForDestinations({
       userId: user.id,
       destinations: added,
+      pins: pinsByLabel(destinationPins),
       endsOn: end ?? start ?? null,
     });
   }

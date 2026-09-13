@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import DestinationField from "@/components/DestinationField";
+import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import { TRIP_COLORS as COLORS } from "@/lib/brand";
 import { tripRegions } from "@/lib/trip-where";
 import { useState } from "react";
@@ -21,6 +22,10 @@ export default function TripSettings({
   // Seeded from whichever field this trip has: one made before trips could go
   // to more than one place still has only the old one.
   const [destinations, setDestinations] = useState<string[]>(() => tripRegions(trip));
+  /// Only ever holds the ones picked in this sitting. A destination the trip
+  /// already had was resolved when it was added, and re-adding it changes
+  /// nothing — the helper skips what is already on the map.
+  const [pins, setPins] = useState<Record<string, DestinationPin>>({});
   const [startDate, setStartDate] = useState(toDateInput(trip.startDate));
   const [endDate, setEndDate] = useState(toDateInput(trip.endDate));
   const [color, setColor] = useState(trip.color);
@@ -75,6 +80,7 @@ export default function TripSettings({
       body: JSON.stringify({
         title: title.trim(),
         destinations,
+        destinationPins: pinsFor(destinations, pins),
         startDate: startDate || null,
         endDate: endDate || null,
         color,
@@ -114,6 +120,9 @@ export default function TripSettings({
       />
       <DestinationField
         value={destinations}
+        onPick={(label, result) =>
+          setPins((current) => ({ ...current, [label]: pinFrom(label, result) }))
+        }
         onChange={setDestinations}
         placeholder="Where does this trip go?"
       />

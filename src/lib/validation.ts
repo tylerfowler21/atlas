@@ -77,13 +77,43 @@ const tripFields = {
   color: trimmed(9).regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex colour"),
 };
 
+/// A destination the picker already found, handed back so the server does not
+/// have to look the label up again.
+///
+/// The label is all that gets stored — it is what a trip says it is about, and
+/// every screen that shows a trip shows that. These are the coordinates behind
+/// it, used once to put the city on the map and then dropped.
+///
+/// Worth carrying because the round trip through the label loses things. The
+/// picker shows "Quebec, Canada" for a city and for the province it is in, and
+/// searching that string afterwards answers with the province — a pin five
+/// hundred kilometres north of the trip. Anywhere a region and its city share
+/// a name has the same problem: New York, Mexico, Panama, Luxembourg.
+const destinationPinSchema = z.object({
+  /// Exactly as it appears in `destinations`, which is how the two are paired.
+  label: trimmed(120).min(1),
+  name: trimmed(160).min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  city: optionalText(120),
+  country: optionalText(120),
+  countryCode: optionalText(8).transform((v) => v?.toLowerCase() ?? null),
+  category: categoryField.default("other"),
+});
+
+/// Never stored, so it is not among the trip's fields — it is an argument to
+/// creating one, spent on the way past.
+const destinationPins = z.array(destinationPinSchema).max(12).optional();
+
 export const tripCreateSchema = z.object(tripFields).extend({
+  destinationPins,
   color: trimmed(9)
     .regex(/^#[0-9a-fA-F]{6}$/, "Expected a hex colour")
     .default("#12322B"),
 });
 
 export const tripUpdateSchema = z.object(tripFields).partial().extend({
+  destinationPins,
   /// Publishing puts the trip on your public profile and in your followers'
   /// feeds. Stored as a timestamp, so it also orders the feed.
   published: z.boolean().optional(),

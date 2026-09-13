@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
 import DestinationField from "@/components/DestinationField";
+import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import DraftTrip from "@/components/DraftTrip";
 import ImportLink from "@/components/ImportLink";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
@@ -99,6 +100,11 @@ export default function TripImporter({
   /// itself in — and the hint the place search leans on was whatever somebody
   /// managed to spell.
   const [regions, setRegions] = useState<string[]>([]);
+  /// What the picker found for each destination, carried as far as the
+  /// request that makes the trip so the city it names lands where it is
+  /// rather than where its province's centroid is. Not to be confused with
+  /// `pins` further down, which are the map's own.
+  const [cityPins, setCityPins] = useState<Record<string, DestinationPin>>({});
   const region = regions.join(", ");
   const [startDate, setStartDate] = useState("");
   /// Said outright rather than counted from the itinerary. A trip remembered
@@ -169,6 +175,7 @@ export default function TripImporter({
           title: name,
           destination: region.trim() || null,
           destinations: regions,
+          destinationPins: pinsFor(regions, cityPins),
           startDate: startDate || null,
           endDate: endDate || startDate || null,
         }),
@@ -406,6 +413,7 @@ export default function TripImporter({
                       startDate: startDate || null,
                       endDate: lastDay,
                       destinations: regions,
+                      destinationPins: pinsFor(regions, cityPins),
                     },
                     markVisited,
                     entries: entries(),
@@ -730,6 +738,9 @@ export default function TripImporter({
               <DestinationField
                 value={regions}
                 onChange={setRegions}
+                onPick={(label, result) =>
+                  setCityPins((current) => ({ ...current, [label]: pinFrom(label, result) }))
+                }
                 placeholder={
                   destination === "draft"
                     ? "Montréal"

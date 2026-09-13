@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import DestinationField from "@/components/DestinationField";
+import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import { TRIP_COLORS as COLORS } from "@/lib/brand";
 
 export default function NewTripForm() {
@@ -10,6 +11,9 @@ export default function NewTripForm() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [destinations, setDestinations] = useState<string[]>([]);
+  /// What the picker found for each one, so the server does not have to look
+  /// the label up again and land on the province instead of the city.
+  const [pins, setPins] = useState<Record<string, DestinationPin>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [color, setColor] = useState(COLORS[0]!);
@@ -34,6 +38,7 @@ export default function NewTripForm() {
       body: JSON.stringify({
         title: title.trim(),
         destinations,
+        destinationPins: pinsFor(destinations, pins),
         // A date input gives "YYYY-MM-DD"; parsed as UTC midnight.
         startDate: startDate || null,
         endDate: endDate || null,
@@ -68,6 +73,9 @@ export default function NewTripForm() {
       />
       <DestinationField
         value={destinations}
+        onPick={(label, result) =>
+          setPins((current) => ({ ...current, [label]: pinFrom(label, result) }))
+        }
         onChange={setDestinations}
         placeholder="Where are you going? (optional)"
       />

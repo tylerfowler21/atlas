@@ -6,7 +6,7 @@ import { firstIssue, tripImportSchema } from "@/lib/validation";
 import { tripAccess } from "@/lib/trip-access";
 import { ownsCategory } from "@/lib/categories";
 import { regionColor, regionOfCountry, type RegionId } from "@/lib/regions";
-import { placesForDestinations } from "@/lib/trip-destinations";
+import { pinsByLabel, placesForDestinations } from "@/lib/trip-destinations";
 
 /// Two places within ~50m of each other with the same name are the same place.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -173,9 +173,14 @@ export async function POST(request: Request) {
       [...stops].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
     );
 
+    // The pins came in with the trip and are spent on the way past, so they
+    // come off before it is written.
+    const fields = { ...trip! };
+    delete fields.destinationPins;
+
     const saved = await tx.trip.create({
       data: {
-        ...trip!,
+        ...fields,
         color: !chosen && colour ? colour : trip!.color,
         userId: user.id,
         items: { create: entries.map(itemFor) },
@@ -205,6 +210,7 @@ export async function POST(request: Request) {
     await placesForDestinations({
       userId: user.id,
       destinations: trip.destinations ?? [],
+      pins: pinsByLabel(trip.destinationPins),
       endsOn: trip.endDate ?? trip.startDate ?? null,
       // Said outright on the form rather than guessed from the dates, which
       // is the one thing this route knows that the create route does not.

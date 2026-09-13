@@ -25,23 +25,36 @@ function labelFor(result: SearchResult): string {
 export default function DestinationField({
   value,
   onChange,
+  onPick,
   placeholder = "Where are you going?",
 }: {
   value: string[];
   onChange: (next: string[]) => void;
+  /// The result behind a label, when one was picked rather than typed.
+  ///
+  /// The label alone is a lossy way to say where a trip goes: the picker
+  /// shows "Quebec, Canada" for the city and for the province around it, and
+  /// looking that string up again afterwards answers with the province — a
+  /// pin five hundred kilometres from the trip. The coordinates are right
+  /// here at the moment somebody points at one, so they are handed back
+  /// rather than thrown away and guessed at later.
+  onPick?: (label: string, result: SearchResult) => void;
   placeholder?: string;
 }) {
   const [query, setQuery] = useState("");
   const { results, searching } = usePlaceSearch(query, searchPlaces);
 
-  // One entry per city rather than one per matching café in it.
-  const suggestions = [...new Map(results.map((r) => [labelFor(r), r])).keys()]
-    .filter((label) => !value.includes(label))
+  // One entry per city rather than one per matching café in it. The result
+  // is kept alongside its label, not discarded — it is what `onPick` hands
+  // back.
+  const suggestions = [...new Map(results.map((r) => [labelFor(r), r])).entries()]
+    .filter(([label]) => !value.includes(label))
     .slice(0, 6);
 
-  function add(name: string) {
+  function add(name: string, picked?: SearchResult) {
     const trimmed = name.trim();
     if (!trimmed || value.includes(trimmed)) return;
+    if (picked) onPick?.(trimmed, picked);
     onChange([...value, trimmed]);
     setQuery("");
   }
@@ -88,12 +101,12 @@ export default function DestinationField({
 
       {query.trim().length > 0 && (
         <ul className="mt-1.5 space-y-1">
-          {suggestions.map((label) => (
+          {suggestions.map(([label, result]) => (
             <li key={label}>
               <button
                 type="button"
                 className="w-full rounded-lg border border-line px-2.5 py-1.5 text-left text-xs hover:bg-foreground/5"
-                onClick={() => add(label)}
+                onClick={() => add(label, result)}
               >
                 {label}
               </button>

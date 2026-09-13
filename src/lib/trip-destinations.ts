@@ -1,6 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { geocode } from "@/lib/geocode";
 
+/// Everything making a place out of a destination needs to know. A geocoder's
+/// answer has this shape and so does a pin the picker hands back.
+type Pin = {
+  name: string;
+  lat: number;
+  lng: number;
+  city?: string | null;
+  country?: string | null;
+  countryCode?: string | null;
+  category: string;
+};
+
 /// Two places within about fifty metres of each other, with the same name, are
 /// the same place — the same rule copying a trip uses, for the same reason.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -26,6 +38,15 @@ const SAME_PLACE_DEGREES = 0.0005;
 export async function placesForDestinations(input: {
   userId: string;
   destinations: string[];
+  /// What the picker already found, for the destinations it found something
+  /// for, keyed by the label exactly as it appears above.
+  ///
+  /// A label is a lossy way to describe a place. "Quebec, Canada" is what the
+  /// picker shows for the city and for the province around it, and looking
+  /// that string up again answers with the province — a pin five hundred
+  /// kilometres from the trip. When the coordinates came with it there is
+  /// nothing to look up and nothing to get wrong.
+  pins?: Record<string, Pin>;
   /// The day the trip ends, or its start if that is all it has. Undefined for
   /// a trip with no dates.
   endsOn?: Date | null;
@@ -51,9 +72,12 @@ export async function placesForDestinations(input: {
 
   for (const name of names) {
     try {
-      // The first answer, from the same ranking every search box uses — which
-      // now puts the place whose name actually matches at the top.
-      const [best] = await geocode(name, null, true);
+      // What the picker found, or failing that the first answer from the same
+      // ranking every search box uses. Typing a destination rather than
+      // picking one still works, and so does anything that posts a trip
+      // without a browser in front of it.
+      const best =
+        input.pins?.[name] ?? (await geocode(name, null, true))[0];
       if (!best) continue;
       if (best.countryCode) countries.push(best.countryCode.toLowerCase());
 
@@ -105,4 +129,12 @@ export async function placesForDestinations(input: {
   }
 
   return countries;
+}
+
+/// The pins a client sent, in the shape the lookup above wants them.
+export function pinsByLabel(
+  pins: ({ label: string } & Pin)[] | undefined,
+): Record<string, Pin> | undefined {
+  if (!pins?.length) return undefined;
+  return Object.fromEntries(pins.map(({ label, ...pin }) => [label.trim(), pin]));
 }

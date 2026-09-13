@@ -4,7 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { visibleTripsWhere } from "@/lib/trip-access";
 import { firstIssue, tripCreateSchema } from "@/lib/validation";
-import { placesForDestinations } from "@/lib/trip-destinations";
+import { pinsByLabel, placesForDestinations } from "@/lib/trip-destinations";
 import { regionColor, regionOfCountry } from "@/lib/regions";
 
 export async function GET() {
@@ -38,7 +38,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The trip ends before it starts" }, { status: 400 });
   }
 
-  const trip = await prisma.trip.create({ data: { ...parsed.data, userId: user.id } });
+  // The pins are an argument to making the trip, not a column on it.
+  const { destinationPins, ...fields } = parsed.data;
+  const trip = await prisma.trip.create({ data: { ...fields, userId: user.id } });
 
   // Where it goes, onto the map. Awaited rather than left running: the client
   // reloads its places the moment this answers, and a place that lands a
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
   const countries = await placesForDestinations({
     userId: user.id,
     destinations: parsed.data.destinations ?? [],
+    pins: pinsByLabel(destinationPins),
     endsOn: endDate ?? startDate ?? null,
   });
 
