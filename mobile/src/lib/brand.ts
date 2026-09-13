@@ -92,6 +92,9 @@ export const TRIP_COLORS: readonly string[] = [
   "#D65A4A",
   "#9465A7",
   "#B8831F",
+  // Oceania's, from the region palette — so every colour a trip can be given
+  // by where it goes is also one somebody can pick by hand.
+  "#2F8C8C",
 ];
 
 /// Two roles the kit does not name.

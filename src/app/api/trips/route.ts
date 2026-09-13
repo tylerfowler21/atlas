@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/user";
 import { visibleTripsWhere } from "@/lib/trip-access";
 import { firstIssue, tripCreateSchema } from "@/lib/validation";
 import { placesForDestinations } from "@/lib/trip-destinations";
+import { regionColor, regionOfCountry } from "@/lib/regions";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -21,7 +22,13 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
-  const parsed = tripCreateSchema.safeParse(await request.json());
+  const body = await request.json();
+  // Whether a colour was actually chosen, as opposed to the schema supplying
+  // its default — which is the difference between "leave this alone" and
+  // "nobody said, so where is it going?".
+  const choseColour =
+    typeof body === "object" && body !== null && "color" in body;
+  const parsed = tripCreateSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
@@ -36,11 +43,25 @@ export async function POST(request: Request) {
   // Where it goes, onto the map. Awaited rather than left running: the client
   // reloads its places the moment this answers, and a place that lands a
   // second later is a place somebody has already looked for and not found.
-  await placesForDestinations({
+  const countries = await placesForDestinations({
     userId: user.id,
     destinations: parsed.data.destinations ?? [],
     endsOn: endDate ?? startDate ?? null,
   });
+
+  // Coloured by where it goes, so a list of trips reads as a map before it
+  // reads as words. Only when nobody picked one, and only from the first
+  // destination — a trip across two continents is still one trip and needs
+  // one colour, and the first is the one it is named for.
+  const colour = regionColor(
+    countries.map(regionOfCountry).find((r) => r !== null) ?? null,
+  );
+  if (!choseColour && colour && colour !== trip.color) {
+    return NextResponse.json(
+      { trip: await prisma.trip.update({ where: { id: trip.id }, data: { color: colour } }) },
+      { status: 201 },
+    );
+  }
 
   return NextResponse.json({ trip }, { status: 201 });
 }

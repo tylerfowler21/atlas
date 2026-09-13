@@ -19,6 +19,10 @@ const SAME_PLACE_DEGREES = 0.0005;
 /// Never fatal. A destination the gazetteer cannot place is a trip that still
 /// gets made; the alternative is refusing to save somebody's trip because a
 /// geocoder was having a bad afternoon.
+///
+/// Returns the country of each destination it managed to place, in the order
+/// they were given — so a caller can colour the trip by where it goes without
+/// paying for a second round of geocoding.
 export async function placesForDestinations(input: {
   userId: string;
   destinations: string[];
@@ -29,7 +33,9 @@ export async function placesForDestinations(input: {
   now?: Date;
 }) {
   const names = [...new Set(input.destinations.map((d) => d.trim()).filter(Boolean))];
-  if (names.length === 0) return;
+  if (names.length === 0) return [];
+
+  const countries: string[] = [];
 
   const now = input.now ?? new Date();
   const status = input.endsOn && input.endsOn < now ? "visited" : "wishlist";
@@ -40,6 +46,7 @@ export async function placesForDestinations(input: {
       // now puts the place whose name actually matches at the top.
       const [best] = await geocode(name, null, true);
       if (!best) continue;
+      if (best.countryCode) countries.push(best.countryCode.toLowerCase());
 
       // The label carries the country for picking it out of a list; the place
       // wants what it is called.
@@ -87,4 +94,6 @@ export async function placesForDestinations(input: {
       // does not stop the trip.
     }
   }
+
+  return countries;
 }
