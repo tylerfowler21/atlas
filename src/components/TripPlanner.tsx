@@ -81,6 +81,9 @@ export default function TripPlanner({
   const [view, setView] = useState<"days" | "bookings" | "before" | "files">("days");
   const [extraDays, setExtraDays] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /// Which stop has its details open. One at a time, like the selection: two
+  /// open cards in a day is the wall this was meant to take apart.
+  const [moreFor, setMoreFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   /// What to narrow the search to: what the trip says it is, or failing that
@@ -803,6 +806,14 @@ export default function TripPlanner({
                 const timed = dayItems.some((i) => timingLabel(i));
                 const open = selectedId === item.id;
                 const leg = item.kind === "travel";
+                /// The details are open when somebody opened them, and already
+                /// open when this stop uses one of the things inside — a
+                /// setting nobody can see is worse than a busy card.
+                const showMore =
+                  moreFor === item.id ||
+                  item.booking !== null ||
+                  Boolean(item.bookingRef) ||
+                  files.some((f) => f.itemId === item.id);
                 return (
                   <li
                     key={item.id}
@@ -904,55 +915,43 @@ export default function TripPlanner({
                           {item.booking === BOOKING_BOOKED && " · booked ✓"}
                         </p>
                       </button>
-                      {/* A leg keeps real clock times, because a flight leaves
-                          when it leaves. A stop takes about so long. */}
-                      <div className="flex shrink-0 items-center gap-1">
-                        {leg ? (
-                          <>
-                            <input
-                              type="time"
-                              aria-label="Departure time"
-                              className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
-                              value={item.startTime ?? ""}
-                              onChange={(e) =>
-                                patchItem(item.id, { startTime: e.target.value || null })
-                              }
-                            />
-                            <span aria-hidden className="text-xs text-muted">
-                              →
-                            </span>
-                            <input
-                              type="time"
-                              aria-label="Arrival time"
-                              className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
-                              value={item.endTime ?? ""}
-                              onChange={(e) =>
-                                patchItem(item.id, { endTime: e.target.value || null })
-                              }
-                            />
-                            {/* Only a flight is known by its clock. */}
-                            {takesTime(item) && <LegLength item={item} onSave={patchItem} />}
-                          </>
-                        ) : (
-                          <select
-                            aria-label="How long this takes"
-                            className="input rounded-full px-2 py-1 text-xs"
-                            value={durationOf(item) ?? ""}
+                      {/* A leg keeps its clock times on the row: a flight
+                          leaves when it leaves, and that is the fact you scan a
+                          day for.
+
+                          A stop's duration used to sit here too, as a dropdown
+                          on every row — so a day of eight stops was eight
+                          dropdowns, and this one read "about 1½ hours" beside a
+                          rail already saying "1½ hours". The rail states it now
+                          and setting it moved inside, with the day and the
+                          rest. */}
+                      {leg && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <input
+                            type="time"
+                            aria-label="Departure time"
+                            className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
+                            value={item.startTime ?? ""}
                             onChange={(e) =>
-                              patchItem(item.id, {
-                                minutes: e.target.value ? Number(e.target.value) : null,
-                              })
+                              patchItem(item.id, { startTime: e.target.value || null })
                             }
-                          >
-                            <option value="">How long?</option>
-                            {DURATIONS.map((m) => (
-                              <option key={m} value={m}>
-                                {formatDuration(m)}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
+                          />
+                          <span aria-hidden className="text-xs text-muted">
+                            →
+                          </span>
+                          <input
+                            type="time"
+                            aria-label="Arrival time"
+                            className="input w-[5.5rem] rounded-full px-2 py-1 text-xs"
+                            value={item.endTime ?? ""}
+                            onChange={(e) =>
+                              patchItem(item.id, { endTime: e.target.value || null })
+                            }
+                          />
+                          {/* Only a flight is known by its clock. */}
+                          {takesTime(item) && <LegLength item={item} onSave={patchItem} />}
+                        </div>
+                      )}
                     </div>
 
                     {/* Moving, removing and directions, shown for the stop
@@ -977,9 +976,28 @@ export default function TripPlanner({
                       >
                         ▼
                       </button>
+                      {!leg && (
+                        <select
+                          aria-label="How long this takes"
+                          className="ml-auto rounded-full border border-line bg-surface px-2 py-1 text-xs"
+                          value={durationOf(item) ?? ""}
+                          onChange={(e) =>
+                            patchItem(item.id, {
+                              minutes: e.target.value ? Number(e.target.value) : null,
+                            })
+                          }
+                        >
+                          <option value="">How long?</option>
+                          {DURATIONS.map((m) => (
+                            <option key={m} value={m}>
+                              {formatDuration(m)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <select
                         aria-label="Move to day"
-                        className="ml-auto rounded-full border border-line bg-surface px-2 py-1 text-xs"
+                        className={`${leg ? "ml-auto " : ""}rounded-full border border-line bg-surface px-2 py-1 text-xs`}
                         value={item.dayIndex}
                         onChange={(e) =>
                           patchItem(item.id, { dayIndex: Number(e.target.value) })
@@ -1058,19 +1076,6 @@ export default function TripPlanner({
                           }}
                         />
 
-                        <select
-                          aria-label="Category for this stop"
-                          className="input text-xs"
-                          value={item.category}
-                          onChange={(e) => void setStopCategory(item, e.target.value)}
-                        >
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.icon} {c.label}
-                            </option>
-                          ))}
-                        </select>
-
                         {/* What you wrote about the place itself, on your own
                             map. Two different notes have always existed — one
                             about the place, which follows it onto every trip it
@@ -1111,6 +1116,41 @@ export default function TripPlanner({
                             if (next !== item.notes) patchItem(item.id, { notes: next });
                           }}
                         />
+                        {/* The category, the files and whether it needs
+                            booking. All three matter and none is asked on most
+                            stops — a place brings its own category, and the
+                            great majority of stops are not bookings — so they
+                            sit behind a line rather than in front of the notes,
+                            which is the thing people actually come here to
+                            write.
+
+                            Open already when this stop uses one of them: a
+                            setting nobody can see is worse than a busy card. */}
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-xl border border-line px-2.5 py-1.5 text-xs text-muted hover:bg-foreground/5"
+                          aria-expanded={showMore}
+                          onClick={() => setMoreFor(showMore ? null : item.id)}
+                        >
+                          <span className="flex-1 text-left">More details</span>
+                          <span aria-hidden>{showMore ? "⌃" : "⌄"}</span>
+                        </button>
+
+                        {showMore && (
+                          <>
+                        <select
+                          aria-label="Category for this stop"
+                          className="input text-xs"
+                          value={item.category}
+                          onChange={(e) => void setStopCategory(item, e.target.value)}
+                        >
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.icon} {c.label}
+                            </option>
+                          ))}
+                        </select>
+
                         {/* The confirmation, on the thing it confirms. The
                             Files tab still shows it — this is the same list,
                             read from the day it belongs to. */}
@@ -1195,6 +1235,8 @@ export default function TripPlanner({
                               if (next !== item.bookingRef) patchItem(item.id, { bookingRef: next });
                             }}
                           />
+                        )}
+                          </>
                         )}
 
                         {item.kind === "travel" && item.place && item.toPlace && (
