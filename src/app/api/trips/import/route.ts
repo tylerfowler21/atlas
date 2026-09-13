@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/user";
 import { firstIssue, tripImportSchema } from "@/lib/validation";
 import { tripAccess } from "@/lib/trip-access";
 import { ownsCategory } from "@/lib/categories";
-import { regionColor, regionOfCountry } from "@/lib/regions";
+import { regionColor, regionOfCountry, type RegionId } from "@/lib/regions";
 
 /// Two places within ~50m of each other with the same name are the same place.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -155,15 +155,21 @@ export async function POST(request: Request) {
     /// reads as words — the same as a trip made any other way.
     ///
     /// Unlike the create route this needs no geocoding at all: the stops came
-    /// back from the review step carrying their own countries, so the earliest
-    /// day that lands somewhere the table knows decides. A trip across two
-    /// continents is still one trip and needs one colour, and the first is the
-    /// one it is named for.
+    /// back from the review step already carrying their own countries.
+    ///
+    /// Where the most stops are, rather than where the first one is. Half the
+    /// itineraries anybody pastes open with the flight out — "Fly from
+    /// Charleston" — and going by the first stop paints a fortnight in Japan
+    /// with the colour of the airport somebody left from. A tie goes to
+    /// whichever came first, so a trip evenly split between two countries
+    /// takes the one it starts in.
+    const stops = new Map<RegionId, number>();
+    for (const entry of entries) {
+      const region = regionOfCountry(entry.place?.countryCode);
+      if (region) stops.set(region, (stops.get(region) ?? 0) + 1);
+    }
     const colour = regionColor(
-      [...entries]
-        .sort((a, b) => a.dayIndex - b.dayIndex)
-        .map((entry) => regionOfCountry(entry.place?.countryCode))
-        .find((region) => region !== null) ?? null,
+      [...stops].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
     );
 
     const saved = await tx.trip.create({
