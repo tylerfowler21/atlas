@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { TRIP_STYLE_IDS } from "@/lib/trip-styles";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,23 @@ const DRAFTS_PER_DAY = 5;
 const bodySchema = z.object({
   destination: z.string().trim().min(2).max(120),
   days: z.number().int().min(1).max(14),
+  /// How the days are split between cities, when there is more than one.
+  ///
+  /// A fortnight in Canada is not one itinerary — it is three days in Montreal
+  /// and two in Québec, and which is which is the thing only the traveller
+  /// knows. Optional: one city is still just a city and a number.
+  legs: z
+    .array(
+      z.object({
+        city: z.string().trim().min(2).max(120),
+        days: z.number().int().min(1).max(14),
+      }),
+    )
+    .max(8)
+    .optional(),
+  /// The handful of answers that change an itinerary's shape rather than its
+  /// details. Free text covers the details.
+  styles: z.array(z.enum(TRIP_STYLE_IDS)).max(TRIP_STYLE_IDS.length).optional(),
   interests: z.string().trim().max(300).nullable().optional(),
   pace: z.enum(["relaxed", "balanced", "packed"]).default("balanced"),
 });
@@ -50,9 +68,23 @@ export async function POST(request: Request) {
   }
 
   try {
+    const legs = parsed.data.legs?.length ? parsed.data.legs : null;
+    // The legs are the truth about length when they are given: asking for four
+    // days and splitting them three and two is a contradiction, and the split
+    // is the more specific answer.
+    const days = legs ? legs.reduce((total, leg) => total + leg.days, 0) : parsed.data.days;
+    if (days > 14) {
+      return NextResponse.json(
+        { error: "That is more than a fortnight — split it into two trips." },
+        { status: 400 },
+      );
+    }
+
     const itinerary = await generateItinerary({
       destination: parsed.data.destination,
-      days: parsed.data.days,
+      days,
+      legs,
+      styles: parsed.data.styles ?? [],
       interests: parsed.data.interests?.trim() || null,
       pace: parsed.data.pace,
     });
@@ -63,7 +95,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         destination: parsed.data.destination,
-        days: parsed.data.days,
+        days,
         itinerary: text,
       },
     });

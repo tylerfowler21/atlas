@@ -112,7 +112,11 @@ export default function TripImporter({
     // compiler refuses, and it would differ between server and browser anyway.
     // Picking a trip from the dropdown still consults the dates, because that
     // happens in an event handler where the clock is fair game.
-    !initialTrip,
+    //
+    // A trip being drafted has not happened either, by definition: a plan for
+    // Canada arriving with every stop already marked "Been there" is the same
+    // mistake in a different doorway.
+    !initialTrip && initialMode !== "draft",
   );
   const [text, setText] = useState("");
 
@@ -617,7 +621,10 @@ export default function TripImporter({
           <button
             type="button"
             className="font-medium text-accent-text hover:underline"
-            onClick={() => setDestination("trip")}
+            onClick={() => {
+              setDestination("trip");
+              setMarkVisited(!initialTrip);
+            }}
           >
             Add one I&apos;ve taken instead
           </button>
@@ -714,16 +721,28 @@ export default function TripImporter({
               is a note about one place, and without saying which, "Husk" finds
               the one in Sydney. */}
           <div className="text-xs text-muted">
-            {destination !== "places" ? "Country or region" : "Where these are"}
+            {destination === "draft"
+              ? "Which cities"
+              : destination === "trip"
+                ? "Country or region"
+                : "Where these are"}
             <div className="mt-1">
               <DestinationField
                 value={regions}
                 onChange={setRegions}
-                placeholder={destination !== "places" ? "Amsterdam" : "Charleston"}
+                placeholder={
+                  destination === "draft"
+                    ? "Montréal"
+                    : destination === "trip"
+                      ? "Amsterdam"
+                      : "Charleston"
+                }
               />
             </div>
             <span className="mt-1 block text-xs text-muted">
-              Added to every search, so “Husk” finds the right one.
+              {destination === "draft"
+                ? "Add as many as the trip visits, in the order you’ll go."
+                : "Added to every search, so “Husk” finds the right one."}
             </span>
           </div>
         </div>
@@ -774,6 +793,7 @@ export default function TripImporter({
 
         {destination === "draft" && (
           <DraftTrip
+            cities={regions}
             onDrafted={(draft) => {
               setText(draft.text);
               // A drafted trip is still a trip: it needs a name and a region,
@@ -785,6 +805,17 @@ export default function TripImporter({
           />
         )}
 
+        {/* The other half of this page: a list somebody already has, and the
+            lookups that turn it into places.
+
+            Hidden while a trip is being drafted until there is a draft to
+            read. An empty box headed "Itinerary", under a heading that just
+            offered to write one, reads as something you are expected to fill
+            in — and the disabled button beneath it said so outright. Once the
+            draft lands it is an ordinary pasted itinerary and gets the
+            ordinary screen. */}
+        {(destination !== "draft" || text.trim().length > 0) && (
+          <>
         {/* A file, for the list somebody already keeps somewhere else.
             Everything lands in the same box, so what gets imported is always
             something they have read first. */}
@@ -920,6 +951,8 @@ export default function TripImporter({
           <p className="text-xs text-muted">
             One lookup a second — that&apos;s the free map service&apos;s limit, not slowness.
           </p>
+        )}
+          </>
         )}
       </div>
 

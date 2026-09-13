@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { BUILT_IN_CATEGORY_IDS } from "@/lib/taxonomy";
+import { styleAsks } from "@/lib/trip-styles";
 
 /// Asking Claude to draft an itinerary.
 ///
@@ -55,22 +56,67 @@ train between these, not teleporting. Leave room to eat. Do not fill every hour.
 Prefer places that have been there a while over whatever is currently fashionable,
 and say in the note when something needs booking ahead.`;
 
-export async function generateItinerary(input: {
+/// The days each city gets, written as the model should read them.
+///
+/// Numbering the days rather than only naming the cities is the whole point: a
+/// model told "Montréal and Québec, five days" writes two and a half of each,
+/// and the traveller who said three and two gets neither. Day one of the
+/// second city is also the day they travel, which is why it is said out loud.
+function legLines(legs: { city: string; days: number }[]): string[] {
+  const lines: string[] = [];
+  let day = 1;
+
+  for (const [n, leg] of legs.entries()) {
+    const last = day + leg.days - 1;
+    const when = leg.days === 1 ? `Day ${day}` : `Days ${day}–${last}`;
+    lines.push(
+      n === 0
+        ? `${when}: ${leg.city}.`
+        : `${when}: ${leg.city} — they travel there on day ${day}, so that day starts later and lighter.`,
+    );
+    day = last + 1;
+  }
+
+  return lines;
+}
+
+export type ItineraryRequest = {
   destination: string;
   days: number;
+  /// Where the days go, when the trip is more than one city. Null for a trip
+  /// that is just somewhere and a number of days.
+  legs?: { city: string; days: number }[] | null;
+  /// The kinds of trip somebody picked — see `trip-styles`.
+  styles?: string[];
   interests: string | null;
   pace: "relaxed" | "balanced" | "packed";
-}): Promise<GeneratedItinerary> {
-  const client = new Anthropic();
+};
 
-  const asked = [
-    `Plan ${input.days} ${input.days === 1 ? "day" : "days"} in ${input.destination}.`,
+/// What gets asked, separate from the asking — so it can be read without
+/// spending a call to find out what it says.
+export function draftPrompt(input: ItineraryRequest): string {
+  const legs = input.legs?.length ? input.legs : null;
+
+  return [
+    legs
+      ? [
+          `Plan ${input.days} ${input.days === 1 ? "day" : "days"} across ${legs.length} ${legs.length === 1 ? "place" : "places"}, in this order:`,
+          ...legLines(legs),
+          "Every stop's city must be the city whose days it falls on.",
+        ].join("\n")
+      : `Plan ${input.days} ${input.days === 1 ? "day" : "days"} in ${input.destination}.`,
+    ...styleAsks(input.styles ?? []),
     `Pace: ${input.pace}.`,
     input.interests ? `They are interested in: ${input.interests}.` : null,
     `Aim for ${input.pace === "relaxed" ? "3 or 4" : input.pace === "packed" ? "6 or 7" : "4 or 5"} stops a day, including where to eat.`,
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+export async function generateItinerary(input: ItineraryRequest): Promise<GeneratedItinerary> {
+  const client = new Anthropic();
+  const asked = draftPrompt(input);
 
   const response = await client.messages.parse({
     model: "claude-opus-5",

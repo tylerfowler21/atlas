@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TRIP_STYLES } from "@/lib/trip-styles";
 
 /// Asking for a first draft of a trip.
 ///
@@ -10,19 +11,42 @@ import { useState } from "react";
 /// whole safety story. A model will name a restaurant that closed in 2019 as
 /// confidently as one that is open, and the difference shows up as a place that
 /// will not resolve rather than as a pin on somebody's map.
+///
+/// The cities are the ones already picked above rather than typed again here.
+/// Two boxes both asking where you are going is how a trip ends up drafted for
+/// Lisbon and saved under Canada.
 export default function DraftTrip({
+  cities,
   onDrafted,
 }: {
+  /// Where they said they are going, in order. Empty until they say.
+  cities: string[];
   onDrafted: (draft: { text: string; title: string; destination: string }) => void;
 }) {
-  const [destination, setDestination] = useState("");
-  const [days, setDays] = useState(3);
+  /// Days per city, keyed by the city as it is written above.
+  ///
+  /// Kept as a map rather than a list so adding a third city does not disturb
+  /// the two numbers already set, and removing one does not shift the rest by
+  /// one place.
+  const [dayFor, setDayFor] = useState<Record<string, number>>({});
+  const [styles, setStyles] = useState<string[]>([]);
   const [interests, setInterests] = useState("");
   const [pace, setPace] = useState<"relaxed" | "balanced" | "packed">("balanced");
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
+
+  /// Three days is what somebody means by "a few days somewhere", and it is a
+  /// number they can see and change rather than one they have to supply.
+  const DEFAULT_DAYS = 3;
+  const daysIn = (city: string) => dayFor[city] ?? DEFAULT_DAYS;
+
+  const legs = cities.map((city) => ({ city, days: daysIn(city) }));
+  const total = legs.reduce((sum, leg) => sum + leg.days, 0);
+  /// A fortnight is the limit at the other end too, and saying so before the
+  /// button is pressed beats a 400 afterwards.
+  const tooLong = total > 14;
 
   async function draft() {
     setBusy(true);
@@ -34,8 +58,10 @@ export default function DraftTrip({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          destination: destination.trim(),
-          days,
+          destination: cities.join(", "),
+          days: total,
+          legs,
+          styles,
           interests: interests.trim() || null,
           pace,
         }),
@@ -47,7 +73,7 @@ export default function DraftTrip({
         return;
       }
       setSummary(
-        `${body.stops.length} stops across ${days} ${days === 1 ? "day" : "days"}. ${body.summary}`,
+        `${body.stops.length} stops across ${total} ${total === 1 ? "day" : "days"}. ${body.summary}`,
       );
       onDrafted({ text: body.text, title: body.title, destination: body.destination });
     } catch {
@@ -58,32 +84,85 @@ export default function DraftTrip({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-xs text-muted">
-          Where
-          <input
-            className="input mt-1"
-            placeholder="Lisbon"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-          />
-        </label>
-        <label className="text-xs text-muted">
-          How many days
-          <input
-            type="number"
-            min={1}
-            max={14}
-            className="input mt-1"
-            value={days}
-            onChange={(e) => setDays(Math.max(1, Math.min(14, Number(e.target.value) || 1)))}
-          />
-        </label>
+    <div className="space-y-4 rounded-lg border border-line p-3">
+      {/* How long in each. Two weeks in Canada is three days in Montréal and
+          two in Québec, and which is which is the thing only they know — a
+          model given the total alone splits it evenly and gets both wrong. */}
+      <div>
+        <p className="mb-1.5 text-xs text-muted">
+          How long in each
+          {cities.length > 1 && (
+            <span className="text-foreground">
+              {" "}
+              — {total} {total === 1 ? "day" : "days"} altogether
+            </span>
+          )}
+        </p>
+
+        {cities.length === 0 ? (
+          <p className="text-xs text-muted">
+            Say where you&apos;re going above and each place gets its own number
+            of days.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {cities.map((city) => (
+              <div key={city} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm">{city}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={14}
+                  aria-label={`Days in ${city}`}
+                  className="input w-20 shrink-0 text-center"
+                  value={daysIn(city)}
+                  onChange={(e) =>
+                    setDayFor((current) => ({
+                      ...current,
+                      [city]: Math.max(1, Math.min(14, Number(e.target.value) || 1)),
+                    }))
+                  }
+                />
+                <span className="w-8 shrink-0 text-xs text-muted">
+                  {daysIn(city) === 1 ? "day" : "days"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* The handful of answers that change the shape of the itinerary rather
+          than its details. A trip with a four-year-old and a trip built around
+          dinner are different plans of the same city. */}
+      <div>
+        <p className="mb-1.5 text-xs text-muted">
+          What kind of trip <span className="text-muted">(pick any)</span>
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {TRIP_STYLES.map((style) => {
+            const on = styles.includes(style.id);
+            return (
+              <button
+                key={style.id}
+                type="button"
+                className={`chip ${on ? "is-on" : ""}`}
+                aria-pressed={on}
+                onClick={() =>
+                  setStyles((current) =>
+                    on ? current.filter((id) => id !== style.id) : [...current, style.id],
+                  )
+                }
+              >
+                {style.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <label className="block text-xs text-muted">
-        What you&apos;re into (optional)
+        Anything else (optional)
         <input
           className="input mt-1"
           placeholder="seafood, walking, not too many museums"
@@ -118,19 +197,32 @@ export default function DraftTrip({
       {error && <p className="text-xs text-red-500">{error}</p>}
       {summary && <p className="text-xs text-muted">{summary}</p>}
 
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={busy || destination.trim().length < 2}
-        onClick={() => void draft()}
-      >
-        {busy ? "Drafting…" : "Draft me an itinerary"}
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={busy || cities.length === 0 || tooLong}
+          onClick={() => void draft()}
+        >
+          {busy ? "Drafting…" : "Draft me an itinerary"}
+        </button>
+        {/* Said beside the button that is off, rather than left to be guessed
+            at — the same amber hint the import button got. */}
+        {cities.length === 0 && (
+          <span className="text-xs text-amber-600 dark:text-amber-400">
+            Say where you&apos;re going first.
+          </span>
+        )}
+        {tooLong && (
+          <span className="text-xs text-amber-600 dark:text-amber-400">
+            That&apos;s {total} days — a fortnight is the most it will draft at once.
+          </span>
+        )}
+      </div>
 
       <p className="text-xs text-muted">
-        It writes a first draft into the box below. Nothing is saved until you
-        have looked at it — every place is checked against a real map, and
-        anything it invented simply won&apos;t be found.
+        Nothing is saved until you have looked at it — every place is checked
+        against a real map, and anything it invented simply won&apos;t be found.
       </p>
     </div>
   );
