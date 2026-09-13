@@ -215,14 +215,17 @@ export default function MemoryEditor({
 
           <Text style={[styles.label, { color: palette.muted }]}>Photos</Text>
           <View style={styles.photos}>
-            {photos.map((photo) => (
-              <Image
-                key={photo.id}
-                // The token, or the request goes out bare and comes back 401.
-                source={{ uri: `${API_URL}/api/photos/${photo.id}`, headers: authHeaders }}
-                style={styles.thumb}
-              />
-            ))}
+            {/* Held back until the token is in hand — see useAuthHeaders. A
+                bare request now is a 401 cached against this URL, and every
+                later attempt is served that. */}
+            {authHeaders &&
+              photos.map((photo) => (
+                <Image
+                  key={photo.id}
+                  source={{ uri: `${API_URL}/api/photos/${photo.id}`, headers: authHeaders }}
+                  style={styles.thumb}
+                />
+              ))}
             <Pressable
               onPress={addPhoto}
               disabled={uploading}

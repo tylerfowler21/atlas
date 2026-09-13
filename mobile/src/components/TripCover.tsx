@@ -62,8 +62,13 @@ export default function TripCover({
   const borrowed =
     items.find((i) => i.place?.photoUrl)?.place?.photoUrl ?? null;
 
+  // Nothing is drawn for the tick before the token arrives — see the note on
+  // useAuthHeaders. Not the borrowed photo either: swapping one picture for
+  // another a moment later reads as a glitch.
   const source = trip.coverUrl
-    ? { uri: `${API_URL}${trip.coverUrl}`, headers: authHeaders }
+    ? authHeaders
+      ? { uri: `${API_URL}${trip.coverUrl}`, headers: authHeaders }
+      : null
     : borrowed
       ? { uri: borrowed }
       : null;
