@@ -925,8 +925,37 @@ export default function TripPlanner({
                           rail already saying "1½ hours". The rail states it now
                           and setting it moved inside, with the day and the
                           rest. */}
+
+                    </div>
+
+                    {/* Moving, removing and directions, shown for the stop
+                        being looked at rather than on every card. */}
+                    {open && (
+                    <div className="mt-2 flex items-center gap-1 text-xs">
+                      <button
+                        type="button"
+                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5 disabled:opacity-30"
+                        disabled={busy || index === 0}
+                        onClick={() => move(index, -1)}
+                        aria-label="Move earlier"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5 disabled:opacity-30"
+                        disabled={busy || index === dayItems.length - 1}
+                        onClick={() => move(index, 1)}
+                        aria-label="Move later"
+                      >
+                        ▼
+                      </button>
+                      {/* When it leaves and lands. Out on the row this was a
+                          pair of empty pills on every journey nobody had timed
+                          yet; in here it is the first thing you reach for after
+                          opening one. */}
                       {leg && (
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="ml-auto flex items-center gap-1">
                           <input
                             type="time"
                             aria-label="Departure time"
@@ -952,30 +981,6 @@ export default function TripPlanner({
                           {takesTime(item) && <LegLength item={item} onSave={patchItem} />}
                         </div>
                       )}
-                    </div>
-
-                    {/* Moving, removing and directions, shown for the stop
-                        being looked at rather than on every card. */}
-                    {open && (
-                    <div className="mt-2 flex items-center gap-1 text-xs">
-                      <button
-                        type="button"
-                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5 disabled:opacity-30"
-                        disabled={busy || index === 0}
-                        onClick={() => move(index, -1)}
-                        aria-label="Move earlier"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-full px-2 py-1 text-muted hover:bg-foreground/5 disabled:opacity-30"
-                        disabled={busy || index === dayItems.length - 1}
-                        onClick={() => move(index, 1)}
-                        aria-label="Move later"
-                      >
-                        ▼
-                      </button>
                       {!leg && (
                         <select
                           aria-label="How long this takes"
@@ -997,7 +1002,7 @@ export default function TripPlanner({
                       )}
                       <select
                         aria-label="Move to day"
-                        className={`${leg ? "ml-auto " : ""}rounded-full border border-line bg-surface px-2 py-1 text-xs`}
+                        className="rounded-full border border-line bg-surface px-2 py-1 text-xs"
                         value={item.dayIndex}
                         onChange={(e) =>
                           patchItem(item.id, { dayIndex: Number(e.target.value) })
