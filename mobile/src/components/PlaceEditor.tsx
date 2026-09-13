@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { api, upload, type Place } from "@/lib/api";
+import { api, upload, type Place, filePart } from "@/lib/api";
 import { openDirections } from "@/components/TripMap";
 import { placeName } from "@/lib/place-name";
 import { usePalette } from "@/lib/use-palette";
@@ -113,13 +113,7 @@ export default function PlaceEditor({
     try {
       const asset = picked.assets[0];
       const form = new FormData();
-      // React Native's FormData takes this shape for a local file rather than
-      // a Blob — the uri is what the native side streams from.
-      form.append("file", {
-        uri: asset.uri,
-        name: asset.fileName ?? "photo.jpg",
-        type: asset.mimeType ?? "image/jpeg",
-      } as unknown as Blob);
+      form.append("file", filePart(asset.uri, asset.fileName ?? "photo.jpg", asset.mimeType ?? "image/jpeg"));
 
       const { photoUrl: url } = await upload<{ photoUrl: string | null }>(
         `/api/places/${placeId}/photo`,

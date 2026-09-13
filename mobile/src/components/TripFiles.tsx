@@ -19,7 +19,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { API_URL, upload, api, type TripDocument } from "@/lib/api";
+import { API_URL, upload, api, type TripDocument, filePart } from "@/lib/api";
 import {
   ALLOWED_DOCUMENT_TYPES,
   documentIcon,
@@ -91,12 +91,7 @@ export default function TripFiles({
     setBusy(true);
     try {
       const form = new FormData();
-      // React Native's FormData takes this shape for a file rather than a Blob.
-      form.append("file", {
-        uri: picked.uri,
-        name: picked.name,
-        type: picked.type,
-      } as unknown as Blob);
+      form.append("file", filePart(picked.uri, picked.name, picked.type));
       if (itemId) form.append("itemId", itemId);
       await upload(`/api/trips/${tripId}/documents`, form);
       onChanged();

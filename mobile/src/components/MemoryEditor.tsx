@@ -15,7 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { API_URL, api, upload, type Memory, type Place, type Trip } from "@/lib/api";
+import { API_URL, api, upload, type Memory, type Place, type Trip, filePart } from "@/lib/api";
 import { usePalette } from "@/lib/use-palette";
 
 const DATE_HINT = "YYYY-MM-DD";
@@ -114,13 +114,7 @@ export default function MemoryEditor({
       const asset = picked.assets[0];
       const form = new FormData();
       form.append("memoryId", id);
-      // React Native's FormData takes this shape for a local file rather than
-      // a Blob — the uri is what the native side streams from.
-      form.append("file", {
-        uri: asset.uri,
-        name: asset.fileName ?? "photo.jpg",
-        type: asset.mimeType ?? "image/jpeg",
-      } as unknown as Blob);
+      form.append("file", filePart(asset.uri, asset.fileName ?? "photo.jpg", asset.mimeType ?? "image/jpeg"));
 
       const { photo } = await upload<{ photo: { id: string } }>("/api/photos", form);
       setPhotos((current) => [...current, photo]);

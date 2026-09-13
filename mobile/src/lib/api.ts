@@ -1,3 +1,4 @@
+import { File as LocalFile } from "expo-file-system";
 /// The app talks to exactly the same API the website does, with a bearer token
 /// where the browser would send a cookie.
 import * as SecureStore from "expo-secure-store";
@@ -72,6 +73,29 @@ export async function api<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+/// A local file, in the one shape a multipart upload will accept.
+///
+/// Expo's fetch replaced the React Native one, and it builds the multipart body
+/// itself: a part must be a string, a Blob, or something with `bytes()`.
+/// React Native's own `{ uri, name, type }` part is no longer understood, and
+/// appending one fails at send time with "Unsupported FormDataPart
+/// implementation" — which is what every upload in this app was doing.
+///
+/// expo-file-system's File is a Blob that reads from a local uri, so the bytes
+/// still stream from native rather than through JS. Its own sniffed mime type
+/// is used only when the picker did not say, because the picker knows what it
+/// handed us and the server checks the type before it stores anything.
+export function filePart(uri: string, name?: string | null, type?: string | null) {
+  const file = new LocalFile(uri);
+  return {
+    // A Blob's own members, which is what the body builder reaches for.
+    bytes: () => file.bytes(),
+    size: file.size,
+    name: name ?? file.name,
+    type: type ?? file.type,
+  } as unknown as Blob;
 }
 
 /// Uploads a file. Kept apart from `api` because the body is multipart and the

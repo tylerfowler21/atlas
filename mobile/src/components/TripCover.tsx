@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { API_URL, api, upload, type ItineraryItem, type Trip } from "@/lib/api";
+import { API_URL, api, upload, type ItineraryItem, type Trip, filePart } from "@/lib/api";
 import { useAuthHeaders } from "@/lib/use-auth-headers";
 import { type } from "@/lib/type";
 import { formatDay } from "@/lib/dates";
@@ -102,13 +102,7 @@ export default function TripCover({
     try {
       const asset = picked.assets[0];
       const form = new FormData();
-      // React Native's FormData takes this shape for a local file rather than
-      // a Blob — the uri is what the native side streams from.
-      form.append("file", {
-        uri: asset.uri,
-        name: asset.fileName ?? "cover.jpg",
-        type: asset.mimeType ?? "image/jpeg",
-      } as unknown as Blob);
+      form.append("file", filePart(asset.uri, asset.fileName ?? "cover.jpg", asset.mimeType ?? "image/jpeg"));
 
       await upload(`/api/trips/${trip.id}/cover`, form);
       onChanged();
