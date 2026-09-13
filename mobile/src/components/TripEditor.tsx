@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { api, type Trip } from "@/lib/api";
 import { TRIP_COLORS } from "@/lib/theme";
+import { regionLabel, regionOfColor } from "@/lib/regions";
 import { usePalette } from "@/lib/use-palette";
 
 /// Dates as text rather than a picker.
@@ -160,12 +161,24 @@ export default function TripEditor({
             }}
           />
 
-          <Text style={[styles.label, { color: palette.muted }]}>Colour</Text>
+          <Text style={[styles.label, { color: palette.muted }]}>
+            Colour
+            {regionLabel(regionOfColor(color)) ? ` — ${regionLabel(regionOfColor(color))}` : ""}
+          </Text>
           <View style={styles.colors}>
             {TRIP_COLORS.map((c) => (
               <Pressable
                 key={c}
                 onPress={() => setColor(c)}
+                // Nothing hovers on a phone, so the name of the one that is
+                // chosen is shown beside the heading instead, and each swatch
+                // says which region it is to anything reading the screen out.
+                accessibilityLabel={
+                  regionLabel(regionOfColor(c))
+                    ? `Use the ${regionLabel(regionOfColor(c))} colour`
+                    : `Use colour ${c}`
+                }
+                accessibilityState={{ selected: color === c }}
                 style={[
                   styles.swatch,
                   { backgroundColor: c },
@@ -174,6 +187,15 @@ export default function TripEditor({
               />
             ))}
           </View>
+          {/* What the colours mean, said once rather than left to be inferred.
+              Every colour a trip can be given by where it goes is also one
+              somebody can pick by hand, so a row of seven circles is really
+              the seven regions — and nothing on screen said so. */}
+          <Text style={{ color: palette.muted, fontSize: 12, marginTop: 8 }}>
+            Trips are coloured by region — {regionLabel("europe")} blue,{" "}
+            {regionLabel("asia")} red, and so on — so the list reads as a map.
+            Picking one here overrides that.
+          </Text>
 
           {editing && (
             <View style={[styles.publish, { borderColor: palette.border, backgroundColor: palette.surface }]}>

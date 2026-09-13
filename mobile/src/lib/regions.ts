@@ -1,14 +1,5 @@
-/// The world, in the seven pieces a traveller actually thinks in.
-///
-/// Continents, with the Middle East taken out of Asia — because somebody who
-/// has been to Jordan and somebody who has been to Japan have not been to the
-/// same place, and colouring both "Asia" says they have. Everything else is
-/// the split everyone already knows.
-///
-/// Used to give a new trip its colour, so a list of trips reads as a map
-/// before it reads as words. It is only ever a default: the colour stays a
-/// thing somebody can change, and changing it never changes the region.
-
+/// Mirrored from the website's src/lib/regions.ts — edit that copy and run
+/// `npm run sync:mirror`.
 export const REGIONS = [
   // Seven hues that stay apart at pin size, and clear 3:1 on the pale card and
   // on Evergreen 900 both — the bar the trip palette was already tuned to.

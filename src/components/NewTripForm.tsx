@@ -5,6 +5,7 @@ import { useState } from "react";
 import DestinationField from "@/components/DestinationField";
 import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import { TRIP_COLORS as COLORS } from "@/lib/brand";
+import { regionLabel, regionOfColor } from "@/lib/regions";
 
 export default function NewTripForm() {
   const router = useRouter();
@@ -102,21 +103,39 @@ export default function NewTripForm() {
         </label>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted">Colour</span>
-        {COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            aria-label={`Use colour ${c}`}
-            aria-pressed={color === c}
-            onClick={() => setColor(c)}
-            className={`size-5 rounded-full transition-transform ${
-              color === c ? "scale-115 ring-2 ring-offset-2 ring-offset-surface" : ""
-            }`}
-            style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : undefined }}
-          />
-        ))}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted">Colour</span>
+          {COLORS.map((c) => {
+            const region = regionLabel(regionOfColor(c));
+            return (
+              <button
+                key={c}
+                type="button"
+                // The region, not the hex. "#3C7FB0" tells a screen reader —
+                // and a tooltip — nothing anybody wants to know.
+                title={region ?? c}
+                aria-label={region ? `Use the ${region} colour` : `Use colour ${c}`}
+                aria-pressed={color === c}
+                onClick={() => setColor(c)}
+                className={`size-5 rounded-full transition-transform ${
+                  color === c ? "scale-115 ring-2 ring-offset-2 ring-offset-surface" : ""
+                }`}
+                style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : undefined }}
+              />
+            );
+          })}
+          <span className="text-xs text-muted">{regionLabel(regionOfColor(color))}</span>
+        </div>
+      {/* What the colours mean, said once rather than left to be inferred.
+          Every colour a trip can be given by where it goes is also one
+          somebody can pick by hand, so a row of seven circles is really the
+          seven regions — and nothing on screen said so. */}
+      <p className="text-xs text-muted">
+        Trips are coloured by region — {regionLabel("europe")} blue,{" "}
+        {regionLabel("asia")} red, and so on — so the list reads as a map.
+        Picking one here overrides that.
+      </p>
       </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}

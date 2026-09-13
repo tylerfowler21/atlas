@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import DestinationField from "@/components/DestinationField";
 import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import { TRIP_COLORS as COLORS } from "@/lib/brand";
+import { regionLabel, regionOfColor } from "@/lib/regions";
 import { tripRegions } from "@/lib/trip-where";
 import { useState } from "react";
 import { toDateInput } from "@/lib/trips";
@@ -149,19 +150,35 @@ export default function TripSettings({
         </label>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted">Colour</span>
-        {COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            aria-label={`Use colour ${c}`}
-            aria-pressed={color === c}
-            onClick={() => setColor(c)}
-            className="size-5 rounded-full"
-            style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}66` : undefined }}
-          />
-        ))}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted">Colour</span>
+          {COLORS.map((c) => {
+            const region = regionLabel(regionOfColor(c));
+            return (
+              <button
+                key={c}
+                type="button"
+                title={region ?? c}
+                aria-label={region ? `Use the ${region} colour` : `Use colour ${c}`}
+                aria-pressed={color === c}
+                onClick={() => setColor(c)}
+                className="size-5 rounded-full"
+                style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}66` : undefined }}
+              />
+            );
+          })}
+          <span className="text-xs text-muted">{regionLabel(regionOfColor(color))}</span>
+        </div>
+
+        {/* What the colours mean, said once rather than left to be inferred.
+            Every colour a trip can be given by where it goes is also one
+            somebody can pick by hand, so a row of seven circles is really the
+            seven regions — and nothing on screen said so. */}
+        <p className="text-xs text-muted">
+          Trips are coloured by region — {regionLabel("europe")} blue, {regionLabel("asia")} red,
+          and so on — so the list reads as a map. Picking one here overrides that.
+        </p>
       </div>
 
       {/* Publishing is a different kind of decision from renaming, so it gets
