@@ -147,6 +147,42 @@ export async function geocode(
     .map((part) => part.trim())
     .filter((part) => part.length > 1);
 
+  /// Lowercased and stripped of accents, so "Zürich" answers "zurich".
+  const fold = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .trim();
+
+  /// How well a result's own name answers what was typed.
+  ///
+  /// Both engines rank by their own idea of relevance, and for a short query
+  /// that idea can be nothing to do with the word: "Ams" came back with
+  /// Badhoevedorp, Amausi, Heslington and Vancouver above Amsterdam. Nowhere
+  /// in that list did anything ask whether the name begins with what somebody
+  /// typed.
+  ///
+  /// This does not override the region — somewhere you are going is still the
+  /// better answer than somewhere you are not — but inside a group, a name
+  /// that starts with the query beats one that merely mentions it, which beats
+  /// one the engine liked for reasons of its own.
+  ///
+  /// A multi-word query scores nothing here on purpose. "Husk restaurant
+  /// Charleston" is a search for a restaurant, not for somewhere called that,
+  /// and every result would score zero anyway — leaving the engines' order,
+  /// which is the right answer for that kind of query.
+  const folded = fold(query);
+  const nameScore = (r: SearchResult) => {
+    if (!folded) return 0;
+    const name = fold(r.name);
+    if (name === folded) return 4;
+    if (name.startsWith(folded)) return 3;
+    if (name.split(/[\s,'’-]+/).some((word) => word.startsWith(folded))) return 2;
+    if (name.includes(folded)) return 1;
+    return 0;
+  };
+
   const inRegion = (r: SearchResult) => {
     const country = r.country?.toLowerCase() ?? "";
     const code = r.countryCode?.toLowerCase() ?? "";
@@ -157,9 +193,13 @@ export async function geocode(
   };
 
   return [...merged]
-    .map((r, i) => ({ r: { ...r, nearby: inRegion(r) }, i }))
-    // Index keeps it stable, so within each group the engines' own order holds.
-    .sort((a, b) => Number(b.r.nearby) - Number(a.r.nearby) || a.i - b.i)
+    .map((r, i) => ({ r: { ...r, nearby: inRegion(r) }, i, score: nameScore(r) }))
+    // Region first, then how well the name answers the query, then the index —
+    // which keeps it stable, so the engines' own order breaks the last tie.
+    .sort(
+      (a, b) =>
+        Number(b.r.nearby) - Number(a.r.nearby) || b.score - a.score || a.i - b.i,
+    )
     .map(({ r }) => r)
     // Room for a few elsewhere behind the fold, without the list becoming the
     // gazetteer's entire opinion.
