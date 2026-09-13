@@ -1,3 +1,4 @@
+import { unfiled } from "@/lib/taxonomy";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SEMANTIC } from "@/lib/brand";
 import ShareArea from "@/components/ShareArea";
@@ -480,7 +481,7 @@ export default function MapScreen() {
                   });
                 }}
               >
-                <Text style={{ fontSize: 18 }}>{categoryOf(r.category).icon}</Text>
+                <Text style={{ fontSize: 18 }}>{unfiled(r.category, categories).icon}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
                     {r.name}

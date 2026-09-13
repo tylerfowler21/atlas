@@ -84,6 +84,18 @@ export function category(id: string, extra: Category[] = []): Category {
   );
 }
 
+/// How a place looks before it is anything of yours.
+///
+/// A search result the gazetteer could not classify arrives as "other" — and
+/// drawing it with *your* Other, which you may have restyled to anything, says
+/// it has already been filed under a category you chose. It has not: it is a
+/// result, and what it is filed under is decided when you save it. So it gets
+/// the plain pin until then, and everything the gazetteer did recognise is
+/// drawn the way you have asked for that category to be drawn.
+export function unfiled(id: string, extra: Category[] = []): Category {
+  return id === "other" ? BUILT_IN_BY_ID.get("other")! : category(id, extra);
+}
+
 /// Whether an id names one of the built-in categories.
 export function isBuiltInCategory(id: string) {
   return BUILT_IN_BY_ID.has(id);

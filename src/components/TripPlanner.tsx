@@ -34,7 +34,7 @@ import { useTripWeather } from "@/lib/use-trip-weather";
 import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
-import { TRAVEL_MODES, travelMode } from "@/lib/taxonomy";
+import { TRAVEL_MODES, travelMode, unfiled } from "@/lib/taxonomy";
 import { dateForDay, dayCount, durationLabel, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type {
@@ -1930,8 +1930,8 @@ function AddStop({
                   }}
                 >
                   <PlaceThumb
-                    icon={categoryOf(r.category).icon}
-                    color={categoryOf(r.category).color}
+                    icon={unfiled(r.category, categories).icon}
+                    color={unfiled(r.category, categories).color}
                     size={36}
                   />
                   <span className="min-w-0 flex-1">
@@ -2016,8 +2016,8 @@ function AddStop({
                   }}
                 >
                   <PlaceThumb
-                    icon={categoryOf(r.category).icon}
-                    color={categoryOf(r.category).color}
+                    icon={unfiled(r.category, categories).icon}
+                    color={unfiled(r.category, categories).color}
                     size={36}
                   />
                   <span className="min-w-0 flex-1">

@@ -22,7 +22,7 @@ import { useAuth } from "@/lib/auth";
 import { usePalette } from "@/lib/use-palette";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
-import { category as categoryOf } from "@/lib/taxonomy";
+import { unfiled } from "@/lib/taxonomy";
 import {
   BeenIcon,
   MapIcon,
@@ -185,7 +185,7 @@ export default function WelcomeScreen() {
           {results.slice(0, 5).map((r: SearchResult) => (
             <View key={r.id} style={[styles.result, { borderColor: palette.border }]}>
               <Text style={[styles.resultName, heading]} numberOfLines={1}>
-                {categoryOf(r.category).icon} {r.name}
+                {unfiled(r.category).icon} {r.name}
               </Text>
               <Text style={[styles.cardBody, body]} numberOfLines={1}>
                 {[r.city, r.country].filter(Boolean).join(", ")}
