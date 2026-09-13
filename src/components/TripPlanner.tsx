@@ -4,6 +4,7 @@ import { useCategories } from "@/components/CategoriesProvider";
 import PlaceThumb from "@/components/PlaceThumb";
 import { tripWhere, tripRegions } from "@/lib/trip-where";
 
+import { PAINT } from "@/lib/brand";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { tripRegion } from "@/lib/place-groups";
 import { currentPosition, nearbyPlaces, HERE_MESSAGES } from "@/lib/here";
@@ -131,7 +132,33 @@ export default function TripPlanner({
     [items, activeDay],
   );
 
-  const pins = useMemo<MapPin[]>(() => {
+  /// The place search behind "Add a stop".
+  ///
+  /// It lives here rather than inside that control because the map has to draw
+  /// what it finds. A list of four identically-named Dubais says nothing about
+  /// which is which; four numbered pins on the map says it at a glance, which
+  /// is the same trick the app's map tab already plays.
+  const [query, setQuery] = useState("");
+  const [around, setAround] = useState<SearchResult[] | null>(null);
+  const [showElsewhere, setShowElsewhere] = useState(false);
+  const { results: worldResults } = usePlaceSearch(query.trim(), (q, mode) =>
+    searchPlaces(q, mode, searchRegion),
+  );
+
+  /// Split by whether the result is where this trip is. Everywhere else is
+  /// kept — a trip to Lisbon can still have a day in Sintra, and the gazetteer
+  /// does not always agree about which country a place is in — but it does not
+  /// get to lead.
+  const here = worldResults.filter((r) => r.nearby);
+  const elsewhere = worldResults.filter((r) => !r.nearby);
+  const shownResults =
+    searchRegion.length > 0 && here.length > 0 && !showElsewhere ? here : worldResults;
+
+  /// Whatever the list is offering at this moment: what is around you if you
+  /// asked, otherwise what the search turned up.
+  const found = around ?? shownResults;
+
+    const pins = useMemo<MapPin[]>(() => {
     const onThisDay = new Map(dayItems.map((item, index) => [item.id, index + 1]));
 
     const legEnds = items
@@ -164,8 +191,28 @@ export default function TripPlanner({
           muted: !wholeTrip && !badge,
         };
       })
-      .concat(legEnds);
-  }, [items, dayItems, trip.color, categoryOf, stopIconOf, wholeTrip]);
+      .concat(legEnds)
+      // What the search turned up, numbered to match the rows under it. Four
+      // results all called Dubai are four identical lines until the map says
+      // which is which — so they carry Sun rather than a category colour, and
+      // the itinerary behind them goes quiet while they are up.
+      .map((pin) => ({ ...pin, muted: pin.muted || found.length > 0 }))
+      .concat(
+        found.map((r, i) => ({
+          id: `found-${r.id}`,
+          lat: r.lat,
+          lng: r.lng,
+          color: PAINT.sun,
+          icon: unfiled(r.category, categories).icon,
+          badge: String(i + 1),
+          muted: false,
+        })),
+      );
+  }, [items, dayItems, trip.color, categoryOf, stopIconOf, wholeTrip, found, categories]);
+
+  /// Re-frames the map when a search answers, so the candidates are on screen
+  /// rather than wherever the trip happened to be looking.
+  const foundToken = found.map((r) => r.id).join(",");
 
   /// The stops the map draws a line through: today's, or the whole trip's.
   const routeItems = useMemo(
@@ -1367,6 +1414,16 @@ export default function TripPlanner({
 
         <AddStop
           destination={searchRegion}
+          search={{
+            query,
+            setQuery,
+            shownResults,
+            around,
+            setAround,
+            elsewhere,
+            showElsewhere,
+            setShowElsewhere,
+          }}
           places={library}
           usedPlaceIds={new Set(items.map((i) => i.placeId).filter(Boolean) as string[])}
           onAdd={addItem}
@@ -1425,7 +1482,7 @@ export default function TripPlanner({
           onSelect={setSelectedId}
           onMapClick={dropMode ? dropPin : undefined}
           onPlaceSelect={setTapped}
-          fitToken={`trip-${trip.id}-${wholeTrip ? "all" : activeDay}`}
+          fitToken={`trip-${trip.id}-${wholeTrip ? "all" : activeDay}-${foundToken}`}
         />
 
         <div className="pointer-events-none absolute top-4 left-4 flex flex-wrap items-center gap-2">
@@ -1776,6 +1833,7 @@ function AddStop({
   onToggleDrop,
   notice,
   busy,
+  search,
 }: {
   places: PlaceDTO[];
   usedPlaceIds: Set<string>;
@@ -1797,27 +1855,33 @@ function AddStop({
   /// Where the trip is. Searching "Time Out Market" from inside a trip to
   /// Lisbon should not begin with the one in New York.
   destination: string[] | string | null;
+  /// The search itself, owned by the planner so its map can pin what this
+  /// finds. Four results called Dubai are four identical rows until something
+  /// says which is which.
+  search: {
+    query: string;
+    setQuery: (q: string) => void;
+    shownResults: SearchResult[];
+    around: SearchResult[] | null;
+    setAround: (r: SearchResult[] | null) => void;
+    elsewhere: SearchResult[];
+    showElsewhere: boolean;
+    setShowElsewhere: (v: boolean | ((current: boolean) => boolean)) => void;
+  };
 }) {
+  const {
+    query,
+    setQuery,
+    shownResults,
+    around,
+    setAround,
+    elsewhere,
+    showElsewhere,
+    setShowElsewhere,
+  } = search;
   const { categories, categoryOf, placeIconOf } = useCategories();
-  const [query, setQuery] = useState("");
   const [category, setCategory] = useState("other");
-  // Searching the wider world from inside a trip, so adding somewhere new no
-  // longer means a detour to the map and back.
   const trimmed = query.trim();
-  const { results: worldResults } = usePlaceSearch(trimmed, (q, mode) =>
-    searchPlaces(q, mode, destination),
-  );
-
-  /// Split by whether the result is where this trip is. Everywhere else is
-  /// kept — a trip to Lisbon can still have a day in Sintra, and the gazetteer
-  /// does not always agree about which country a place is in — but it does not
-  /// get to lead.
-  /// Whatever is around wherever you are standing, once you have asked.
-  ///
-  /// This is the reason to have the app open while actually on the trip: you
-  /// are in the place, you want it on today, and typing its name is the long
-  /// way round when the phone already knows where it is.
-  const [around, setAround] = useState<SearchResult[] | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -1845,10 +1909,7 @@ function AddStop({
     }
   }
 
-  const here = worldResults.filter((r) => r.nearby);
-  const elsewhere = worldResults.filter((r) => !r.nearby);
-  const [showElsewhere, setShowElsewhere] = useState(false);
-  const shown = destination && here.length > 0 && !showElsewhere ? here : worldResults;
+  const shown = shownResults;
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1909,7 +1970,7 @@ function AddStop({
             </button>
           </div>
           <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
-            {around.map((r) => (
+            {around.map((r, i) => (
               <li key={r.id}>
                 <button
                   type="button"
@@ -1929,6 +1990,16 @@ function AddStop({
                     setAround(null);
                   }}
                 >
+                  {/* The number on the pin out on the map. Four results all
+                      called Dubai are four identical lines; this is what says
+                      which line is which. */}
+                  <span
+                    aria-hidden
+                    className="grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white"
+                    style={{ background: PAINT.sun }}
+                  >
+                    {i + 1}
+                  </span>
                   <PlaceThumb
                     icon={unfiled(r.category, categories).icon}
                     color={unfiled(r.category, categories).color}
@@ -1987,15 +2058,15 @@ function AddStop({
         </ul>
       )}
 
-      {trimmed.length >= 3 && worldResults.length > 0 && (
+      {trimmed.length >= 3 && shown.length > 0 && (
         <>
           <p className="mt-3 mb-1 text-xs tracking-wide text-muted uppercase">
-            {destination && here.length > 0 && !showElsewhere
+            {destination && elsewhere.length < shown.length && !showElsewhere
               ? `In ${destination}`
               : "Somewhere new"}
           </p>
           <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line">
-            {shown.map((r) => (
+            {shown.map((r, i) => (
               <li key={r.id}>
                 <button
                   type="button"
@@ -2015,6 +2086,16 @@ function AddStop({
                     setQuery("");
                   }}
                 >
+                  {/* The number on the pin out on the map. Four results all
+                      called Dubai are four identical lines; this is what says
+                      which line is which. */}
+                  <span
+                    aria-hidden
+                    className="grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white"
+                    style={{ background: PAINT.sun }}
+                  >
+                    {i + 1}
+                  </span>
                   <PlaceThumb
                     icon={unfiled(r.category, categories).icon}
                     color={unfiled(r.category, categories).color}
@@ -2030,7 +2111,7 @@ function AddStop({
             ))}
           </ul>
 
-          {destination && here.length > 0 && elsewhere.length > 0 && (
+          {destination && elsewhere.length > 0 && (
             <button
               type="button"
               className="mt-1.5 text-xs text-muted hover:underline"
