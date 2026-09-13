@@ -41,8 +41,18 @@ export async function GET(
     include: { user: { select: { name: true, image: true } } },
   });
 
+  // Who owns it, for a client that has no page around it to say so. An editor
+  // has no other way to learn whose trip they were invited to, and a list of
+  // who can edit that leaves out the one person who certainly can is a strange
+  // list. Name and picture only — the owner's address is not the caller's.
+  const owner = await prisma.user.findUnique({
+    where: { id: access.trip.userId },
+    select: { name: true, username: true, image: true },
+  });
+
   return NextResponse.json({
     role: access.role,
+    owner,
     collaborators: collaborators.map(serialize),
   });
 }

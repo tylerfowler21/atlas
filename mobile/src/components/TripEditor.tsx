@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SEMANTIC } from "@/lib/brand";
+import TripPeople from "@/components/TripPeople";
 import DateRangePicker from "@/components/DateRangePicker";
 import DestinationField from "@/components/DestinationField";
 import { tripRegions } from "@/lib/trip-where";
@@ -191,6 +192,11 @@ export default function TripEditor({
               />
             </View>
           )}
+
+          {/* Who else is on it, and the way to add somebody. It belongs beside
+              publishing: both are the same question — who sees this — and this
+              is the screen people already open to answer it. */}
+          {editing && <TripPeople tripId={trip!.id} />}
 
           {editing && (
             <Pressable onPress={remove} style={styles.remove}>
