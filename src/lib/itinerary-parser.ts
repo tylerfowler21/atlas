@@ -10,6 +10,8 @@
 ///   09:00 Jungfraujoch — book tickets ahead
 ///   Kleine Scheidegg
 
+import { categoryFromWord } from "@/lib/category-words";
+
 export type ParsedEntry = {
   /// 0-based day offset
   dayIndex: number;
@@ -30,11 +32,45 @@ const LEADING_TIME = /^(\d{1,2})[:.](\d{2})\s+(.*)$/;
 // place names like "Baden-Baden" survive).
 const NOTE_SPLIT = /\s+[–—-]\s+/;
 
+/// Whether a would-be note starts by naming a category, the way the note in
+/// this format does: "restaurant, book two weeks ahead".
+function namesACategory(note: string) {
+  return categoryFromWord((note.split(",")[0] ?? "").trim()) !== null;
+}
+
 function splitNote(text: string): { title: string; note: string | null } {
   const parts = text.split(NOTE_SPLIT);
   if (parts.length < 2) return { title: text.trim(), note: null };
-  const [title, ...rest] = parts;
-  return { title: title!.trim(), note: rest.join(" — ").trim() || null };
+
+  /// Which dash ends the name, when a line has more than one.
+  ///
+  /// The first one, nearly always: "Café de Flore — coffee — go early" is a
+  /// place and then a note that happens to contain a dash of its own. But some
+  /// places have a dash in the name they trade under — "Chez Boulay — bistro
+  /// boréal, Québec — restaurant, book ahead" — and cutting at the first one
+  /// there took the title down to "Chez Boulay", pushed the city into the note
+  /// and left the category no longer at the front of it, so a restaurant came
+  /// in as a shop.
+  ///
+  /// The category is what tells the two apart. The note this format writes
+  /// begins by naming one; a name that happens to contain a dash does not. So
+  /// a later cut is taken only when it finds a category the first cut missed,
+  /// and the first cut wins every other time — including when nothing names a
+  /// category at all, which is most of what people paste.
+  let at = 1;
+  if (!namesACategory(parts.slice(1).join(" — "))) {
+    for (let i = 2; i < parts.length; i += 1) {
+      if (namesACategory(parts.slice(i).join(" — "))) {
+        at = i;
+        break;
+      }
+    }
+  }
+
+  return {
+    title: parts.slice(0, at).join(" — ").trim(),
+    note: parts.slice(at).join(" — ").trim() || null,
+  };
 }
 
 function buildEntry(raw: string, dayIndex: number): ParsedEntry | null {
