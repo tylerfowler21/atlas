@@ -141,16 +141,24 @@ export default function PublishedTripScreen() {
                     <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={2}>
                       {entry.title}
                     </Text>
-                    {(timingLabel(entry) || entry.notes) && (
-                      <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={2}>
-                        {[
-                          entry.kind === "travel" && (entry.endDayOffset ?? 0) > 0
-                            ? `${timingLabel(entry)} +${entry.endDayOffset}`
-                            : timingLabel(entry),
-                          entry.notes,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
+                    {timingLabel(entry) && (
+                      <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                        {entry.kind === "travel" && (entry.endDayOffset ?? 0) > 0
+                          ? `${timingLabel(entry)} +${entry.endDayOffset}`
+                          : timingLabel(entry)}
+                      </Text>
+                    )}
+                    {/* Whole, and on a line of its own.
+                    
+                        What somebody wrote about a place is the reason to read
+                        their trip at all — that the temple is worth the early
+                        start, that the queue moves after two. It was being
+                        joined onto the end of the times and clipped at two
+                        lines between them, so the half worth reading was the
+                        half that got cut. */}
+                    {entry.notes && (
+                      <Text style={{ color: palette.ink, fontSize: 14, marginTop: 4, lineHeight: 19 }}>
+                        {entry.notes}
                       </Text>
                     )}
                   </View>
