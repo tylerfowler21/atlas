@@ -201,7 +201,7 @@ export default function CategoryManager() {
               const next = icon.trim();
               if (next) void patchCategory(c, { icon: next });
             }}
-            style={[styles.swatch, { borderColor: c.color, color: palette.ink, fontSize: 15 }]}
+            style={[styles.swatchInput, { borderColor: c.color, color: palette.ink, fontSize: 15 }]}
           />
           <Text style={[styles.rowLabel, { color: palette.ink }]} numberOfLines={1}>
             {c.label}
@@ -249,6 +249,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   swatch: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  /// The same circle, but as an input — tapping a built-in category's swatch
+  /// is how its emoji is changed.
+  ///
+  /// alignItems and justifyContent do nothing to the text inside a TextInput:
+  /// it sits wherever the input's own text layout puts it, which was left of
+  /// centre and far enough over that a wide glyph hung across the ring. So it
+  /// is centred by textAlign instead, with the default padding taken off so
+  /// the emoji has the whole circle to sit in.
+  swatchInput: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    textAlign: "center",
+    padding: 0,
+  },
   rowLabel: { flex: 1, fontSize: 14 },
   form: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 10, marginTop: 4 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14 },
