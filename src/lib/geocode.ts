@@ -129,24 +129,6 @@ export async function geocode(
     merged.push(result);
   }
 
-  if (regions.length === 0) return merged.slice(0, 10);
-
-  /// Somewhere in the trip's region comes first, and nothing is thrown away.
-  ///
-  /// Ranking on how exactly a name matched was tried and abandoned: every
-  /// weighting that put "London" the city above a tree called "London plane"
-  /// in Lisbon also put a "Time Out Market" in New York above "Time Out Market
-  /// Lisboa", and the reverse. The two pull opposite ways, and guessing which
-  /// one someone meant from the string alone is not a thing this can know.
-  ///
-  /// So the region decides the order, as it always did, and the fix for the
-  /// original complaint is above: both queries are asked, so the answer is
-  /// always in the list even when the region does not favour it.
-  const parts = regions
-    .flatMap((r) => r.toLowerCase().split(","))
-    .map((part) => part.trim())
-    .filter((part) => part.length > 1);
-
   /// Lowercased and stripped of accents, so "Zürich" answers "zurich".
   const fold = (value: string) =>
     value
@@ -155,33 +137,83 @@ export async function geocode(
       .replace(/\p{Diacritic}/gu, "")
       .trim();
 
-  /// How well a result's own name answers what was typed.
+  /// The words of a name, with the joining scraps dropped.
   ///
-  /// Both engines rank by their own idea of relevance, and for a short query
-  /// that idea can be nothing to do with the word: "Ams" came back with
-  /// Badhoevedorp, Amausi, Heslington and Vancouver above Amsterdam. Nowhere
-  /// in that list did anything ask whether the name begins with what somebody
-  /// typed.
+  /// Everything that is not a letter or a number separates, so "St-Viateur"
+  /// and "St Viateur" come apart the same way and "L'Express" yields the word
+  /// that matters. Single characters go: the "l" of "L'Express" and the "s" of
+  /// "Schwartz's" are punctuation wearing a hat, and counting them makes two
+  /// spellings of one name look like different names.
+  const words = (value: string) =>
+    fold(value)
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((word) => word.length > 1);
+
+  /// What one word is worth against another: the same word, or one that is
+  /// still being typed.
   ///
-  /// This does not override the region — somewhere you are going is still the
-  /// better answer than somewhere you are not — but inside a group, a name
-  /// that starts with the query beats one that merely mentions it, which beats
-  /// one the engine liked for reasons of its own.
-  ///
-  /// A multi-word query scores nothing here on purpose. "Husk restaurant
-  /// Charleston" is a search for a restaurant, not for somewhere called that,
-  /// and every result would score zero anyway — leaving the engines' order,
-  /// which is the right answer for that kind of query.
-  const folded = fold(query);
-  const nameScore = (r: SearchResult) => {
-    if (!folded) return 0;
-    const name = fold(r.name);
-    if (name === folded) return 4;
-    if (name.startsWith(folded)) return 3;
-    if (name.split(/[\s,'’-]+/).some((word) => word.startsWith(folded))) return 2;
-    if (name.includes(folded)) return 1;
+  /// The prefix credit is what answers somebody mid-word — "Ams" is not the
+  /// word "Amsterdam" and never will be, and without this it scores nothing
+  /// against it. Three letters before it counts, so "a" does not half-match
+  /// the world.
+  const PREFIX = 0.75;
+  const credit = (a: string, b: string) => {
+    if (a === b) return 1;
+    if (a.length >= 3 && b.startsWith(a)) return PREFIX;
+    if (b.length >= 3 && a.startsWith(b)) return PREFIX;
     return 0;
   };
+
+  /// How much of one set of words the other accounts for.
+  const covers = (from: string[], against: string[]) =>
+    from.length === 0
+      ? 0
+      : from.reduce(
+          (sum, word) => sum + Math.max(0, ...against.map((other) => credit(word, other))),
+          0,
+        ) / from.length;
+
+  /// How well a name answers what was asked for, both ways round.
+  ///
+  /// Asking only how much of the query the name covers makes every long name
+  /// containing the right word a perfect answer — "Express Union Canada" for
+  /// L'Express. Asking only the reverse makes every short name win. A name is
+  /// the answer when it accounts for the query *and* the query accounts for
+  /// it, so the two are combined the way a harmonic mean combines them: one of
+  /// them near zero takes the whole score down with it.
+  const similarity = (asked: string[], name: string[]) => {
+    const ofAsked = covers(asked, name);
+    const ofName = covers(name, asked);
+    if (ofAsked + ofName === 0) return 0;
+    return (2 * ofAsked * ofName) / (ofAsked + ofName);
+  };
+
+  /// What is being looked for, and the hint about which one.
+  ///
+  /// A stop arrives as "Schwartz's Deli, Montreal": a name, then where it is.
+  /// Scoring that whole string against a result's name asks whether anywhere
+  /// is called "Schwartz's Deli, Montreal" — nothing is, so everything scored
+  /// zero and the engines' own order decided. That order answered Schwartz's
+  /// Deli, Le Petit Alep, Paillard, L'Oncle Antoine and Gare du Palais all
+  /// with Université du Québec à Montréal: a long generic name wins by default
+  /// whenever nothing is really being scored.
+  const comma = query.indexOf(",");
+  const asked = words(comma === -1 ? query : query.slice(0, comma));
+  const hint = comma === -1 ? [] : words(query.slice(comma + 1));
+
+  /// Whether the result is where the query said it was. Only ever a tiebreak
+  /// between two places of the same name — the St-Viateur Bagel in Montréal
+  /// and the one in Dollard-des-Ormeaux.
+  const placed = (r: SearchResult) => {
+    if (hint.length === 0) return false;
+    const where = fold(`${r.city ?? ""} ${r.country ?? ""} ${r.context}`);
+    return hint.some((word) => where.includes(word));
+  };
+
+  const parts = regions
+    .flatMap((r) => r.toLowerCase().split(","))
+    .map((part) => part.trim())
+    .filter((part) => part.length > 1);
 
   const inRegion = (r: SearchResult) => {
     const country = r.country?.toLowerCase() ?? "";
@@ -192,16 +224,34 @@ export async function geocode(
     );
   };
 
-  return [...merged]
-    .map((r, i) => ({ r: { ...r, nearby: inRegion(r) }, i, score: nameScore(r) }))
-    // Region first, then how well the name answers the query, then the index —
-    // which keeps it stable, so the engines' own order breaks the last tie.
-    .sort(
-      (a, b) =>
-        Number(b.r.nearby) - Number(a.r.nearby) || b.score - a.score || a.i - b.i,
-    )
-    .map(({ r }) => r)
-    // Room for a few elsewhere behind the fold, without the list becoming the
-    // gazetteer's entire opinion.
-    .slice(0, 12);
+  /// Somewhere in the trip's region first, then how well the name answers,
+  /// then which of two same-named places is in the right town, then the index
+  /// — which keeps the sort stable, so the engines break the last tie.
+  ///
+  /// The region stays the first key. Somewhere you are going is a better
+  /// answer than somewhere you are not, even when the name matches less well;
+  /// both queries are asked further up, so the answer is in the list either
+  /// way.
+  const ranked = merged.map((r, i) => {
+    const nearby = parts.length > 0 && inRegion(r);
+    return {
+      r: parts.length > 0 ? { ...r, nearby } : r,
+      i,
+      nearby,
+      score: similarity(asked, words(r.name)),
+      placed: placed(r),
+    };
+  });
+
+  ranked.sort(
+    (a, b) =>
+      Number(b.nearby) - Number(a.nearby) ||
+      b.score - a.score ||
+      Number(b.placed) - Number(a.placed) ||
+      a.i - b.i,
+  );
+
+  // Room for a few elsewhere behind the fold, without the list becoming the
+  // gazetteer's entire opinion.
+  return ranked.map(({ r }) => r).slice(0, regions.length > 0 ? 12 : 10);
 }
