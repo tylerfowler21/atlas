@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 // taxonomy comes through the provider
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
+import DestinationField from "@/components/DestinationField";
 import DraftTrip from "@/components/DraftTrip";
 import ImportLink from "@/components/ImportLink";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
@@ -91,8 +92,19 @@ export default function TripImporter({
   const [destination, setDestination] = useState<"trip" | "places" | "draft">(initialMode);
 
   const [title, setTitle] = useState("");
-  const [region, setRegion] = useState("");
+  /// Where the trip is, picked rather than typed.
+  ///
+  /// It was a bare text box here while every other trip form on the site had
+  /// suggestions, so "Amsterdam" offered nothing and the country never filled
+  /// itself in — and the hint the place search leans on was whatever somebody
+  /// managed to spell.
+  const [regions, setRegions] = useState<string[]>([]);
+  const region = regions.join(", ");
   const [startDate, setStartDate] = useState("");
+  /// Said outright rather than counted from the itinerary. A trip remembered
+  /// years later is a fortnight in Amsterdam whether or not anybody still has
+  /// the list of what they did each day.
+  const [endDate, setEndDate] = useState("");
   const [markVisited, setMarkVisited] = useState(
     // Opened from a trip means somebody is planning it, and what you add to a
     // plan is somewhere you want to go rather than somewhere you have been.
@@ -127,6 +139,48 @@ export default function TripImporter({
 
   const preview = useMemo(() => parseItinerary(text), [text]);
   const dayCount = parsedDayCount(preview);
+
+  /// Records the trip and nothing else.
+  ///
+  /// Not every trip worth keeping has an itinerary. Somebody adding a fortnight
+  /// in Amsterdam from 2022 knows the place and the dates and has no list of
+  /// what they did each day — and until now the only way through this screen
+  /// was to invent one, because every button on it wanted places first.
+  ///
+  /// Straight to the trips API rather than through the importer, which takes
+  /// entries and would have to be taught to accept none.
+  async function tripOnly() {
+    const name = title.trim();
+    if (!name) {
+      setError("Give the trip a name first.");
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: name,
+          destination: region.trim() || null,
+          destinations: regions,
+          startDate: startDate || null,
+          endDate: endDate || startDate || null,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error ?? "Could not add that trip");
+        return;
+      }
+      router.push(`/trips/${body.trip.id}`);
+    } catch {
+      setError("Could not add that trip");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   /// Looks each entry up one at a time. The geocoder allows roughly one
   /// request a second and the server queues to enforce that, so this is
@@ -280,7 +334,12 @@ export default function TripImporter({
     const days = parsedDayCount(rows);
     // A trip you've already taken has a known length, so the end date follows
     // from the start date and the number of days rather than being asked for.
-    const endDate = startDate
+    // What was typed wins. Counting from the itinerary only knows about days
+    // somebody wrote something on, which is the wrong answer for a trip whose
+    // middle week nobody kept notes for.
+    const lastDay = endDate
+      ? endDate
+      : startDate
       ? new Date(Date.parse(startDate) + (days - 1) * 86400000).toISOString().slice(0, 10)
       : null;
 
@@ -341,7 +400,8 @@ export default function TripImporter({
                       title: title.trim(),
                       destination: region.trim() || null,
                       startDate: startDate || null,
-                      endDate,
+                      endDate: lastDay,
+                      destinations: regions,
                     },
                     markVisited,
                     entries: entries(),
@@ -653,32 +713,49 @@ export default function TripImporter({
           {/* This matters more for a list, not less. A note full of restaurants
               is a note about one place, and without saying which, "Husk" finds
               the one in Sydney. */}
-          <label className="text-xs text-muted">
+          <div className="text-xs text-muted">
             {destination !== "places" ? "Country or region" : "Where these are"}
-            <input
-              className="input mt-1"
-              placeholder={destination !== "places" ? "Switzerland" : "Charleston"}
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-            />
+            <div className="mt-1">
+              <DestinationField
+                value={regions}
+                onChange={setRegions}
+                placeholder={destination !== "places" ? "Amsterdam" : "Charleston"}
+              />
+            </div>
             <span className="mt-1 block text-xs text-muted">
               Added to every search, so “Husk” finds the right one.
             </span>
-          </label>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {/* A list of places has no first day. */}
           {destination !== "places" && (
-            <label className="text-xs text-muted">
-              First day (optional)
-              <input
-                type="date"
-                className="input mt-1"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </label>
+            <>
+              <label className="text-xs text-muted">
+                First day (optional)
+                <input
+                  type="date"
+                  className="input mt-1"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </label>
+              {/* Counting from the itinerary only knows about days somebody
+                  wrote something on. A trip remembered years later is a
+                  fortnight in Amsterdam whether or not the middle week has a
+                  list, so it can be said outright. */}
+              <label className="text-xs text-muted">
+                Last day (optional)
+                <input
+                  type="date"
+                  className="input mt-1"
+                  min={startDate || undefined}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </label>
+            </>
           )}
           <label className="flex items-end gap-2 text-xs text-muted">
             <input
@@ -702,7 +779,7 @@ export default function TripImporter({
               // A drafted trip is still a trip: it needs a name and a region,
               // and the model has just supplied both.
               if (!title.trim()) setTitle(draft.title);
-              if (!region.trim()) setRegion(draft.destination);
+              if (regions.length === 0 && draft.destination) setRegions([draft.destination]);
               setFileNote("Drafted. Read it through — the next step checks every place against a real map.");
             }}
           />
@@ -719,7 +796,7 @@ export default function TripImporter({
             busy={busy || reading}
             onRead={({ text: found, region: where }) => {
               setText((prev) => (prev.trim() ? `${prev.trim()}\n${found}` : found));
-              if (where && !region.trim()) setRegion(where);
+              if (where && regions.length === 0) setRegions([where]);
             }}
           />
           <label className="btn btn-ghost cursor-pointer text-xs">
@@ -814,12 +891,22 @@ export default function TripImporter({
               ? `Looking up ${progress.done} of ${progress.total}…`
               : "Find these places"}
           </button>
+          {/* Not every trip worth keeping has an itinerary. A fortnight in
+              Amsterdam in 2022 is a place and two dates, and this screen used
+              to insist on a list of days before it would record anything. */}
+          {destination === "trip" && !intoTripId && !busy && preview.length === 0 && (
+            <button type="button" className="btn btn-ghost" onClick={tripOnly}>
+              Just add the trip
+            </button>
+          )}
           {/* A dead button that says nothing is the worst thing on this page:
               the example in the box above is grey placeholder text, and it is
               easy to read it as an itinerary you have already pasted. */}
           {!busy && preview.length === 0 && (
             <span className="text-xs text-amber-600 dark:text-amber-400">
-              Paste your itinerary above first, or upload the file you planned it in.
+              {destination === "trip" && !intoTripId
+                ? "Paste an itinerary to add its places, or just add the trip and its dates."
+                : "Paste your itinerary above first, or upload the file you planned it in."}
             </span>
           )}
         </div>
