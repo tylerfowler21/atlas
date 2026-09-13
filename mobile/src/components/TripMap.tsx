@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useCategories } from "@/lib/categories";
-import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 import type { ItineraryItem } from "@/lib/api";
 import { travelMode } from "@/lib/taxonomy";
 import { usePalette } from "@/lib/use-palette";
 import { useMyLocation } from "@/lib/use-my-location";
+import Glass from "@/components/Glass";
+import { NavigationArrowIcon } from "@/components/nav-icons";
+
+/// Matches the map tab's locate button, and the footprint of the artwork it
+/// replaces here.
+const FIND_ME_SIZE = 40;
 
 /// Opens the platform's maps app with directions to somewhere.
 ///
@@ -180,13 +186,13 @@ export default function TripMap({
           be drawn. It is the control people reach for after panning away to
           look at tomorrow. */}
       <Pressable onPress={findMe} style={styles.findMe} accessibilityLabel="Show where I am">
-        {/* The supplied artwork, which brings its own tile — so the button
-            draws no surface of its own rather than putting a rounded square
-            inside a circle. */}
-        <Image
-          source={require("../../assets/images/locate.png")}
-          style={styles.findMeIcon}
-        />
+        {/* The same control as the map tab, drawn rather than the supplied
+            artwork: that image baked its own pale tile in, so on a dark map it
+            was a white square, and it could take no palette because it was a
+            photograph of a button rather than a button. */}
+        <Glass radius={FIND_ME_SIZE / 2} style={styles.findMeGlass}>
+          <NavigationArrowIcon size={20} color={palette.ink} />
+        </Glass>
       </Pressable>
     </View>
   );
@@ -214,7 +220,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   findMe: { position: "absolute", right: 10, bottom: 10 },
-  findMeIcon: { width: 40, height: 40 },
+  findMeGlass: {
+    width: FIND_ME_SIZE,
+    height: FIND_ME_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   glyph: { fontSize: 16 },
   badge: {
     position: "absolute",
