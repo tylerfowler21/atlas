@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
 import { travelMode } from "@/lib/taxonomy";
+import { journeyEnds } from "@/lib/trip-where";
 import { dayAfter } from "@/lib/trip-calendar";
 import DestinationField from "@/components/DestinationField";
 import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
@@ -52,15 +53,6 @@ type Row = ParsedEntry & {
 
 /// A spreadsheet's Category column ends up at the front of the note, because
 /// that is where the columns it came from put it. These read it back out.
-/// Lowercased and stripped of accents, so "Québec" matches "Quebec".
-function fold(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim();
-}
-
 function leadingWord(note: string | null) {
   return note ? (note.split(",")[0] ?? "").trim() : null;
 }
@@ -239,29 +231,12 @@ export default function TripImporter({
   /// one, so a name nothing else could place is the city after the one at the
   /// other end. This is what catches Firenze against Florence, which no amount
   /// of letter-matching will.
-  const PREFIX = 4;
-
-  function cityIndexFor(name: string) {
-    const wanted = fold(name);
-    if (!wanted) return -1;
-
-    const exact = regions.findIndex((label) => {
-      const pin = cityPins[label];
-      const city = fold(pin?.city ?? pin?.name ?? label);
-      return city === wanted || fold(label) === wanted;
-    });
-    if (exact >= 0) return exact;
-
-    return regions.findIndex((label) => {
-      const pin = cityPins[label];
-      const city = fold(pin?.city ?? pin?.name ?? label);
-      return (
-        city.length >= PREFIX &&
-        wanted.length >= PREFIX &&
-        city.slice(0, PREFIX) === wanted.slice(0, PREFIX)
-      );
-    });
-  }
+  /// The name each destination is known by here — the city the picker found,
+  /// or the label as typed when it found nothing.
+  const cityNames = regions.map((label) => {
+    const pin = cityPins[label];
+    return pin?.city ?? pin?.name ?? label;
+  });
 
   function pinAt(index: number) {
     const pin = index >= 0 ? cityPins[regions[index] ?? ""] : undefined;
@@ -277,14 +252,14 @@ export default function TripImporter({
     };
   }
 
+  /// The places a journey runs between, from the destinations already picked.
+  ///
+  /// Those were resolved when somebody pointed at them, coordinates included,
+  /// so nothing here is looked up. Matching the words in the itinerary back to
+  /// them is the shared rule the app uses too.
   function journeyPins(from: string, to: string) {
-    let fromAt = cityIndexFor(from);
-    let toAt = cityIndexFor(to);
-    // The one that could not be placed is the city either side of the one that
-    // could.
-    if (toAt < 0 && fromAt >= 0) toAt = fromAt + 1;
-    if (fromAt < 0 && toAt >= 0) fromAt = toAt - 1;
-    return { from: pinAt(fromAt), to: pinAt(toAt) };
+    const ends = journeyEnds(from, to, cityNames);
+    return { from: pinAt(ends.from), to: pinAt(ends.to) };
   }
 
   /// Looks each entry up one at a time. The geocoder allows roughly one

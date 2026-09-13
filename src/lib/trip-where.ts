@@ -80,3 +80,58 @@ export function goesTo(
   const city = fold(place.city ?? "");
   return words.some((word) => country === word || city === word);
 }
+
+/// Four letters is enough to tell Lisboa from Lisbon and Montréal from
+/// Montreal, and not enough to confuse two cities anybody would put in one
+/// trip.
+const PREFIX = 4;
+
+/// Which of a trip's cities a name refers to, or -1.
+///
+/// The same city, then the first few letters — because a model writing an
+/// itinerary for Portugal writes Lisboa where somebody typed Lisbon, and
+/// Montréal, Québec, Sevilla and Roma have the same shape.
+export function cityIndexFor(name: string, cities: string[]): number {
+  const wanted = fold(name);
+  if (!wanted) return -1;
+
+  const exact = cities.findIndex((city) => fold(city) === wanted);
+  if (exact >= 0) return exact;
+
+  return cities.findIndex((city) => {
+    const known = fold(city);
+    return (
+      known.length >= PREFIX &&
+      wanted.length >= PREFIX &&
+      known.slice(0, PREFIX) === wanted.slice(0, PREFIX)
+    );
+  });
+}
+
+/// The two ends of a journey, as positions in the trip's list of cities.
+///
+/// A journey runs from one of the trip's cities to the next, so an end that
+/// nothing else could place is the city beside the one that could. That rescues
+/// the half-matched case: "Firenze → Rome" against [Florence, Rome] finds Rome
+/// by name and Florence by being the one before it.
+///
+/// It needs one end to hold. "Firenze → Roma" against [Florence, Rome] matches
+/// neither and comes back with neither, and a journey to somewhere the trip
+/// never named comes back with one. Both are a journey with a missing pin
+/// rather than a wrong one, which is the right way round: the itinerary still
+/// says where it went, and nothing lands on a map five hundred kilometres from
+/// the trip.
+export function journeyEnds(
+  from: string,
+  to: string,
+  cities: string[],
+): { from: number; to: number } {
+  let start = cityIndexFor(from, cities);
+  let end = cityIndexFor(to, cities);
+
+  if (end < 0 && start >= 0) end = start + 1;
+  if (start < 0 && end >= 0) start = end - 1;
+
+  const real = (i: number) => (i >= 0 && i < cities.length ? i : -1);
+  return { from: real(start), to: real(end) };
+}

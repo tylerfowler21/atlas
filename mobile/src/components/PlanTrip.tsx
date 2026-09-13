@@ -27,6 +27,7 @@ import { searchPlaces } from "@/lib/search-places";
 import { TRIP_STYLES } from "@/lib/trip-styles";
 import { TRAVEL_MODES } from "@/lib/taxonomy";
 import { dayAfter } from "@/lib/trip-calendar";
+import { journeyEnds } from "@/lib/trip-where";
 import DateRangePicker from "@/components/DateRangePicker";
 
 type Stop = {
@@ -96,6 +97,18 @@ export default function PlanTrip({
   /// pressed rather than after.
   const tooLong = total > 14;
 
+  /// The two ends of a journey as places, from the cities that were typed.
+  ///
+  /// Null at either end for a journey to somewhere the trip never named —
+  /// which is a journey with one pin rather than a wrong one.
+  function endsOf(journey: { from: string; to: string }) {
+    const ends = journeyEnds(journey.from, journey.to, asked.map((leg) => leg.city));
+    return {
+      from: ends.from >= 0 ? (cityPlaces[ends.from] ?? null) : null,
+      to: ends.to >= 0 ? (cityPlaces[ends.to] ?? null) : null,
+    };
+  }
+
   /// Worked out rather than asked for, so the dates and the day counts cannot
   /// disagree with each other.
   const end = start && total > 0 ? dayAfter(start, total - 1) : "";
@@ -113,9 +126,14 @@ export default function PlanTrip({
   /// the cities already typed above, and they are looked up when the trip is
   /// saved along with everything else.
   const [journeys, setJourneys] = useState<Journey[]>([]);
-  /// The cities journeys run between, looked up once each rather than once per
-  /// journey that touches them.
-  const [cities, setCities] = useState<Record<string, SearchResult | null>>({});
+  /// Each city of the trip on the map, in the order they were typed.
+  ///
+  /// Looked up once and spent three ways: the trip's destinations, the pins
+  /// that save the server looking them up again, and the two ends of every
+  /// journey. Looking up the model's words instead meant asking a gazetteer
+  /// for "Quebec" and being handed the province, five hundred kilometres from
+  /// the trip.
+  const [cityPlaces, setCityPlaces] = useState<(SearchResult | null)[]>([]);
   const [saving, setSaving] = useState(false);
 
   async function draft() {
@@ -167,27 +185,22 @@ export default function PlanTrip({
         setChecked([...results]);
       }
 
-      // The cities the journeys run between. Looked up like anything else —
-      // a model naming a city that does not exist should fail the same way a
-      // model naming a restaurant that does not exist fails.
-      const cityNames = [...new Set((body.journeys ?? []).flatMap((j) => [j.from, j.to]))];
-      if (cityNames.length > 0) {
-        setProgress({ done: body.stops.length, total: body.stops.length + cityNames.length });
-        const found: Record<string, SearchResult | null> = {};
-        for (const [n, name] of cityNames.entries()) {
-          try {
-            const hits = await searchPlaces(name, "full", body.destination);
-            found[name] = hits[0] ?? null;
-          } catch {
-            found[name] = null;
-          }
-          setProgress({
-            done: body.stops.length + n + 1,
-            total: body.stops.length + cityNames.length,
-          });
+      // The trip's own cities, as typed rather than as the model wrote them.
+      // Looked up like anything else — a city that does not exist should fail
+      // the same way a restaurant that does not exist fails.
+      const steps = body.stops.length + asked.length;
+      setProgress({ done: body.stops.length, total: steps });
+      const placed: (SearchResult | null)[] = [];
+      for (const [n, leg] of asked.entries()) {
+        try {
+          const hits = await searchPlaces(leg.city, "full", body.destination);
+          placed.push(hits[0] ?? null);
+        } catch {
+          placed.push(null);
         }
-        setCities(found);
+        setProgress({ done: body.stops.length + n + 1, total: steps });
       }
+      setCityPlaces(placed);
 
       setStage("review");
     } catch (e) {
@@ -214,6 +227,27 @@ export default function PlanTrip({
           trip: {
             title: title.trim() || where,
             destination: where,
+            // The cities themselves, so they land on the map like a trip made
+            // any other way — the app never sent these, so an app-made trip
+            // put every restaurant on the map and neither city.
+            destinations: asked.map((leg) => leg.city),
+            // And what was found for each, so the server does not look the
+            // label up again and answer "Quebec" with the province.
+            destinationPins: asked.flatMap((leg, i) => {
+              const found = cityPlaces[i];
+              return found
+                ? [{
+                    label: leg.city,
+                    name: found.name,
+                    lat: found.lat,
+                    lng: found.lng,
+                    city: found.city,
+                    country: found.country,
+                    countryCode: found.countryCode,
+                    category: found.category,
+                  }]
+                : [];
+            }),
             // What the model said the trip is, kept as the trip's own notes
             // rather than shown once and dropped.
             notes: summary || null,
@@ -224,8 +258,9 @@ export default function PlanTrip({
           markVisited: false,
           entries: [
             ...journeys.map((j) => {
-              const from = cities[j.from] ?? null;
-              const to = cities[j.to] ?? null;
+              // Both ends are cities the trip names, matched to what was
+              // typed rather than looked up from what the model wrote.
+              const { from, to } = endsOf(j);
               const asPlace = (r: SearchResult | null) =>
                 r
                   ? {
@@ -508,9 +543,11 @@ export default function PlanTrip({
                         Day {j.day} · {j.from} → {j.to}
                       </Text>
                       <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
-                        {[j.departs && j.arrives ? `${j.departs}–${j.arrives}` : null,
-                          cities[j.to] === null ? "the map could not place this one" : null,
-                          j.note]
+                        {[
+                          j.departs && j.arrives ? `${j.departs}–${j.arrives}` : null,
+                          endsOf(j).to ? null : "the map could not place where it lands",
+                          j.note,
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </Text>
