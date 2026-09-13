@@ -4,6 +4,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { visibleTripsWhere } from "@/lib/trip-access";
 import { firstIssue, tripCreateSchema } from "@/lib/validation";
+import { placesForDestinations } from "@/lib/trip-destinations";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -31,5 +32,15 @@ export async function POST(request: Request) {
   }
 
   const trip = await prisma.trip.create({ data: { ...parsed.data, userId: user.id } });
+
+  // Where it goes, onto the map. Awaited rather than left running: the client
+  // reloads its places the moment this answers, and a place that lands a
+  // second later is a place somebody has already looked for and not found.
+  await placesForDestinations({
+    userId: user.id,
+    destinations: parsed.data.destinations ?? [],
+    endsOn: endDate ?? startDate ?? null,
+  });
+
   return NextResponse.json({ trip }, { status: 201 });
 }

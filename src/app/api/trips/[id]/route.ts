@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
+import { placesForDestinations } from "@/lib/trip-destinations";
 import { firstIssue, tripUpdateSchema } from "@/lib/validation";
 import { placeForViewer, serializeTrip } from "@/lib/types";
 
@@ -102,6 +103,19 @@ export async function PATCH(
         : { publishedAt: published ? (existing.publishedAt ?? new Date()) : null }),
     },
   });
+
+  // Destinations added after the fact land on the map too, so it makes no
+  // difference whether somebody named the city when they made the trip or a
+  // week later. Only the new ones: the helper skips what is already there.
+  if (parsed.data.destinations) {
+    const added = parsed.data.destinations.filter((d) => !existing.destinations.includes(d));
+    await placesForDestinations({
+      userId: user.id,
+      destinations: added,
+      endsOn: end ?? start ?? null,
+    });
+  }
+
   return NextResponse.json({ trip });
 }
 
