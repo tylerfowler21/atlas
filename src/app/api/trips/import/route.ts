@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/user";
 import { firstIssue, tripImportSchema } from "@/lib/validation";
 import { tripAccess } from "@/lib/trip-access";
 import { ownsCategory } from "@/lib/categories";
+import { regionColor, regionOfCountry } from "@/lib/regions";
 
 /// Two places within ~50m of each other with the same name are the same place.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -13,7 +14,19 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
 
-  const parsed = tripImportSchema.safeParse(await request.json());
+  const body: unknown = await request.json();
+  /// Whether a colour was actually chosen, as opposed to the schema supplying
+  /// its default — the difference between "leave this alone" and "nobody said,
+  /// so where is it going?".
+  const chosen =
+    typeof body === "object" &&
+    body !== null &&
+    "trip" in body &&
+    typeof body.trip === "object" &&
+    body.trip !== null &&
+    "color" in body.trip;
+
+  const parsed = tripImportSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
@@ -138,9 +151,25 @@ export async function POST(request: Request) {
       return { tripId: existingTrip.trip.id, created, reused };
     }
 
+    /// Coloured by where it goes, so a list of trips reads as a map before it
+    /// reads as words — the same as a trip made any other way.
+    ///
+    /// Unlike the create route this needs no geocoding at all: the stops came
+    /// back from the review step carrying their own countries, so the earliest
+    /// day that lands somewhere the table knows decides. A trip across two
+    /// continents is still one trip and needs one colour, and the first is the
+    /// one it is named for.
+    const colour = regionColor(
+      [...entries]
+        .sort((a, b) => a.dayIndex - b.dayIndex)
+        .map((entry) => regionOfCountry(entry.place?.countryCode))
+        .find((region) => region !== null) ?? null,
+    );
+
     const saved = await tx.trip.create({
       data: {
         ...trip!,
+        color: !chosen && colour ? colour : trip!.color,
         userId: user.id,
         items: { create: entries.map(itemFor) },
       },
