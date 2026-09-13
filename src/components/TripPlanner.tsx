@@ -466,6 +466,45 @@ export default function TripPlanner({
     if (item.emoji) await patchItem(item.id, { emoji: null });
   }
 
+  /// Bumped after a new cover lands, so the <img> asks again.
+  ///
+  /// The URL never changes — it is always /api/trips/:id/cover — so without
+  /// this, replacing the photograph leaves the old one on screen until a
+  /// reload.
+  const [coverSeq, setCoverSeq] = useState(0);
+
+  async function setCover(file: File) {
+    setBusy(true);
+    setError(null);
+
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`/api/trips/${trip.id}/cover`, { method: "POST", body: form });
+    const body = await res.json().catch(() => ({}));
+    setBusy(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "Could not use that photo");
+      return;
+    }
+    setTrip((t) => ({ ...t, coverUrl: `/api/trips/${t.id}/cover` }));
+    setCoverSeq((n) => n + 1);
+  }
+
+  async function removeCover() {
+    setBusy(true);
+    setError(null);
+
+    const res = await fetch(`/api/trips/${trip.id}/cover`, { method: "DELETE" });
+    setBusy(false);
+
+    if (!res.ok) {
+      setError("Could not remove that photo");
+      return;
+    }
+    setTrip((t) => ({ ...t, coverUrl: null }));
+  }
+
   async function setPublished(next: boolean) {
     setBusy(true);
     setError(null);
@@ -688,13 +727,25 @@ export default function TripPlanner({
   return (
     <div className="flex h-full flex-col lg:flex-row">
       <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-b border-line bg-surface p-5 lg:h-full lg:w-[460px] lg:border-r lg:border-b-0 xl:w-[580px]">
-        {/* The cover. A photograph would go here; until there is one, the
-            trip's own colour fading into evergreen. */}
+        {/* The cover: the trip's photograph when it has one, and until then
+            its own colour fading into evergreen.
+            
+            The photograph goes under a scrim rather than behind nothing. The
+            title and dates are white and sit on top of it, and a bright sky in
+            the wrong corner makes them unreadable. */}
         <div
           className="relative -mx-5 -mt-5 flex min-h-44 flex-col justify-end px-5 pt-14 pb-5 text-[color:var(--paint-card)] lg:mx-0 lg:mt-0 lg:rounded-3xl"
-          style={{
-            background: `linear-gradient(160deg, ${trip.color} 0%, var(--paint-evergreen-900) 75%)`,
-          }}
+          style={
+            trip.coverUrl
+              ? {
+                  backgroundImage: `linear-gradient(180deg, rgba(11,33,28,0.45) 0%, rgba(11,33,28,0.15) 40%, rgba(11,33,28,0.78) 100%), url(${trip.coverUrl}${coverSeq > 0 ? `?v=${coverSeq}` : ""})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : {
+                  background: `linear-gradient(160deg, ${trip.color} 0%, var(--paint-evergreen-900) 75%)`,
+                }
+          }
         >
           <Link
             href="/trips"
@@ -702,27 +753,65 @@ export default function TripPlanner({
           >
             ‹ Trips
           </Link>
-          {/* Whether a trip is public should be readable without opening a
-              panel — it is the one setting where not knowing is a problem. */}
-          {role === "owner" ? (
-            <button
-              type="button"
-              className="absolute top-4 right-4 rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium disabled:opacity-60"
-              disabled={busy}
-              onClick={() => setPublished(trip.publishedAt === null)}
-              title={
-                trip.publishedAt
-                  ? "On your profile and in your followers' feeds. Click to make private."
-                  : "Only you and anyone you've invited. Click to publish."
-              }
-            >
-              {trip.publishedAt ? "🌍 Published" : "🔒 Private"}
-            </button>
-          ) : (
-            <span className="absolute top-4 right-4 rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium">
-              ✏️ Shared with you
-            </span>
-          )}
+          {/* Changing the photograph, for anyone who can edit the trip — which
+              is who the upload route lets through. On the cover itself rather
+              than in a settings panel: it is the thing being changed, and it
+              is right there. */}
+          {/* The cover's own controls, together in one corner. The bottom of
+              this band is the trip's name and dates, and a button down there
+              runs into them on a narrow panel. */}
+          <div className="absolute top-4 right-4 flex flex-wrap items-center justify-end gap-1.5">
+            {trip.coverUrl && (
+              <button
+                type="button"
+                className="rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium disabled:opacity-60"
+                disabled={busy}
+                onClick={() => void removeCover()}
+              >
+                Remove photo
+              </button>
+            )}
+
+            {/* Changing the photograph, for anyone who can edit the trip —
+                which is who the upload route lets through. */}
+            <label className="cursor-pointer rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium hover:bg-[rgba(11,33,28,0.5)]">
+              📷 {trip.coverUrl ? "Change" : "Add a photo"}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,image/gif"
+                disabled={busy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  // Cleared so choosing the same file twice still fires.
+                  e.target.value = "";
+                  if (file) void setCover(file);
+                }}
+              />
+            </label>
+
+            {/* Whether a trip is public should be readable without opening a
+                panel — it is the one setting where not knowing is a problem. */}
+            {role === "owner" ? (
+              <button
+                type="button"
+                className="rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium disabled:opacity-60"
+                disabled={busy}
+                onClick={() => setPublished(trip.publishedAt === null)}
+                title={
+                  trip.publishedAt
+                    ? "On your profile and in your followers' feeds. Click to make private."
+                    : "Only you and anyone you've invited. Click to publish."
+                }
+              >
+                {trip.publishedAt ? "🌍 Published" : "🔒 Private"}
+              </button>
+            ) : (
+              <span className="rounded-full border border-white/20 bg-[rgba(11,33,28,0.34)] px-3 py-1.5 text-xs font-medium">
+                ✏️ Shared with you
+              </span>
+            )}
+          </div>
           <h1 className="text-3xl leading-tight xl:text-4xl">{trip.title}</h1>
           <p className="mt-1.5 text-sm text-white/80">
             {[
