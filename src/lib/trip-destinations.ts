@@ -29,6 +29,14 @@ export async function placesForDestinations(input: {
   /// The day the trip ends, or its start if that is all it has. Undefined for
   /// a trip with no dates.
   endsOn?: Date | null;
+  /// Been there or want to go, when the caller already knows.
+  ///
+  /// The dates are only ever a guess at this, and the importer does not have
+  /// to guess: it asked outright, with a tick box that says "Mark every place
+  /// as Been there". A trip with no dates at all is the case that makes the
+  /// difference — the guess calls it a plan, and somebody recording a
+  /// fortnight in Amsterdam from years ago has just said otherwise.
+  status?: "visited" | "wishlist";
   /// Today, passed in rather than read here so a caller can be tested.
   now?: Date;
 }) {
@@ -38,7 +46,8 @@ export async function placesForDestinations(input: {
   const countries: string[] = [];
 
   const now = input.now ?? new Date();
-  const status = input.endsOn && input.endsOn < now ? "visited" : "wishlist";
+  const status =
+    input.status ?? (input.endsOn && input.endsOn < now ? "visited" : "wishlist");
 
   for (const name of names) {
     try {

@@ -6,6 +6,7 @@ import { firstIssue, tripImportSchema } from "@/lib/validation";
 import { tripAccess } from "@/lib/trip-access";
 import { ownsCategory } from "@/lib/categories";
 import { regionColor, regionOfCountry, type RegionId } from "@/lib/regions";
+import { placesForDestinations } from "@/lib/trip-destinations";
 
 /// Two places within ~50m of each other with the same name are the same place.
 const SAME_PLACE_DEGREES = 0.0005;
@@ -183,6 +184,33 @@ export async function POST(request: Request) {
 
     return { tripId: saved.id, created, reused };
   });
+
+  /// Where the trip goes, onto the map — the same as a trip made any other
+  /// way.
+  ///
+  /// Only for a new trip: appending a handful of places off a feed to a trip
+  /// that already exists says nothing new about where it goes.
+  ///
+  /// Outside the transaction, and deliberately. This geocodes, which means a
+  /// network call and about a second each against the gazetteer's rate limit,
+  /// and holding a database transaction open across that is how a slow
+  /// afternoon at somebody else's API becomes a lock on ours. Nothing here can
+  /// fail the import: the trip is already written and the places are a
+  /// convenience on top of it.
+  ///
+  /// Awaited rather than left running, because this is a serverless function —
+  /// work still outstanding when the response goes back is work that may never
+  /// finish.
+  if (!existingTrip && trip) {
+    await placesForDestinations({
+      userId: user.id,
+      destinations: trip.destinations ?? [],
+      endsOn: trip.endDate ?? trip.startDate ?? null,
+      // Said outright on the form rather than guessed from the dates, which
+      // is the one thing this route knows that the create route does not.
+      status: markVisited ? "visited" : "wishlist",
+    });
+  }
 
   return NextResponse.json(result, { status: 201 });
 }
