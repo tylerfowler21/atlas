@@ -11,7 +11,6 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -21,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { api, type SearchResult } from "@/lib/api";
+import { SEMANTIC } from "@/lib/brand";
 import { useCategories } from "@/lib/categories";
 import { usePalette } from "@/lib/use-palette";
 import { searchPlaces } from "@/lib/search-places";
@@ -135,9 +135,21 @@ export default function PlanTrip({
   /// the trip.
   const [cityPlaces, setCityPlaces] = useState<(SearchResult | null)[]>([]);
   const [saving, setSaving] = useState(false);
+  /// Why the last attempt failed, kept on screen.
+  ///
+  /// This was an Alert, and an Alert that does not appear leaves nothing
+  /// behind: a draft came back from the server, the sheet returned to the
+  /// form, and there was no way to find out what went wrong short of spending
+  /// another of the day's five. A line that stays says which half failed and
+  /// what it said.
+  const [failed, setFailed] = useState<string | null>(null);
 
   async function draft() {
     setStage("drafting");
+    setFailed(null);
+    // Which half of this we are in, so a failure says so rather than leaving
+    // "drafting" and "checking every place against the map" indistinguishable.
+    let doing = "Drafting";
     try {
       const body = await api<{
         title: string;
@@ -163,6 +175,7 @@ export default function PlanTrip({
 
       // Looked up one at a time, deliberately: the geocoders behind this allow
       // about a request a second, and the progress is worth seeing anyway.
+      doing = "Checking the places";
       setStage("checking");
       setProgress({ done: 0, total: body.stops.length });
 
@@ -205,17 +218,14 @@ export default function PlanTrip({
       setStage("review");
     } catch (e) {
       setStage("asking");
-      Alert.alert(
-        "That draft didn't come back",
-        e instanceof Error ? e.message : "Try again in a moment.",
-      );
+      setFailed(`${doing} failed — ${e instanceof Error ? e.message : "try again in a moment."}`);
     }
   }
 
   async function save() {
     const keeping = checked.filter((c) => c.keep && c.match);
     if (keeping.length === 0) {
-      Alert.alert("Nothing to save", "Keep at least one place.");
+      setFailed("Keep at least one place to save a trip.");
       return;
     }
 
@@ -312,7 +322,7 @@ export default function PlanTrip({
       onClose();
       return tripId;
     } catch (e) {
-      Alert.alert("Could not save that trip", e instanceof Error ? e.message : "Try again");
+      setFailed(`Saving failed — ${e instanceof Error ? e.message : "try again."}`);
     } finally {
       setSaving(false);
     }
@@ -478,6 +488,12 @@ export default function PlanTrip({
               </Text>
             )}
 
+            {failed && (
+              <Text style={{ color: SEMANTIC.danger, fontSize: 13, marginTop: 14 }}>
+                {failed}
+              </Text>
+            )}
+
             <Pressable
               onPress={draft}
               disabled={asked.length === 0 || tooLong}
@@ -593,6 +609,12 @@ export default function PlanTrip({
                 </View>
               </Pressable>
             ))}
+
+            {failed && (
+              <Text style={{ color: SEMANTIC.danger, fontSize: 13, marginTop: 14 }}>
+                {failed}
+              </Text>
+            )}
 
             <Pressable
               onPress={save}
