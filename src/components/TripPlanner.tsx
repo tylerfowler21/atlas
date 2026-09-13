@@ -214,6 +214,39 @@ export default function TripPlanner({
     return true;
   }
 
+  /// Dragging a row, from whichever part of it somebody grabbed.
+  ///
+  /// The pointer is captured on the element that was pressed, so every later
+  /// move arrives here even once it has left that little circle — and
+  /// `touch-none` on both keeps the page from scrolling under the finger.
+  function dragHandlers(index: number) {
+    return {
+      onPointerDown: (e: React.PointerEvent) => {
+        if (busy) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        measureRows();
+        draggingFrom.current = index;
+        setDragOver(index);
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        if (draggingFrom.current === null) return;
+        const over = rowAt(e.clientY);
+        if (over !== null && over !== dragOver) setDragOver(over);
+      },
+      onPointerUp: async () => {
+        const from = draggingFrom.current;
+        const to = dragOver;
+        draggingFrom.current = null;
+        setDragOver(null);
+        if (from !== null && to !== null) await moveTo(from, to);
+      },
+      onPointerCancel: () => {
+        draggingFrom.current = null;
+        setDragOver(null);
+      },
+    };
+  }
+
   function addItem(payload: {
     title: string;
     placeId?: string | null;
@@ -833,39 +866,26 @@ export default function TripPlanner({
                           {timingLabel(item)?.replace(/^about /, "") ?? ""}
                         </span>
                       )}
+                      {/* The number is the handle, and has been since dragging
+                          existed — but a numbered badge reads as a label, so
+                          people found the arrows inside and never knew. It
+                          keeps the job; the grip beside it is what says so. */}
                       <span
                         title="Drag to reorder"
                         aria-label={`Stop ${index + 1}. Drag to reorder.`}
                         className="grid size-6 shrink-0 cursor-grab touch-none place-items-center rounded-full text-[11px] font-semibold text-white select-none active:cursor-grabbing"
                         style={{ background: trip.color }}
-                        onPointerDown={(e) => {
-                          if (busy) return;
-                          // Keeps the page from scrolling under the finger and
-                          // routes every later move here even once the pointer
-                          // has left this little circle.
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                          measureRows();
-                          draggingFrom.current = index;
-                          setDragOver(index);
-                        }}
-                        onPointerMove={(e) => {
-                          if (draggingFrom.current === null) return;
-                          const over = rowAt(e.clientY);
-                          if (over !== null && over !== dragOver) setDragOver(over);
-                        }}
-                        onPointerUp={async () => {
-                          const from = draggingFrom.current;
-                          const to = dragOver;
-                          draggingFrom.current = null;
-                          setDragOver(null);
-                          if (from !== null && to !== null) await moveTo(from, to);
-                        }}
-                        onPointerCancel={() => {
-                          draggingFrom.current = null;
-                          setDragOver(null);
-                        }}
+                        {...dragHandlers(index)}
                       >
                         {index + 1}
+                      </span>
+                      <span
+                        aria-hidden
+                        title="Drag to reorder"
+                        className="-ml-1.5 shrink-0 cursor-grab touch-none leading-none text-muted/45 select-none hover:text-muted active:cursor-grabbing"
+                        {...dragHandlers(index)}
+                      >
+                        ⠿
                       </span>
                       <button
                         type="button"
