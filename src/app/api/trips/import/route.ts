@@ -64,15 +64,18 @@ export async function POST(request: Request) {
 
   const result = await prisma.$transaction(async (tx) => {
     const placeIds = new Map<number, string>();
+    /// Where each journey lands. Separate from `placeIds`, which is where an
+    /// entry happens — for travel that is where it left from.
+    const toPlaceIds = new Map<number, string>();
     let created = 0;
     let reused = 0;
 
-    for (const [index, entry] of entries.entries()) {
-      if (!entry.place) continue;
-      const p = entry.place;
-
-      // Re-importing a place you already saved should attach to the existing
-      // one rather than littering the map with duplicates.
+    /// The id of a place, reusing one already saved before making another.
+    ///
+    /// Re-importing a place you already have should attach to it rather than
+    /// littering the map with duplicates, and a journey's two ends are exactly
+    /// the cities the trip is about — so they are nearly always already there.
+    const placeIdFor = async (p: NonNullable<(typeof entries)[number]["place"]>, category: string) => {
       const existing = await tx.place.findFirst({
         where: {
           userId: user.id,
@@ -92,15 +95,14 @@ export async function POST(request: Request) {
             data: { status: "visited", visitedAt },
           });
         }
-        placeIds.set(index, existing.id);
-        continue;
+        return existing.id;
       }
 
       const place = await tx.place.create({
         data: {
           userId: user.id,
           name: p.name,
-          category: entry.category,
+          category,
           status: markVisited ? "visited" : "wishlist",
           visitedAt,
           lat: p.lat,
@@ -112,7 +114,18 @@ export async function POST(request: Request) {
         },
       });
       created += 1;
-      placeIds.set(index, place.id);
+      return place.id;
+    };
+
+    for (const [index, entry] of entries.entries()) {
+      if (entry.place) {
+        placeIds.set(index, await placeIdFor(entry.place, entry.category));
+      }
+      if (entry.toPlace) {
+        // A city somebody is travelling to is a city, whatever the journey is
+        // filed as.
+        toPlaceIds.set(index, await placeIdFor(entry.toPlace, "city"));
+      }
     }
 
     // Position is per-day, so count within each day rather than overall. When
@@ -132,13 +145,17 @@ export async function POST(request: Request) {
       const position = positionByDay.get(entry.dayIndex) ?? 0;
       positionByDay.set(entry.dayIndex, position + 1);
       return {
+        kind: entry.kind,
         title: entry.title,
         notes: entry.notes,
         dayIndex: entry.dayIndex,
         startTime: entry.startTime,
+        endTime: entry.endTime,
+        mode: entry.mode ?? null,
         category: entry.category,
         position,
         placeId: placeIds.get(index) ?? null,
+        toPlaceId: toPlaceIds.get(index) ?? null,
       };
     };
 

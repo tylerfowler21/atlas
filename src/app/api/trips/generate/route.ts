@@ -110,6 +110,8 @@ export async function POST(request: Request) {
       /// For the app, which has no such box. The same draft, still structured,
       /// so it does not have to parse prose back into the thing it just was.
       stops: itinerary.stops,
+      /// Getting between the cities, for the same reason.
+      journeys: itinerary.journeys,
       remaining: DRAFTS_PER_DAY - used - 1,
     });
   } catch (error) {

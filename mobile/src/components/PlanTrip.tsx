@@ -25,6 +25,7 @@ import { useCategories } from "@/lib/categories";
 import { usePalette } from "@/lib/use-palette";
 import { searchPlaces } from "@/lib/search-places";
 import { TRIP_STYLES } from "@/lib/trip-styles";
+import { TRAVEL_MODES } from "@/lib/taxonomy";
 import DateRangePicker from "@/components/DateRangePicker";
 
 /// A date this many days after the given one, as "YYYY-MM-DD". Noon UTC rather
@@ -42,6 +43,18 @@ type Stop = {
   name: string;
   city: string;
   category: string;
+  note: string | null;
+};
+
+/// Getting from one city to the next: the morning on a train in the middle of
+/// a multi-city trip, which a list of stops alone leaves out.
+type Journey = {
+  day: number;
+  from: string;
+  to: string;
+  mode: string;
+  departs: string | null;
+  arrives: string | null;
   note: string | null;
 };
 
@@ -104,6 +117,13 @@ export default function PlanTrip({
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [checked, setChecked] = useState<Checked[]>([]);
+  /// Kept as drafted rather than checked one by one: a journey's two ends are
+  /// the cities already typed above, and they are looked up when the trip is
+  /// saved along with everything else.
+  const [journeys, setJourneys] = useState<Journey[]>([]);
+  /// The cities journeys run between, looked up once each rather than once per
+  /// journey that touches them.
+  const [cities, setCities] = useState<Record<string, SearchResult | null>>({});
   const [saving, setSaving] = useState(false);
 
   async function draft() {
@@ -114,6 +134,7 @@ export default function PlanTrip({
         destination: string;
         summary: string;
         stops: Stop[];
+        journeys: Journey[];
       }>("/api/trips/generate", {
         method: "POST",
         body: JSON.stringify({
@@ -128,6 +149,7 @@ export default function PlanTrip({
 
       setTitle(body.title);
       setSummary(body.summary);
+      setJourneys(body.journeys ?? []);
 
       // Looked up one at a time, deliberately: the geocoders behind this allow
       // about a request a second, and the progress is worth seeing anyway.
@@ -151,6 +173,28 @@ export default function PlanTrip({
         results.push({ ...stop, match, keep: match !== null });
         setProgress({ done: i + 1, total: body.stops.length });
         setChecked([...results]);
+      }
+
+      // The cities the journeys run between. Looked up like anything else —
+      // a model naming a city that does not exist should fail the same way a
+      // model naming a restaurant that does not exist fails.
+      const cityNames = [...new Set((body.journeys ?? []).flatMap((j) => [j.from, j.to]))];
+      if (cityNames.length > 0) {
+        setProgress({ done: body.stops.length, total: body.stops.length + cityNames.length });
+        const found: Record<string, SearchResult | null> = {};
+        for (const [n, name] of cityNames.entries()) {
+          try {
+            const hits = await searchPlaces(name, "full", body.destination);
+            found[name] = hits[0] ?? null;
+          } catch {
+            found[name] = null;
+          }
+          setProgress({
+            done: body.stops.length + n + 1,
+            total: body.stops.length + cityNames.length,
+          });
+        }
+        setCities(found);
       }
 
       setStage("review");
@@ -186,7 +230,39 @@ export default function PlanTrip({
           },
           // A trip somebody is about to take, not one they have taken.
           markVisited: false,
-          entries: keeping.map((c) => ({
+          entries: [
+            ...journeys.map((j) => {
+              const from = cities[j.from] ?? null;
+              const to = cities[j.to] ?? null;
+              const asPlace = (r: SearchResult | null) =>
+                r
+                  ? {
+                      name: r.city ?? r.name,
+                      lat: r.lat,
+                      lng: r.lng,
+                      address: r.address,
+                      city: r.city,
+                      country: r.country,
+                      countryCode: r.countryCode,
+                    }
+                  : null;
+              return {
+                dayIndex: Math.max(0, j.day - 1),
+                title: `${j.from} → ${j.to}`,
+                kind: "travel" as const,
+                mode: j.mode,
+                startTime: j.departs,
+                endTime: j.arrives,
+                notes: j.note,
+                category: "transport",
+                // A city the map could not place leaves that end without a
+                // pin. The journey is still a journey and still says where it
+                // went.
+                place: asPlace(from),
+                toPlace: asPlace(to),
+              };
+            }),
+            ...keeping.map((c) => ({
             dayIndex: Math.max(0, c.day - 1),
             title: c.name,
             startTime: c.time,
@@ -201,7 +277,8 @@ export default function PlanTrip({
               country: c.match!.country,
               countryCode: c.match!.countryCode,
             },
-          })),
+            })),
+          ],
         }),
       });
       onCreated();
@@ -416,6 +493,46 @@ export default function PlanTrip({
               {unmatched > 0 ? ` · ${unmatched} couldn't be found` : ""}
             </Text>
 
+            {/* The journeys, shown rather than hidden: a plan that moves
+                between cities has a morning on a train in it, and somebody
+                should see that before they save it. Nothing to tick — both
+                ends are cities they already typed. */}
+            {journeys.length > 0 && (
+              <View style={{ marginTop: 14 }}>
+                <Text style={{ color: palette.muted, fontSize: 12, marginBottom: 6 }}>
+                  Getting between them
+                </Text>
+                {journeys.map((j, i) => (
+                  <View
+                    key={`leg-${i}`}
+                    style={[styles.row, { borderColor: palette.border }]}
+                  >
+                    <Text style={{ fontSize: 16 }}>
+                      {TRAVEL_MODES.find((m) => m.id === j.mode)?.icon ?? "🚆"}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: palette.ink, fontSize: 14 }} numberOfLines={1}>
+                        Day {j.day} · {j.from} → {j.to}
+                      </Text>
+                      <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                        {[j.departs && j.arrives ? `${j.departs}–${j.arrives}` : null,
+                          cities[j.to] === null ? "the map could not place this one" : null,
+                          j.note]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {journeys.length > 0 && (
+              <Text style={{ color: palette.muted, fontSize: 12, marginTop: 14, marginBottom: 2 }}>
+                The places
+              </Text>
+            )}
+
             {checked.map((c, i) => (
               <Pressable
                 key={`${c.name}-${i}`}
@@ -456,7 +573,11 @@ export default function PlanTrip({
               ]}
             >
               <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
-                {saving ? "Saving…" : `Create trip with ${keeping} stops`}
+                {saving
+                  ? "Saving…"
+                  : journeys.length > 0
+                    ? `Create trip with ${keeping} stops and ${journeys.length} ${journeys.length === 1 ? "journey" : "journeys"}`
+                    : `Create trip with ${keeping} stops`}
               </Text>
             </Pressable>
           </>

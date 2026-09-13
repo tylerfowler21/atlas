@@ -20,6 +20,20 @@ export type ParsedEntry = {
   startTime: string | null;
   /// whatever followed a dash
   note: string | null;
+  /// A journey rather than a place: "Montreal → Quebec City".
+  ///
+  /// A multi-city trip has a morning on a train in the middle of it, and
+  /// writing that as a stop called "Gare du Palais" loses the fact that
+  /// anybody went anywhere. The app has always held journeys; nothing that
+  /// produced an itinerary ever wrote one.
+  travel?: {
+    /// Where it is going. Where it leaves from is the entry's own title.
+    to: string;
+    /// train, bus, plane, ferry, car, walk — or null when the line did not say.
+    mode: string | null;
+    /// "HH:mm" arrival, when the line said one.
+    endTime: string | null;
+  };
 };
 
 // "Day 1", "Day 2:", "day 3 -", "DAY 4 —", optionally followed by a place.
@@ -31,6 +45,20 @@ const LEADING_TIME = /^(\d{1,2})[:.](\d{2})\s+(.*)$/;
 // " - note", " — note", " – note" (needs the surrounding space so hyphenated
 // place names like "Baden-Baden" survive).
 const NOTE_SPLIT = /\s+[–—-]\s+/;
+// "Montreal → Quebec City", or the same typed as "->". Spaces required either
+// side, so a name containing an arrow character would have to be trying.
+const JOURNEY_SPLIT = /\s+(?:→|->)\s+/;
+// "arrives 12:30", anywhere in the note.
+const ARRIVES = /\barrives?\s+(\d{1,2})[:.](\d{2})\b/i;
+/// The modes a journey can be, as the words somebody writes them.
+const MODES: Record<string, string> = {
+  train: "train", rail: "train", metro: "train", subway: "train",
+  bus: "bus", coach: "bus",
+  plane: "plane", flight: "plane", fly: "plane", flying: "plane",
+  ferry: "ferry", boat: "ferry",
+  car: "car", drive: "car", driving: "car", taxi: "car",
+  walk: "walk", walking: "walk",
+};
 
 /// Whether a would-be note starts by naming a category, the way the note in
 /// this format does: "restaurant, book two weeks ahead".
@@ -90,6 +118,28 @@ function buildEntry(raw: string, dayIndex: number): ParsedEntry | null {
 
   const { title, note } = splitNote(text);
   if (!title) return null;
+
+  /// Two places with an arrow between them is a journey, not a place called
+  /// "A → B". The mode is the note's first word, where a category would be on
+  /// an ordinary line.
+  const legs = title.split(JOURNEY_SPLIT);
+  if (legs.length === 2 && legs[0]!.trim() && legs[1]!.trim()) {
+    const first = (note?.split(",")[0] ?? "").trim().toLowerCase();
+    const landing = note?.match(ARRIVES);
+    return {
+      dayIndex,
+      title: legs[0]!.trim(),
+      startTime,
+      note,
+      travel: {
+        to: legs[1]!.trim(),
+        mode: MODES[first] ?? null,
+        endTime: landing
+          ? `${String(Number(landing[1])).padStart(2, "0")}:${landing[2]}`
+          : null,
+      },
+    };
+  }
 
   return { dayIndex, title, startTime, note };
 }

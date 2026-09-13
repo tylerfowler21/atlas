@@ -184,12 +184,33 @@ export function firstIssue(error: z.ZodError): string {
 /// One resolved line of a pasted itinerary. `place` is null when the entry is
 /// something that isn't a location ("Train to Zermatt"), which still belongs on
 /// the day but never gets a map pin.
+/// Somewhere an imported entry happens, when the map knows it.
+const importPlaceSchema = z.object({
+  name: trimmed(160).min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  address: optionalText(300),
+  city: optionalText(120),
+  country: optionalText(120),
+  countryCode: optionalText(8).transform((v) => v?.toLowerCase() ?? null),
+});
+
 const importEntrySchema = z.object({
   dayIndex: z.number().int().min(0).max(365),
   title: trimmed(160).min(1),
   startTime: optionalText(5),
   notes: optionalText(1000),
   category: categoryField.default("other"),
+  /// "stop" for somewhere you were, "travel" for the journey in between.
+  ///
+  /// A multi-city itinerary that only imports stops has somebody teleporting
+  /// between breakfast in one city and lunch in the next.
+  kind: z.enum(["stop", "travel"]).default("stop"),
+  /// Travel only: how, and when it lands.
+  mode: z.enum(TRAVEL_MODE_IDS).nullable().optional(),
+  endTime: optionalText(5),
+  /// Travel only: where it arrives. `place` is where it left from.
+  toPlace: importPlaceSchema.nullable().optional(),
   place: z
     .object({
       name: trimmed(160).min(1),

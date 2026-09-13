@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { BUILT_IN_CATEGORY_IDS } from "@/lib/taxonomy";
+import { BUILT_IN_CATEGORY_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
 import { styleAsks } from "@/lib/trip-styles";
 
 /// Asking Claude to draft an itinerary.
@@ -34,11 +34,32 @@ const stopSchema = z.object({
     .describe("One short line on why it is worth going, or a booking warning"),
 });
 
+/// Getting from one city to the next.
+///
+/// A multi-city trip is not two lists of days side by side — there is a morning
+/// on a train in the middle of it, and a plan that leaves it out has somebody
+/// teleporting between breakfast and lunch. The app has always been able to
+/// hold a journey; the draft simply never produced one.
+const journeySchema = z.object({
+  day: z.number().int().min(1).max(30).describe("Which day of the trip it happens on, from 1"),
+  from: z.string().describe("The city being left, as it is written on a map"),
+  to: z.string().describe("The city being arrived at"),
+  mode: z.enum(TRAVEL_MODE_IDS),
+  departs: z.string().nullable().describe("24-hour time like 09:15, or null if it does not matter"),
+  arrives: z.string().nullable().describe("24-hour time like 12:30, or null"),
+  note: z
+    .string()
+    .nullable()
+    .describe("One short line — which station, how long it takes, whether to book"),
+});
+
 const itinerarySchema = z.object({
   title: z.string().describe("A short name for the trip"),
   destination: z.string().describe("The city or region, for looking places up"),
   summary: z.string().describe("Two sentences on the shape of the trip"),
   stops: z.array(stopSchema),
+  /// Empty for a trip that never leaves one city.
+  journeys: z.array(journeySchema),
 });
 
 export type GeneratedItinerary = z.infer<typeof itinerarySchema>;
@@ -52,6 +73,11 @@ out; a shorter honest day beats a padded one.
 
 Group stops so a day makes geographic sense: somebody is walking or taking a
 train between these, not teleporting. Leave room to eat. Do not fill every hour.
+
+When the trip moves from one city to the next, say so as a journey: which day,
+what it is — train, bus, plane, ferry, car — and roughly when it leaves and
+lands. A day somebody spends travelling holds fewer stops than a day they do
+not.
 
 Prefer places that have been there a while over whatever is currently fashionable,
 and say in the note when something needs booking ahead.`;
@@ -141,15 +167,11 @@ export async function generateItinerary(input: ItineraryRequest): Promise<Genera
 /// look each place up, show what was found, confirm or correct it — are the
 /// ones that already exist. Nothing about a generated trip skips them.
 export function itineraryToText(itinerary: GeneratedItinerary): string {
-  const lines: string[] = [];
-  let lastDay = 0;
+  /// Stops and journeys in one stream, so a day reads in the order it happens
+  /// rather than as a list of places with the travel bolted on the end.
+  const lines: { day: number; at: string; text: string }[] = [];
 
-  for (const stop of [...itinerary.stops].sort((a, b) => a.day - b.day)) {
-    if (stop.day !== lastDay) {
-      lastDay = stop.day;
-      lines.push(`Day ${stop.day}`);
-    }
-
+  for (const stop of itinerary.stops) {
     const where =
       stop.city && !stop.name.toLowerCase().includes(stop.city.toLowerCase())
         ? `${stop.name}, ${stop.city}`
@@ -157,8 +179,47 @@ export function itineraryToText(itinerary: GeneratedItinerary): string {
 
     // The category leads the note, which is where the importer reads it from.
     const note = [stop.category, stop.note].filter(Boolean).join(", ");
-    lines.push(`${stop.time ? `${stop.time} ` : ""}${where}${note ? ` — ${note}` : ""}`);
+    lines.push({
+      day: stop.day,
+      at: stop.time ?? "",
+      text: `${stop.time ? `${stop.time} ` : ""}${where}${note ? ` — ${note}` : ""}`,
+    });
   }
 
-  return lines.join("\n");
+  /// A journey, written the way the importer reads one: two places with an
+  /// arrow between them, and the mode at the front of the note where a
+  /// category would be.
+  for (const leg of itinerary.journeys) {
+    const note = [
+      leg.mode,
+      leg.arrives ? `arrives ${leg.arrives}` : null,
+      leg.note,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    lines.push({
+      day: leg.day,
+      // Sorted to the front of its day when nothing says otherwise: the
+      // morning train is how the day starts.
+      at: leg.departs ?? "",
+      text: `${leg.departs ? `${leg.departs} ` : ""}${leg.from} → ${leg.to} — ${note}`,
+    });
+  }
+
+  const out: string[] = [];
+  let lastDay = 0;
+
+  // By day, then by the clock. Anything untimed goes after what is timed,
+  // because a day with times in it is a day somebody is reading in order.
+  for (const line of lines.sort(
+    (a, b) => a.day - b.day || (a.at || "99:99").localeCompare(b.at || "99:99"),
+  )) {
+    if (line.day !== lastDay) {
+      lastDay = line.day;
+      out.push(`Day ${line.day}`);
+    }
+    out.push(line.text);
+  }
+
+  return out.join("\n");
 }

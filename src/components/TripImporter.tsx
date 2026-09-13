@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 // taxonomy comes through the provider
 import { parseItinerary, parsedDayCount, type ParsedEntry } from "@/lib/itinerary-parser";
 import { categoryFromWord } from "@/lib/category-words";
+import { travelMode } from "@/lib/taxonomy";
 import DestinationField from "@/components/DestinationField";
 import { pinFrom, pinsFor, type DestinationPin } from "@/lib/destination-pins";
 import DraftTrip from "@/components/DraftTrip";
@@ -214,6 +215,41 @@ export default function TripImporter({
     }
   }
 
+  /// The place behind a journey's endpoint, from the destinations already
+  /// picked.
+  ///
+  /// A journey goes between cities the trip names, and those were resolved
+  /// when somebody pointed at them — coordinates included. Matching is on the
+  /// city rather than the whole label, because the draft writes "Quebec City"
+  /// where the picker stored "Quebec, Canada": the label carries a country the
+  /// itinerary has no reason to repeat.
+  function cityPinFor(name: string) {
+    const wanted = name.trim().toLowerCase();
+    if (!wanted) return null;
+
+    const pin = Object.values(cityPins).find((candidate) => {
+      const city = (candidate.city ?? candidate.name).toLowerCase();
+      return (
+        city === wanted ||
+        candidate.label.toLowerCase() === wanted ||
+        // "Quebec" against "Quebec City", and the other way round.
+        city.startsWith(wanted) ||
+        wanted.startsWith(city)
+      );
+    });
+    if (!pin) return null;
+
+    return {
+      name: pin.city ?? pin.name,
+      lat: pin.lat,
+      lng: pin.lng,
+      address: null,
+      city: pin.city,
+      country: pin.country,
+      countryCode: pin.countryCode,
+    };
+  }
+
   /// Looks each entry up one at a time. The geocoder allows roughly one
   /// request a second and the server queues to enforce that, so this is
   /// deliberately sequential with visible progress rather than a burst.
@@ -244,6 +280,22 @@ export default function TripImporter({
     const working = [...initial];
 
     for (let i = 0; i < working.length; i += 1) {
+      // A journey is not a place, and both its ends are cities the trip
+      // already names — so there is nothing to look up and nothing to spend a
+      // second of the geocoder's allowance on.
+      if (working[i]!.travel) {
+        working[i] = {
+          ...working[i]!,
+          state: "done",
+          category: "transport",
+          note: withoutLeadingWord(working[i]!.note),
+          include: true,
+        };
+        setRows([...working]);
+        setProgress({ done: i + 1, total: working.length });
+        continue;
+      }
+
       working[i] = { ...working[i]!, state: "looking" };
       setRows([...working]);
 
@@ -382,32 +434,43 @@ export default function TripImporter({
           const match = row.chosen >= 0 ? row.candidates[row.chosen] : null;
           return {
             dayIndex: row.dayIndex,
-            title: row.title,
+            title: row.travel ? `${row.title} → ${row.travel.to}` : row.title,
             startTime: row.startTime,
             notes: row.note,
             category: row.category,
-            place: match
-              ? {
-                  // "Husk, Charleston" was written that way so the geocoder had
-                  // something to work with; the city is stored separately, so
-                  // saying it twice on the pin is just noise.
-                  //
-                  // After a hand search the document's own words are the ones
-                  // that failed, so the pin takes the name of what was found.
-                  // The entry keeps its title either way: renaming somebody's
-                  // "Dinner with Ana" because they searched for the restaurant
-                  // would be answering a question they did not ask.
-                  name: row.retried
-                    ? match.name
-                    : withoutTrailing(row.title, match.city),
-                  lat: match.lat,
-                  lng: match.lng,
-                  address: match.address,
-                  city: match.city,
-                  country: match.country,
-                  countryCode: match.countryCode,
-                }
-              : null,
+            // A journey's two ends come from the destinations already picked,
+            // which carry the coordinates the picker found. A city the trip
+            // never named leaves that end without a pin — the journey is still
+            // a journey and its title still says where it went.
+            kind: row.travel ? ("travel" as const) : ("stop" as const),
+            mode: row.travel?.mode ?? null,
+            endTime: row.travel?.endTime ?? null,
+            toPlace: row.travel ? cityPinFor(row.travel.to) : null,
+            place: row.travel
+              ? cityPinFor(row.title)
+              : match
+                ? {
+                    // "Husk, Charleston" was written that way so the geocoder
+                    // had something to work with; the city is stored
+                    // separately, so saying it twice on the pin is just noise.
+                    //
+                    // After a hand search the document's own words are the
+                    // ones that failed, so the pin takes the name of what was
+                    // found. The entry keeps its title either way: renaming
+                    // somebody's "Dinner with Ana" because they searched for
+                    // the restaurant would be answering a question they did
+                    // not ask.
+                    name: row.retried
+                      ? match.name
+                      : withoutTrailing(row.title, match.city),
+                    lat: match.lat,
+                    lng: match.lng,
+                    address: match.address,
+                    city: match.city,
+                    country: match.country,
+                    countryCode: match.countryCode,
+                  }
+                : null,
           };
         });
 
@@ -466,9 +529,13 @@ export default function TripImporter({
   /// was found, and should not jump into the list of failures while you look
   /// at it.
   const indexed = (rows ?? []).map((row, index) => ({ row, index }));
-  const found = indexed.filter(({ row }) => row.candidates.length > 0);
+  const found = indexed.filter(({ row }) => !row.travel && row.candidates.length > 0);
+  /// Journeys are neither found nor missing: nothing was looked up, because
+  /// both ends are cities the trip already names. Filing them under "not found
+  /// — it may not exist" would be alarming and untrue.
+  const legs = indexed.filter(({ row }) => row.travel);
   const missing = indexed.filter(
-    ({ row }) => row.state === "done" && row.candidates.length === 0,
+    ({ row }) => !row.travel && row.state === "done" && row.candidates.length === 0,
   );
   const including = (rows ?? []).filter((r) => r.include).length;
   const includingWithPin = (rows ?? []).filter((r) => r.include && r.chosen >= 0).length;
@@ -517,7 +584,19 @@ export default function TripImporter({
           {row.startTime && (
             <span className="text-xs text-muted tabular-nums">{row.startTime}</span>
           )}
-          <span className="text-sm font-medium">{row.title}</span>
+          <span className="text-sm font-medium">
+            {row.travel ? `${row.title} → ${row.travel.to}` : row.title}
+          </span>
+          {row.travel && (
+            <span className="text-xs text-muted">
+              {[
+                travelMode(row.travel.mode)?.label ?? "Travel",
+                row.travel.endTime ? `arrives ${row.travel.endTime}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          )}
           {row.state === "looking" && <span className="text-xs text-muted">looking up…</span>}
         </div>
 
@@ -1032,6 +1111,23 @@ export default function TripImporter({
               found needs checking — is this the right Sapori? What was not
               found needs deciding about, and burying those few among thirty
               correct ones is how they get imported unnoticed or lost. */}
+          {legs.length > 0 && (
+            <section className="mb-6">
+              <h2 className="text-sm font-semibold">
+                Getting between them
+                <span className="ml-2 text-xs font-normal text-muted">
+                  {legs.length} {legs.length === 1 ? "journey" : "journeys"}
+                </span>
+              </h2>
+              <p className="mt-1 text-xs text-muted">
+                Nothing to check here — both ends are cities you already named.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {legs.map(({ row, index }) => rowCard(row, index))}
+              </ul>
+            </section>
+          )}
+
           <h2 className="text-sm font-semibold">
             Found on the map
             <span className="ml-2 text-xs font-normal text-muted">
