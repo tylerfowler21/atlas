@@ -123,6 +123,34 @@ function Hero() {
   );
 }
 
+/// The same photograph, on a phone.
+///
+/// It used to be desktop-only, and the reason given was that a panel beside
+/// the buttons would push them under the fold. True of a panel — but the app
+/// puts the picture *behind* the screen rather than next to it, which costs no
+/// height at all, and that is what a phone gets here now.
+///
+/// Hidden from screen readers for the same reason the desktop one is: it says
+/// what the headline says. The credit is the exception, because naming the
+/// author is a condition of the licence rather than decoration.
+function PhoneHero() {
+  return (
+    <div aria-hidden className="absolute inset-0 overflow-hidden lg:hidden">
+      <Image
+        src="/brand/signin-hero.jpg"
+        alt=""
+        fill
+        sizes="100vw"
+        className="object-cover"
+        priority
+      />
+      {/* Dark at the foot, where everything that has to be read sits. The
+          photograph is at its best at the top, so the scrim stays off it. */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(11,33,28,0.15)_0%,rgba(11,33,28,0.35)_40%,rgba(11,33,28,0.92)_82%)]" />
+    </div>
+  );
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
@@ -138,12 +166,34 @@ export default async function SignInPage({
   if (session?.user) redirect(destination);
 
   return (
-    <div className="flex min-h-full flex-1 gap-0 overflow-auto p-4 lg:gap-8 lg:p-6">
+    <div className="relative flex min-h-full flex-1 gap-0 overflow-auto lg:gap-8 lg:p-6">
+      <PhoneHero />
       <Hero />
 
-      <div className="flex flex-1 items-center justify-center lg:flex-1">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center">
+      {/* On a phone the mark sits in the corner of the photograph, the way it
+          does in the app. On a desktop the photograph has its own. */}
+      <div className="absolute top-5 left-5 flex items-center gap-2.5 lg:hidden">
+        <Image src="/brand/mark-64.png" alt="" width={32} height={32} className="rounded-lg" />
+        <span className="text-lg font-semibold text-white">Roava</span>
+      </div>
+
+      {/* Bottom-aligned on a phone, because that is where a thumb is and where
+          the scrim is darkest. Centred from lg, beside the picture. */}
+      <div className="relative flex flex-1 items-end justify-center px-5 pt-24 pb-6 lg:items-center lg:p-0">
+        <div className="w-full max-w-sm space-y-5 lg:space-y-6">
+          {/* What the app leads with: what the thing is for, rather than the
+              name of the screen you are on. */}
+          <div className="lg:hidden">
+            <h1 className="text-[2rem] leading-[1.12] font-bold text-white">
+              Every place you want to go, on one map.
+            </h1>
+            <p className="mt-2.5 text-sm text-white/75">
+              Save spots, plan trips day by day with friends, and keep a map of
+              everywhere you&apos;ve been.
+            </p>
+          </div>
+
+          <div className="hidden text-center lg:block">
             <Image
               src="/brand/mark.png"
               alt=""
@@ -173,7 +223,10 @@ export default async function SignInPage({
             >
               <button
                 type="submit"
-                className="flex h-12 w-full items-center justify-center rounded-full bg-black text-sm font-medium text-white transition-colors hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+                // White on the photograph whatever the phone's appearance
+                // says — the screen behind it is a dark scrim either way. From
+                // lg it sits on the page and follows the theme again.
+                className="flex h-14 w-full items-center justify-center rounded-full bg-white text-sm font-medium text-black transition-colors hover:bg-neutral-200 lg:h-12 lg:bg-black lg:text-white lg:hover:bg-neutral-800 dark:lg:bg-white dark:lg:text-black dark:lg:hover:bg-neutral-200"
               >
                 {/* Drawn rather than typed: the  glyph is an Apple-platform
                     font feature and renders as tofu on Android and Windows. */}
@@ -202,7 +255,7 @@ export default async function SignInPage({
                   which on a sign-in screen is the entire point. */}
               <button
                 type="submit"
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#747775] bg-white text-sm font-medium text-[#1F1F1F] transition-colors hover:bg-[#F7F8F8] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3] dark:hover:bg-[#1B1B1C]"
+                className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-[#8E918F] bg-[#131314] text-sm font-medium text-[#E3E3E3] transition-colors hover:bg-[#1B1B1C] lg:h-12 lg:border-[#747775] lg:bg-white lg:text-[#1F1F1F] lg:hover:bg-[#F7F8F8] dark:lg:border-[#8E918F] dark:lg:bg-[#131314] dark:lg:text-[#E3E3E3] dark:lg:hover:bg-[#1B1B1C]"
               >
                 <GoogleIcon />
                 Continue with Google
@@ -210,10 +263,13 @@ export default async function SignInPage({
             </form>
           )}
 
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-xs text-white/60 lg:text-muted">
             By continuing you agree to how Roava handles your data, set out in
             the{" "}
-            <a href="/privacy" className="text-accent-text hover:underline">
+            <a
+              href="/privacy"
+              className="text-white underline underline-offset-2 lg:text-accent-text lg:no-underline lg:hover:underline"
+            >
               Privacy Policy
             </a>
             .
@@ -259,8 +315,22 @@ export default async function SignInPage({
             </div>
           )}
 
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-xs text-white/60 lg:text-muted">
             Shared itineraries stay readable without an account.
+          </p>
+
+          {/* CC BY-SA requires the author's name travel with the picture, and
+              on a phone this is the only place the picture appears. */}
+          <p className="text-center text-[11px] text-white/45 lg:hidden">
+            Oeschinensee, Kandersteg ·{" "}
+            <a
+              href="https://commons.wikimedia.org/wiki/File:Oeschinensee_D8A_8808.jpg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              Orest Svirchevskyi, CC BY-SA 4.0
+            </a>
           </p>
         </div>
       </div>
