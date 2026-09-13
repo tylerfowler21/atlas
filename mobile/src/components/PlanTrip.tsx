@@ -24,6 +24,7 @@ import { api, type SearchResult } from "@/lib/api";
 import { useCategories } from "@/lib/categories";
 import { usePalette } from "@/lib/use-palette";
 import { searchPlaces } from "@/lib/search-places";
+import { TRIP_STYLES } from "@/lib/trip-styles";
 
 type Stop = {
   day: number;
@@ -51,10 +52,34 @@ export default function PlanTrip({
   const palette = usePalette();
   const { categoryOf } = useCategories();
 
-  const [where, setWhere] = useState("");
-  const [days, setDays] = useState("3");
+  /// Where they are going, in the order they go, each with its own length.
+  ///
+  /// One box and one number was not the trip anybody was planning: two weeks in
+  /// Canada is three days in Montréal and two in Québec, and which is which is
+  /// the thing only the traveller knows. Kept as typed rather than as ids —
+  /// the server geocodes these the same way it geocodes anything else.
+  const [legs, setLegs] = useState<{ city: string; days: string }[]>([
+    // Three days is what somebody means by "a few days somewhere", and a
+    // number on screen is easier to change than one to supply.
+    { city: "", days: "3" },
+  ]);
+  const [kinds, setKinds] = useState<string[]>([]);
   const [interests, setInterests] = useState("");
   const [pace, setPace] = useState<"relaxed" | "balanced" | "packed">("balanced");
+
+  /// The legs worth sending: a city with a name, and its days as a number.
+  const asked = legs
+    .map((leg) => ({ city: leg.city.trim(), days: Math.max(1, Math.min(14, Number(leg.days) || 1)) }))
+    .filter((leg) => leg.city.length >= 2);
+  const total = asked.reduce((sum, leg) => sum + leg.days, 0);
+  const where = asked.map((leg) => leg.city).join(", ");
+  /// The same fortnight the server will not go past, said before the button is
+  /// pressed rather than after.
+  const tooLong = total > 14;
+
+  function setLeg(index: number, patch: Partial<{ city: string; days: string }>) {
+    setLegs((current) => current.map((leg, i) => (i === index ? { ...leg, ...patch } : leg)));
+  }
 
   const [stage, setStage] = useState<"asking" | "drafting" | "checking" | "review">("asking");
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -74,8 +99,10 @@ export default function PlanTrip({
       }>("/api/trips/generate", {
         method: "POST",
         body: JSON.stringify({
-          destination: where.trim(),
-          days: Math.max(1, Math.min(14, Number(days) || 3)),
+          destination: where,
+          days: total,
+          legs: asked,
+          styles: kinds,
           interests: interests.trim() || null,
           pace,
         }),
@@ -130,7 +157,7 @@ export default function PlanTrip({
       const { tripId } = await api<{ tripId: string }>("/api/trips/import", {
         method: "POST",
         body: JSON.stringify({
-          trip: { title: title.trim() || where.trim(), destination: where.trim() },
+          trip: { title: title.trim() || where, destination: where },
           // A trip somebody is about to take, not one they have taken.
           markVisited: false,
           entries: keeping.map((c) => ({
@@ -181,29 +208,106 @@ export default function PlanTrip({
 
         {stage === "asking" && (
           <>
-            <TextInput
-              value={where}
-              onChangeText={setWhere}
-              placeholder="Where — Lisbon"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { color: palette.ink, borderColor: palette.border }]}
-            />
-            <TextInput
-              value={days}
-              onChangeText={setDays}
-              keyboardType="number-pad"
-              placeholder="How many days"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { color: palette.ink, borderColor: palette.border }]}
-            />
+            <Text style={[styles.label, { color: palette.muted }]}>
+              Where, and how long in each
+              {asked.length > 1 ? ` — ${total} ${total === 1 ? "day" : "days"} altogether` : ""}
+            </Text>
+
+            {legs.map((leg, i) => (
+              <View key={`leg-${i}`} style={styles.leg}>
+                <TextInput
+                  value={leg.city}
+                  onChangeText={(city) => setLeg(i, { city })}
+                  placeholder={i === 0 ? "Lisbon" : "Then where?"}
+                  placeholderTextColor={palette.muted}
+                  autoCorrect={false}
+                  style={[
+                    styles.input,
+                    styles.legCity,
+                    { color: palette.ink, borderColor: palette.border },
+                  ]}
+                />
+                <TextInput
+                  value={leg.days}
+                  onChangeText={(days) => setLeg(i, { days })}
+                  keyboardType="number-pad"
+                  accessibilityLabel={`Days in ${leg.city || "this city"}`}
+                  style={[
+                    styles.input,
+                    styles.legDays,
+                    { color: palette.ink, borderColor: palette.border },
+                  ]}
+                />
+                <Text style={{ color: palette.muted, fontSize: 12, width: 30 }}>
+                  {Number(leg.days) === 1 ? "day" : "days"}
+                </Text>
+                {/* Only once there is more than one, so the ordinary trip to
+                    one city never grows a control for undoing something it
+                    did not do. */}
+                {legs.length > 1 && (
+                  <Pressable
+                    onPress={() => setLegs((current) => current.filter((_, j) => j !== i))}
+                    hitSlop={10}
+                    accessibilityLabel={`Remove ${leg.city || "this city"}`}
+                  >
+                    <Text style={{ color: palette.muted, fontSize: 17 }}>×</Text>
+                  </Pressable>
+                )}
+              </View>
+            ))}
+
+            <Pressable
+              onPress={() => setLegs((current) => [...current, { city: "", days: "2" }])}
+              hitSlop={8}
+              style={styles.addCity}
+            >
+              <Text style={{ color: palette.primary, fontSize: 13, fontWeight: "600" }}>
+                + Add another city
+              </Text>
+            </Pressable>
+
+            {/* The handful of answers that change the shape of an itinerary
+                rather than its details. Free text below covers the details. */}
+            <Text style={[styles.label, { color: palette.muted, marginTop: 18 }]}>
+              What kind of trip
+            </Text>
+            <View style={styles.chips}>
+              {TRIP_STYLES.map((kind) => {
+                const on = kinds.includes(kind.id);
+                return (
+                  <Pressable
+                    key={kind.id}
+                    onPress={() =>
+                      setKinds((current) =>
+                        on ? current.filter((id) => id !== kind.id) : [...current, kind.id],
+                      )
+                    }
+                    style={[
+                      styles.chip,
+                      {
+                        borderColor: on ? palette.primary : palette.border,
+                        backgroundColor: on ? palette.brandSurface : "transparent",
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: palette.ink, fontSize: 13 }}>{kind.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
             <TextInput
               value={interests}
               onChangeText={setInterests}
-              placeholder="What you're into (optional)"
+              placeholder="Anything else (optional)"
               placeholderTextColor={palette.muted}
-              style={[styles.input, { color: palette.ink, borderColor: palette.border }]}
+              style={[
+                styles.input,
+                { color: palette.ink, borderColor: palette.border, marginTop: 18 },
+              ]}
             />
 
+            <Text style={[styles.label, { color: palette.muted }]}>Pace</Text>
             <View style={styles.chips}>
               {(["relaxed", "balanced", "packed"] as const).map((id) => (
                 <Pressable
@@ -211,7 +315,10 @@ export default function PlanTrip({
                   onPress={() => setPace(id)}
                   style={[
                     styles.chip,
-                    { borderColor: pace === id ? palette.primary : palette.border },
+                    {
+                      borderColor: pace === id ? palette.primary : palette.border,
+                      backgroundColor: pace === id ? palette.brandSurface : "transparent",
+                    },
                   ]}
                 >
                   <Text style={{ color: palette.ink, fontSize: 13, textTransform: "capitalize" }}>
@@ -221,12 +328,21 @@ export default function PlanTrip({
               ))}
             </View>
 
+            {tooLong && (
+              <Text style={{ color: palette.muted, fontSize: 12, marginTop: 14 }}>
+                That&apos;s {total} days — a fortnight is the most it will draft at once.
+              </Text>
+            )}
+
             <Pressable
               onPress={draft}
-              disabled={where.trim().length < 2}
+              disabled={asked.length === 0 || tooLong}
               style={[
                 styles.primary,
-                { backgroundColor: palette.primary, opacity: where.trim().length < 2 ? 0.5 : 1 },
+                {
+                  backgroundColor: palette.primary,
+                  opacity: asked.length === 0 || tooLong ? 0.5 : 1,
+                },
               ]}
             >
               <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
@@ -323,7 +439,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 10,
   },
-  chips: { flexDirection: "row", gap: 8, marginTop: 4 },
+  label: { fontSize: 12, marginBottom: 8, marginTop: 4 },
+  leg: { flexDirection: "row", alignItems: "center", gap: 8 },
+  legCity: { flex: 1 },
+  legDays: { width: 58, textAlign: "center" },
+  addCity: { paddingVertical: 4 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   primary: { marginTop: 20, borderRadius: 10, alignItems: "center", paddingVertical: 14 },
   waiting: { alignItems: "center", paddingVertical: 60 },
