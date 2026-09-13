@@ -190,18 +190,28 @@ export default function MapScreen() {
   >(null);
   const [looking, setLooking] = useState(false);
 
-  async function offerWhatIsHere(lat: number, lng: number) {
+  /// What is at this point, offered so you can pick one of them.
+  ///
+  /// `onlyIfNamed` is what separates the two gestures. Holding the map down
+  /// means "put something here", so finding nothing named is still an answer:
+  /// you get an empty pin to name yourself. Tapping means "what is that?", and
+  /// there the honest answer to nothing being there is nothing happening — a
+  /// tap on open water should not open a form.
+  async function offerWhatIsHere(
+    lat: number,
+    lng: number,
+    { onlyIfNamed = false }: { onlyIfNamed?: boolean } = {},
+  ) {
     setLooking(true);
     try {
       const found = await nearbyPlaces(lat, lng, 0.08);
       if (found.length === 0) {
-        // Nothing named there, so the old behaviour is the right one.
-        setDraft({ name: "", lat, lng });
+        if (!onlyIfNamed) setDraft({ name: "", lat, lng });
         return;
       }
       setUnderFinger({ lat, lng, found });
     } catch {
-      setDraft({ name: "", lat, lng });
+      if (!onlyIfNamed) setDraft({ name: "", lat, lng });
     } finally {
       setLooking(false);
     }
@@ -553,12 +563,31 @@ export default function MapScreen() {
         // keyboard goes away, because a finger on the map means "I am done
         // typing" and there was previously nothing that meant that.
         onPress={(e) => {
-          Keyboard.dismiss();
           // A tap on a pin reaches the map as well as the marker, and the two
           // handlers would otherwise race: the marker selects the place and
-          // this puts it straight back down. Only a tap on the map itself is
-          // the gesture that means "never mind".
-          if (e.nativeEvent.action !== "marker-press") setSelected(null);
+          // this would put it straight back down.
+          if (e.nativeEvent.action === "marker-press") return;
+
+          // A tap that puts the keyboard away is only that. So is a tap while
+          // something is selected — that one means "never mind".
+          if (Keyboard.isVisible()) {
+            Keyboard.dismiss();
+            return;
+          }
+          if (selected) {
+            setSelected(null);
+            return;
+          }
+
+          // Otherwise it is the question a long press asks: what is there?
+          //
+          // Tapping the restaurant is what anybody tries first, and holding it
+          // down is what nobody guesses. Apple draws its own label for the
+          // place and the map library never says when one is tapped — only its
+          // Google implementation does — so this asks about the point instead
+          // and offers whatever is named there.
+          const { latitude, longitude } = e.nativeEvent.coordinate;
+          void offerWhatIsHere(latitude, longitude, { onlyIfNamed: true });
         }}
         onLongPress={(e) => {
           const { latitude, longitude } = e.nativeEvent.coordinate;
