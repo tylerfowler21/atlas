@@ -253,10 +253,13 @@ export default function TripPeople({
               Invite
             </button>
           </div>
+          {/* What actually happens, which is not what this said. Roava has
+              emailed invitations since the collaborator work landed — the line
+              below it says "Invitation sent to …" — and this paragraph was
+              still telling people to go and pass it on themselves. */}
           <p className="text-xs text-muted">
-            They don&apos;t need an account yet — the invitation waits for them and
-            works the moment they sign in with that address. Roava doesn&apos;t send
-            the email, so tell them yourself.
+            They don&apos;t need an account yet — we&apos;ll email them an
+            invitation, and it works the moment they sign in with that address.
           </p>
         </>
       )}

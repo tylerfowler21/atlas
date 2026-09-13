@@ -5,6 +5,7 @@ import PlaceThumb from "@/components/PlaceThumb";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePlaceSearch } from "@/lib/use-place-search";
 import { searchPlaces } from "@/lib/search-places";
+import { destinationWords, goesTo } from "@/lib/trip-where";
 import type { PlaceDTO, SearchResult } from "@/lib/types";
 
 /// One end of a journey: a place you have saved, or one you have not.
@@ -38,6 +39,7 @@ export default function PlaceChooser({
   );
 
   const chosen = places.find((p) => p.id === value);
+  const whereItGoes = destinationWords(region);
 
   if (chosen) {
     return (
@@ -70,9 +72,16 @@ export default function PlaceChooser({
 
   // Saved places first and unprompted, since most journeys run between two
   // places already on the trip. The world is there once you start typing.
-  const saved = places
-    .filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
-    .slice(0, 6);
+  //
+  // Unprompted, they are narrowed to where the trip goes, for the reason the
+  // list under "Add a stop" is: the first six places somebody ever saved, in
+  // alphabetical order, are not the two ends of a train journey in Portugal.
+  // A search is left alone — the flight home leaves the country by definition.
+  const typed = query.trim().toLowerCase();
+  const saved = (typed.length > 0
+    ? places.filter((p) => p.name.toLowerCase().includes(typed))
+    : places.filter((p) => goesTo(p, whereItGoes))
+  ).slice(0, 6);
 
   return (
     <div className="text-xs text-muted">
