@@ -202,6 +202,18 @@ export default function ItemEditor({
   const [toPlaceId, setToPlaceId] = useState(existing?.toPlaceId ?? null);
   const [busy, setBusy] = useState(false);
 
+  /// The three things this screen folds away, and whether each is open.
+  ///
+  /// "More details" opens itself when the stop already uses something inside
+  /// it — an icon of its own, a booking — because a setting nobody can see is
+  /// worse than a busy screen. The day and the duration always start shut:
+  /// both show their answer on the row itself.
+  const [showDays, setShowDays] = useState(false);
+  const [showDuration, setShowDuration] = useState(false);
+  const [showMore, setShowMore] = useState(
+    Boolean(existing?.emoji || existing?.booking || existing?.bookingRef),
+  );
+
   /// Searching the world, then saving what you pick.
   ///
   /// The pickers below only ever offered places already saved, so planning a
@@ -273,13 +285,49 @@ export default function ItemEditor({
         }),
       });
       setAdded((current) => [place, ...current]);
-      if (target === "to") setToPlaceId(place.id);
-      else setPlaceId(place.id);
-      if (!title.trim()) setTitle(result.name);
+      if (target === "to") {
+        setToPlaceId(place.id);
+        if (!title.trim()) setTitle(result.name);
+      } else {
+        // The same three answers a saved place gives, for one just found.
+        adopt(place);
+      }
       setQuery("");
     } catch (e) {
       Alert.alert("Could not save that place", e instanceof Error ? e.message : "Try again");
     }
+  }
+
+  /// The place on this stop, whichever list it came from: one saved here a
+  /// moment ago, one already in the trip's library, or the one the item was
+  /// loaded with.
+  const attached =
+    options.find((p) => p.id === placeId) ??
+    (existing?.placeId && existing.placeId === placeId ? existing.place : null);
+  const attachedIcon =
+    emoji.trim() ||
+    attached?.emoji ||
+    categories.find((c) => c.id === (attached?.category ?? category))?.icon ||
+    "📍";
+
+  /// Picking a place answers three questions at once.
+  ///
+  /// A stop at Café de Flore is called Café de Flore, is a café, and looks
+  /// like one. Setting those by hand afterwards was the main reason anybody
+  /// ever opened the category row — and all three stay editable underneath.
+  function adopt(place: Place | null) {
+    setPlaceId(place?.id ?? null);
+    if (!place) return;
+    setTitle(place.name);
+    if (place.category) {
+      setCategory(place.category);
+      setCategoryChosen(false);
+    }
+    if (place.emoji) setEmoji(place.emoji);
+  }
+
+  function attachSaved(id: string | null) {
+    adopt(id ? (options.find((p) => p.id === id) ?? null) : null);
   }
 
   if (!draft) return null;
@@ -392,6 +440,8 @@ export default function ItemEditor({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
+          {/* ---- What ------------------------------------------------- */}
+
           <Text style={[styles.label, { color: palette.muted }]}>
             {travel ? "What journey?" : "What are you doing?"}
           </Text>
@@ -429,225 +479,146 @@ export default function ItemEditor({
             </>
           )}
 
-          {/* A journey leaves when it leaves; a stop takes about so long.
-              Nobody plans a temple for 14:30 to 16:15, and a plan that claims
-              to is wrong by mid-morning. */}
-          {travel ? (
-            <>
-            {/* Only a flight is known by its clock. A train, a drive or a
-                ferry is known as "about two hours" long before anybody knows
-                which train. An open field rather than a list, because the
-                list was drawn for stops and journeys run from a ten-minute
-                walk to a fourteen-hour drive. */}
-            {!flightLike && (
-              <>
-                <Text style={[styles.label, { color: palette.muted }]}>How long?</Text>
-                <TextInput
-                  value={legLength}
-                  onChangeText={setLegLength}
-                  placeholder="2h 15m"
-                  placeholderTextColor={palette.muted}
-                  style={[styles.input, field]}
-                />
-                <Text
-                  style={{
-                    color: legLength.trim() && !parseDuration(legLength)
-                      ? SEMANTIC.danger
-                      : palette.muted,
-                    fontSize: 12,
-                    marginTop: 4,
-                  }}
-                >
-                  {legLength.trim() === ""
-                    ? "However you'd say it — 2h, 90 min, 1:45."
-                    : parseDuration(legLength)
-                      ? `Understood as ${formatDuration(parseDuration(legLength))}.`
-                      : "Not understood — try 2h, 90 min or 1:45."}
-                </Text>
-              </>
-            )}
-            <View style={styles.times}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: palette.muted }]}>Departs</Text>
-                <TextInput
-                  value={startTime}
-                  onChangeText={setStartTime}
-                  placeholder={TIME_HINT}
-                  placeholderTextColor={palette.muted}
-                  keyboardType="numbers-and-punctuation"
-                  style={[styles.input, field]}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { color: palette.muted }]}>Arrives</Text>
-                <TextInput
-                  value={endTime}
-                  onChangeText={setEndTime}
-                  placeholder={TIME_HINT}
-                  placeholderTextColor={palette.muted}
-                  keyboardType="numbers-and-punctuation"
-                  style={[styles.input, field]}
-                />
-              </View>
-            </View>
-            </>
-          ) : (
-            <>
-              <Text style={[styles.label, { color: palette.muted }]}>How long?</Text>
-              <View style={styles.durations}>
-                {DURATIONS.map((m) => {
-                  const on = minutes === m;
-                  return (
-                    <Pressable
-                      key={m}
-                      onPress={() => setMinutes(on ? null : m)}
-                      style={[
-                        styles.duration,
-                        { borderColor: on ? palette.primary : palette.border },
-                        on && { backgroundColor: palette.primary },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          type.meta,
-                          { color: on ? palette.onPrimary : palette.ink },
-                        ]}
-                      >
-                        {formatDuration(m)?.replace(/^about /, "")}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </>
-          )}
+          {/* The place this is at.
 
-          {/* Offered once there is an arrival to qualify. Suggested when the
-              clock appears to run backwards, which is exactly what a flight
-              east across the Atlantic looks like. */}
-          {travel && endTime.trim().length > 0 && (
-            <>
-              <Pressable onPress={() => setNextDay((on) => !on)} style={styles.check}>
-                <Text style={{ fontSize: 18 }}>{nextDay ? "☑️" : "⬜️"}</Text>
-                <Text style={{ color: palette.ink, fontSize: 14 }}>Lands the next day</Text>
-              </Pressable>
-              {!nextDay && startTime.trim() !== "" && endTime.trim() <= startTime.trim() && (
-                <Text style={{ color: SEMANTIC.danger, fontSize: 12, marginTop: 4 }}>
-                  Arrival is before departure — this probably lands the next day.
-                </Text>
-              )}
-            </>
-          )}
-
-          <Text style={[styles.label, { color: palette.muted }]}>
-            Search anywhere — saves it and attaches it
-          </Text>
-          <View style={styles.searchRow}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              onSubmitEditing={() => Keyboard.dismiss()}
-              returnKeyType="search"
-              placeholder="Paris, Sagrada Família…"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { flex: 1 }, field]}
-            />
-            {searching && <ActivityIndicator />}
-          </View>
-
-          <Pressable
-            onPress={() => void findMe()}
-            disabled={locating}
-            style={[styles.hereButton, { borderColor: palette.border, opacity: locating ? 0.5 : 1 }]}
-          >
-            <Text style={{ color: palette.accentText, fontSize: 14, fontWeight: "500" }}>
-              {locating ? "Finding you…" : "📍 I'm here now"}
-            </Text>
-          </Pressable>
-
-          {around !== null && around.length > 0 && (
-            <View style={styles.aroundHeader}>
-              <Text style={{ color: palette.muted, fontSize: 12, flex: 1 }}>
-                Around you
-              </Text>
-              <Pressable onPress={() => setAround(null)} hitSlop={8}>
-                <Text style={{ color: palette.muted, fontSize: 12 }}>clear</Text>
-              </Pressable>
-            </View>
-          )}
-
-          {(around ?? []).map((r) => (
+              Once one is attached there is nothing left to ask, so the search
+              field, the saved-place row and "I'm here now" — three controls all
+              asking the same question — fold away behind the answer. Tapping ×
+              brings them back. */}
+          {!travel && attached ? (
             <View
-              key={`near-${r.id}`}
-              style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
+              style={[
+                styles.attached,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+              ]}
             >
-              <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
-                {r.name}
-              </Text>
-              <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
-                {r.address ?? r.city ?? ""}
-              </Text>
-              <View style={styles.resultActions}>
-                <Pressable
-                  onPress={async () => {
-                    await saveAndAttach(r, "from");
-                    setAround(null);
-                  }}
-                  hitSlop={6}
-                >
-                  <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
-                    {travel ? "Leaving from here" : "Use this place"}
+              <Text style={{ fontSize: 20 }}>{attachedIcon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                  {attached.name}
+                </Text>
+                {attached.city && (
+                  <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                    {attached.city}
                   </Text>
-                </Pressable>
-              </View>
-            </View>
-          ))}
-
-          {shownResults.map((r) => (
-            <View
-              key={r.id}
-              style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
-            >
-              <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
-                {r.name}
-              </Text>
-              <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
-                {r.context}
-              </Text>
-              <View style={styles.resultActions}>
-                <Pressable onPress={() => saveAndAttach(r, "from")} hitSlop={6}>
-                  <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
-                    {travel ? "Leaving from here" : "Use this place"}
-                  </Text>
-                </Pressable>
-                {travel && (
-                  <Pressable onPress={() => saveAndAttach(r, "to")} hitSlop={6}>
-                    <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
-                      Arriving here
-                    </Text>
-                  </Pressable>
                 )}
               </View>
+              <Pressable onPress={() => setPlaceId(null)} hitSlop={10}>
+                <Text style={{ color: palette.muted, fontSize: 18 }}>×</Text>
+              </Pressable>
             </View>
-          ))}
-
-          {destination && here.length > 0 && elsewhere.length > 0 && (
-            <Pressable onPress={() => setShowElsewhere((v) => !v)} hitSlop={8}>
-              <Text style={{ color: palette.muted, fontSize: 12, paddingVertical: 8 }}>
-                {showElsewhere
-                  ? `Just the ones in ${destination}`
-                  : `${elsewhere.length} more elsewhere in the world`}
+          ) : (
+            <>
+              <Text style={[styles.label, { color: palette.muted }]}>
+                {travel ? "Search anywhere — saves it and attaches it" : "Which place?"}
               </Text>
-            </Pressable>
+              <View style={styles.searchRow}>
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  onSubmitEditing={() => Keyboard.dismiss()}
+                  returnKeyType="search"
+                  placeholder="Paris, Sagrada Família…"
+                  placeholderTextColor={palette.muted}
+                  style={[styles.input, { flex: 1 }, field]}
+                />
+                {searching && <ActivityIndicator />}
+              </View>
+
+              <Pressable
+                onPress={() => void findMe()}
+                disabled={locating}
+                style={[styles.hereButton, { borderColor: palette.border, opacity: locating ? 0.5 : 1 }]}
+              >
+                <Text style={{ color: palette.accentText, fontSize: 14, fontWeight: "500" }}>
+                  {locating ? "Finding you…" : "📍 I'm here now"}
+                </Text>
+              </Pressable>
+
+              {around !== null && around.length > 0 && (
+                <View style={styles.aroundHeader}>
+                  <Text style={{ color: palette.muted, fontSize: 12, flex: 1 }}>Around you</Text>
+                  <Pressable onPress={() => setAround(null)} hitSlop={8}>
+                    <Text style={{ color: palette.muted, fontSize: 12 }}>clear</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {(around ?? []).map((r) => (
+                <View
+                  key={`near-${r.id}`}
+                  style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
+                >
+                  <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                    {r.name}
+                  </Text>
+                  <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                    {r.address ?? r.city ?? ""}
+                  </Text>
+                  <View style={styles.resultActions}>
+                    <Pressable
+                      onPress={async () => {
+                        await saveAndAttach(r, "from");
+                        setAround(null);
+                      }}
+                      hitSlop={6}
+                    >
+                      <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
+                        {travel ? "Leaving from here" : "Use this place"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+
+              {shownResults.map((r) => (
+                <View
+                  key={r.id}
+                  style={[styles.result, { borderColor: palette.border, backgroundColor: palette.surface }]}
+                >
+                  <Text style={{ color: palette.ink, fontSize: 15 }} numberOfLines={1}>
+                    {r.name}
+                  </Text>
+                  <Text style={{ color: palette.muted, fontSize: 12 }} numberOfLines={1}>
+                    {r.context}
+                  </Text>
+                  <View style={styles.resultActions}>
+                    <Pressable onPress={() => saveAndAttach(r, "from")} hitSlop={6}>
+                      <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
+                        {travel ? "Leaving from here" : "Use this place"}
+                      </Text>
+                    </Pressable>
+                    {travel && (
+                      <Pressable onPress={() => saveAndAttach(r, "to")} hitSlop={6}>
+                        <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 13 }}>
+                          Arriving here
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              ))}
+
+              {destination && here.length > 0 && elsewhere.length > 0 && (
+                <Pressable onPress={() => setShowElsewhere((v) => !v)} hitSlop={8}>
+                  <Text style={{ color: palette.muted, fontSize: 12, paddingVertical: 8 }}>
+                    {showElsewhere
+                      ? `Just the ones in ${destination}`
+                      : `${elsewhere.length} more elsewhere in the world`}
+                  </Text>
+                </Pressable>
+              )}
+
+              <PlacePicker
+                label={travel ? "Leaving from" : "Or one you've saved"}
+                places={options}
+                selected={placeId}
+                onSelect={attachSaved}
+                palette={palette}
+              />
+            </>
           )}
 
-          <PlacePicker
-            label={travel ? "Leaving from" : "Which saved place?"}
-            places={options}
-            selected={placeId}
-            onSelect={setPlaceId}
-            palette={palette}
-          />
           {travel && (
             <PlacePicker
               label="Arriving at"
@@ -658,136 +629,181 @@ export default function ItemEditor({
             />
           )}
 
-          {!travel && (
-            <>
-              <Text style={[styles.label, { color: palette.muted }]}>Category</Text>
-              <View style={styles.chips}>
-                {categories.map((c) => {
-                  const on = category === c.id;
-                  return (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => {
-                        setCategory(c.id);
-                        setCategoryChosen(true);
-                      }}
-                      style={[
-                        styles.chip,
-                        { backgroundColor: palette.surface, borderColor: palette.border },
-                        on && { borderColor: c.color },
-                      ]}
-                    >
-                      <Text style={{ fontSize: 13, color: on ? palette.ink : palette.muted }}>
-                        {c.icon} {c.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </>
-          )}
+          {/* ---- When ------------------------------------------------- */}
 
-          <Text style={[styles.label, { color: palette.muted }]}>
-            Emoji — leave empty to use the category&apos;s
-          </Text>
-          <TextInput
-            value={emoji}
-            onChangeText={setEmoji}
-            placeholder="🚂"
-            placeholderTextColor={palette.muted}
-            style={[styles.input, styles.emoji, field]}
-          />
+          <Text style={[styles.label, { color: palette.muted }]}>When</Text>
 
-          {/* The confirmation, on the thing it confirms. The trip's Files tab
-              shows it too — the same list, read from the stop it belongs to. */}
-          {draft?.mode === "edit" && (
-            <>
-              <Text style={[styles.label, { color: palette.muted }]}>Files</Text>
-              <TripFiles
-                tripId={draft.item.tripId}
-                files={documents}
-                itemId={draft.item.id}
-                onChanged={onSaved}
-              />
-            </>
-          )}
-
-          {/* The tick that puts this on the trip's bookings tab, and takes it
-              off again. Nothing is a booking until somebody says so. */}
+          {/* A row that says which day, rather than one chip per day. On a
+              fortnight that was fourteen chips wrapping over three lines,
+              given the same weight as everything else on the screen. */}
           <Pressable
-            onPress={() => setBooking(booking === null ? BOOKING_NEEDED : null)}
-            style={styles.check}
+            onPress={() => setShowDays((v) => !v)}
+            style={[styles.row, { borderColor: palette.border, backgroundColor: palette.surface }]}
           >
-            <Text style={{ fontSize: 18 }}>{booking === null ? "⬜️" : "☑️"}</Text>
-            <Text style={{ color: palette.ink, fontSize: 14 }}>Needs booking</Text>
+            <Text style={{ color: palette.ink, fontSize: 15, flex: 1 }}>
+              Day {dayIndex + 1}
+              <Text style={{ color: palette.muted }}> of {Math.max(days, dayIndex + 1)}</Text>
+            </Text>
+            <Text style={{ color: palette.muted, fontSize: 15 }}>{showDays ? "Done" : "Change"}</Text>
           </Pressable>
 
-          {booking !== null && (
-            <Pressable
-              onPress={() => setBooking(nextState(booking))}
-              style={[styles.check, { marginLeft: 22 }]}
-            >
-              <Text style={{ fontSize: 18 }}>
-                {booking === BOOKING_BOOKED ? "☑️" : "⬜️"}
-              </Text>
-              <Text style={{ color: palette.ink, fontSize: 14 }}>Booked</Text>
-            </Pressable>
+          {showDays && (
+            <View style={[styles.dayChips, { marginTop: 8 }]}>
+              {Array.from({ length: Math.max(days, dayIndex + 1) }, (_, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => {
+                    setDayIndex(i);
+                    setShowDays(false);
+                  }}
+                  style={[
+                    styles.dayChip,
+                    { borderColor: dayIndex === i ? palette.primary : palette.border },
+                  ]}
+                >
+                  <Text style={{ fontSize: 13, color: palette.ink }}>Day {i + 1}</Text>
+                </Pressable>
+              ))}
+            </View>
           )}
 
-          {/* The deadline the spreadsheet used to carry as "book 3 days
-              before" — a note nothing could act on. */}
-          {booking === BOOKING_NEEDED && (
+          {travel ? (
             <>
-              <Text style={[styles.label, { color: palette.muted }]}>Book by</Text>
-              <DateRangePicker
-                single
-                start={bookBy}
-                end=""
-                onChange={({ start }) => setBookBy(start)}
-              />
-              {bookBy !== "" && (
-                <Text
-                  style={{
-                    fontSize: 12,
-                    marginTop: 4,
-                    color:
-                      urgencyOf(bookBy) === "overdue"
+              {/* Only a flight is known by its clock. A train, a drive or a
+                  ferry is known as "about two hours" long before anybody knows
+                  which train. An open field rather than a list, because the
+                  list was drawn for stops and journeys run from a ten-minute
+                  walk to a fourteen-hour drive. */}
+              {!flightLike && (
+                <>
+                  <Text style={[styles.label, { color: palette.muted }]}>How long?</Text>
+                  <TextInput
+                    value={legLength}
+                    onChangeText={setLegLength}
+                    placeholder="2h 15m"
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, field]}
+                  />
+                  <Text
+                    style={{
+                      color: legLength.trim() && !parseDuration(legLength)
                         ? SEMANTIC.danger
-                        : urgencyOf(bookBy) === "soon"
-                          ? SEMANTIC.warning
-                          : palette.muted,
-                  }}
-                >
-                  {deadlineLabel(bookBy)}
+                        : palette.muted,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                  >
+                    {legLength.trim() === ""
+                      ? "However you'd say it — 2h, 90 min, 1:45."
+                      : parseDuration(legLength)
+                        ? `Understood as ${formatDuration(parseDuration(legLength))}.`
+                        : "Not understood — try 2h, 90 min or 1:45."}
+                  </Text>
+                </>
+              )}
+              <View style={styles.times}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.label, { color: palette.muted }]}>Departs</Text>
+                  <TextInput
+                    value={startTime}
+                    onChangeText={setStartTime}
+                    placeholder={TIME_HINT}
+                    placeholderTextColor={palette.muted}
+                    keyboardType="numbers-and-punctuation"
+                    style={[styles.input, field]}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.label, { color: palette.muted }]}>Arrives</Text>
+                  <TextInput
+                    value={endTime}
+                    onChangeText={setEndTime}
+                    placeholder={TIME_HINT}
+                    placeholderTextColor={palette.muted}
+                    keyboardType="numbers-and-punctuation"
+                    style={[styles.input, field]}
+                  />
+                </View>
+              </View>
+
+              {/* Offered once there is an arrival to qualify. Suggested when
+                  the clock appears to run backwards, which is exactly what a
+                  flight east across the Atlantic looks like. */}
+              {endTime.trim().length > 0 && (
+                <>
+                  <Pressable onPress={() => setNextDay((on) => !on)} style={styles.check}>
+                    <Text style={{ fontSize: 18 }}>{nextDay ? "☑️" : "⬜️"}</Text>
+                    <Text style={{ color: palette.ink, fontSize: 14 }}>Lands the next day</Text>
+                  </Pressable>
+                  {!nextDay && startTime.trim() !== "" && endTime.trim() <= startTime.trim() && (
+                    <Text style={{ color: SEMANTIC.danger, fontSize: 12, marginTop: 4 }}>
+                      Arrival is before departure — this probably lands the next day.
+                    </Text>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Nobody plans a temple for 14:30 to 16:15, and a plan that
+                  claims to is wrong by mid-morning — so a stop says roughly how
+                  long it eats, and most stops never say at all. */}
+              <Pressable
+                onPress={() => setShowDuration((v) => !v)}
+                style={[
+                  styles.row,
+                  { borderColor: palette.border, backgroundColor: palette.surface, marginTop: 8 },
+                ]}
+              >
+                <Text style={{ color: palette.ink, fontSize: 15, flex: 1 }}>
+                  How long?
+                  <Text style={{ color: palette.muted }}>
+                    {"  "}
+                    {formatDuration(minutes) ?? "not set"}
+                  </Text>
                 </Text>
+                <Text style={{ color: palette.muted, fontSize: 15 }}>
+                  {showDuration ? "Done" : "Change"}
+                </Text>
+              </Pressable>
+
+              {showDuration && (
+                <View style={styles.durations}>
+                  {DURATIONS.map((m) => {
+                    const on = minutes === m;
+                    return (
+                      <Pressable
+                        key={m}
+                        onPress={() => setMinutes(on ? null : m)}
+                        style={[
+                          styles.duration,
+                          { borderColor: on ? palette.primary : palette.border },
+                          on && { backgroundColor: palette.primary },
+                        ]}
+                      >
+                        <Text
+                          style={[type.meta, { color: on ? palette.onPrimary : palette.ink }]}
+                        >
+                          {formatDuration(m)?.replace(/^about /, "")}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               )}
             </>
           )}
 
-          <Text style={[styles.label, { color: palette.muted }]}>Which day</Text>
-          <View style={styles.dayChips}>
-            {Array.from({ length: Math.max(days, dayIndex + 1) }, (_, i) => (
-              <Pressable
-                key={i}
-                onPress={() => setDayIndex(i)}
-                style={[
-                  styles.dayChip,
-                  { borderColor: dayIndex === i ? palette.primary : palette.border },
-                ]}
-              >
-                <Text style={{ fontSize: 13, color: palette.ink }}>Day {i + 1}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {/* ---- Notes ------------------------------------------------ */}
 
           {/* What you wrote about the place itself, on your own map.
-          
+
               Two different notes have always existed — one about the place,
               which follows it onto every trip it is ever on, and one about
               this stop on this day. Only the second was ever shown here, so a
               note written on the map looked lost the moment the place was
               added to a trip.
-          
+
               Read-only, and said to belong to the place: editing it here would
               put two note fields side by side with no way to tell which one
               you were changing. */}
@@ -825,6 +841,146 @@ export default function ItemEditor({
             style={[styles.input, styles.notes, field]}
           />
 
+          {/* ---- Everything else -------------------------------------- */}
+
+          {/* The category, the icon, the files and whether it needs booking.
+              All four matter and none is asked on most stops: a place brings
+              its own category and icon, and the great majority of stops are
+              not bookings. They were four sections of a thirteen-section
+              screen, given the same weight as the title.
+
+              Opened already when this stop actually uses one of them, so
+              nothing anybody set can hide behind a row they never tap. */}
+          <Pressable
+            onPress={() => setShowMore((v) => !v)}
+            style={[
+              styles.row,
+              { borderColor: palette.border, backgroundColor: palette.surface, marginTop: 18 },
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: palette.ink, fontSize: 15 }}>More details</Text>
+              {!showMore && (
+                <Text style={{ color: palette.muted, fontSize: 12, marginTop: 2 }}>
+                  {[!travel && "category", "icon", draft?.mode === "edit" && "files", "booking"]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </Text>
+              )}
+            </View>
+            <Text style={{ color: palette.muted, fontSize: 18 }}>{showMore ? "⌃" : "⌄"}</Text>
+          </Pressable>
+
+          {showMore && (
+            <>
+              {!travel && (
+                <>
+                  <Text style={[styles.label, { color: palette.muted }]}>Category</Text>
+                  <View style={styles.chips}>
+                    {categories.map((c) => {
+                      const on = category === c.id;
+                      return (
+                        <Pressable
+                          key={c.id}
+                          onPress={() => {
+                            setCategory(c.id);
+                            setCategoryChosen(true);
+                          }}
+                          style={[
+                            styles.chip,
+                            { backgroundColor: palette.surface, borderColor: palette.border },
+                            on && { borderColor: c.color },
+                          ]}
+                        >
+                          <Text style={{ fontSize: 13, color: on ? palette.ink : palette.muted }}>
+                            {c.icon} {c.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
+
+              <Text style={[styles.label, { color: palette.muted }]}>
+                Icon — leave empty to use the category&apos;s
+              </Text>
+              <TextInput
+                value={emoji}
+                onChangeText={setEmoji}
+                placeholder="🚂"
+                placeholderTextColor={palette.muted}
+                style={[styles.input, styles.emoji, field]}
+              />
+
+              {/* The confirmation, on the thing it confirms. The trip's Files
+                  tab shows it too — the same list, read from the stop it
+                  belongs to. */}
+              {draft?.mode === "edit" && (
+                <>
+                  <Text style={[styles.label, { color: palette.muted }]}>Files</Text>
+                  <TripFiles
+                    tripId={draft.item.tripId}
+                    files={documents}
+                    itemId={draft.item.id}
+                    onChanged={onSaved}
+                  />
+                </>
+              )}
+
+              {/* The tick that puts this on the trip's bookings tab, and takes
+                  it off again. Nothing is a booking until somebody says so. */}
+              <Pressable
+                onPress={() => setBooking(booking === null ? BOOKING_NEEDED : null)}
+                style={styles.check}
+              >
+                <Text style={{ fontSize: 18 }}>{booking === null ? "⬜️" : "☑️"}</Text>
+                <Text style={{ color: palette.ink, fontSize: 14 }}>Needs booking</Text>
+              </Pressable>
+
+              {booking !== null && (
+                <Pressable
+                  onPress={() => setBooking(nextState(booking))}
+                  style={[styles.check, { marginLeft: 22 }]}
+                >
+                  <Text style={{ fontSize: 18 }}>
+                    {booking === BOOKING_BOOKED ? "☑️" : "⬜️"}
+                  </Text>
+                  <Text style={{ color: palette.ink, fontSize: 14 }}>Booked</Text>
+                </Pressable>
+              )}
+
+              {/* The deadline the spreadsheet used to carry as "book 3 days
+                  before" — a note nothing could act on. */}
+              {booking === BOOKING_NEEDED && (
+                <>
+                  <Text style={[styles.label, { color: palette.muted }]}>Book by</Text>
+                  <DateRangePicker
+                    single
+                    start={bookBy}
+                    end=""
+                    onChange={({ start }) => setBookBy(start)}
+                  />
+                  {bookBy !== "" && (
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        marginTop: 4,
+                        color:
+                          urgencyOf(bookBy) === "overdue"
+                            ? SEMANTIC.danger
+                            : urgencyOf(bookBy) === "soon"
+                              ? SEMANTIC.warning
+                              : palette.muted,
+                      }}
+                    >
+                      {deadlineLabel(bookBy)}
+                    </Text>
+                  )}
+                </>
+              )}
+            </>
+          )}
           {/* Taking something off the trip belongs with editing it, not on the
               row. The row used to carry the only × there was, which meant the
               list could never be the clean thing the kit draws. */}
@@ -865,6 +1021,26 @@ const styles = StyleSheet.create({
   remove: { alignItems: "center", paddingVertical: 18, marginTop: 6 },
   notes: { minHeight: 80, textAlignVertical: "top" },
   placeNote: { borderWidth: 1, borderRadius: RADIUS.card, padding: 12 },
+  /// A line that states its answer and opens to change it.
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: RADIUS.card,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  /// The place, once one is attached.
+  attached: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: RADIUS.card,
+    padding: 12,
+    marginTop: 12,
+  },
   check: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 16 },
   dayChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   dayChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
