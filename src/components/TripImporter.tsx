@@ -52,6 +52,15 @@ type Row = ParsedEntry & {
 
 /// A spreadsheet's Category column ends up at the front of the note, because
 /// that is where the columns it came from put it. These read it back out.
+/// Lowercased and stripped of accents, so "Québec" matches "Quebec".
+function fold(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+
 function leadingWord(note: string | null) {
   return note ? (note.split(",")[0] ?? "").trim() : null;
 }
@@ -136,6 +145,14 @@ export default function TripImporter({
   /// things that made a generated trip look unlike one somebody planned.
   const [tripNotes, setTripNotes] = useState("");
   const [text, setText] = useState("");
+  /// Whether the raw itinerary is on screen while drafting.
+  ///
+  /// It is the format the importer reads, not something anybody asked to look
+  /// at: twenty-five monospaced lines of "09:00 Name, City — category, note"
+  /// read as code, and the review below already shows every stop with its day,
+  /// its time and what the map made of it. Editing the lines by hand is still
+  /// worth having, so it is a click away rather than gone.
+  const [showText, setShowText] = useState(false);
 
   const [rows, setRows] = useState<Row[] | null>(null);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -205,30 +222,50 @@ export default function TripImporter({
     }
   }
 
-  /// The place behind a journey's endpoint, from the destinations already
-  /// picked.
+  /// The places a journey runs between, from the destinations already picked.
   ///
-  /// A journey goes between cities the trip names, and those were resolved
-  /// when somebody pointed at them — coordinates included. Matching is on the
-  /// city rather than the whole label, because the draft writes "Quebec City"
-  /// where the picker stored "Quebec, Canada": the label carries a country the
-  /// itinerary has no reason to repeat.
-  function cityPinFor(name: string) {
-    const wanted = name.trim().toLowerCase();
-    if (!wanted) return null;
+  /// Those were resolved when somebody pointed at them, coordinates included,
+  /// so nothing here is looked up. Matching them back to the words in the
+  /// itinerary takes three tries, in order of how sure each one is:
+  ///
+  /// The city, or the whole label. "Quebec, Canada" is stored where the
+  /// itinerary says "Quebec".
+  ///
+  /// Then the first few letters, because a model writing an itinerary for
+  /// Portugal writes Lisboa where the picker stored Lisbon — and Montréal,
+  /// Québec, Sevilla and Roma have the same shape.
+  ///
+  /// Then the order. A journey runs from one of the trip's cities to the next
+  /// one, so a name nothing else could place is the city after the one at the
+  /// other end. This is what catches Firenze against Florence, which no amount
+  /// of letter-matching will.
+  const PREFIX = 4;
 
-    const pin = Object.values(cityPins).find((candidate) => {
-      const city = (candidate.city ?? candidate.name).toLowerCase();
+  function cityIndexFor(name: string) {
+    const wanted = fold(name);
+    if (!wanted) return -1;
+
+    const exact = regions.findIndex((label) => {
+      const pin = cityPins[label];
+      const city = fold(pin?.city ?? pin?.name ?? label);
+      return city === wanted || fold(label) === wanted;
+    });
+    if (exact >= 0) return exact;
+
+    return regions.findIndex((label) => {
+      const pin = cityPins[label];
+      const city = fold(pin?.city ?? pin?.name ?? label);
       return (
-        city === wanted ||
-        candidate.label.toLowerCase() === wanted ||
-        // "Quebec" against "Quebec City", and the other way round.
-        city.startsWith(wanted) ||
-        wanted.startsWith(city)
+        city.length >= PREFIX &&
+        wanted.length >= PREFIX &&
+        city.slice(0, PREFIX) === wanted.slice(0, PREFIX)
       );
     });
-    if (!pin) return null;
+  }
 
+  function pinAt(index: number) {
+    const pin = index >= 0 ? cityPins[regions[index] ?? ""] : undefined;
+    if (!pin) return null;
     return {
       name: pin.city ?? pin.name,
       lat: pin.lat,
@@ -238,6 +275,16 @@ export default function TripImporter({
       country: pin.country,
       countryCode: pin.countryCode,
     };
+  }
+
+  function journeyPins(from: string, to: string) {
+    let fromAt = cityIndexFor(from);
+    let toAt = cityIndexFor(to);
+    // The one that could not be placed is the city either side of the one that
+    // could.
+    if (toAt < 0 && fromAt >= 0) toAt = fromAt + 1;
+    if (fromAt < 0 && toAt >= 0) fromAt = toAt - 1;
+    return { from: pinAt(fromAt), to: pinAt(toAt) };
   }
 
   /// Looks each entry up one at a time. The geocoder allows roughly one
@@ -435,9 +482,9 @@ export default function TripImporter({
             kind: row.travel ? ("travel" as const) : ("stop" as const),
             mode: row.travel?.mode ?? null,
             endTime: row.travel?.endTime ?? null,
-            toPlace: row.travel ? cityPinFor(row.travel.to) : null,
+            toPlace: row.travel ? journeyPins(row.title, row.travel.to).to : null,
             place: row.travel
-              ? cityPinFor(row.title)
+              ? journeyPins(row.title, row.travel.to).from
               : match
                 ? {
                     // "Husk, Charleston" was written that way so the geocoder
@@ -592,7 +639,7 @@ export default function TripImporter({
 
         {row.note && <p className="mt-1 text-xs text-muted">{row.note}</p>}
 
-        {row.candidates.length > 0 && (
+        {!row.travel && row.candidates.length > 0 && (
           <div className="mt-2 flex items-center gap-2">
             <span aria-hidden>{meta.icon}</span>
             <select
@@ -619,7 +666,7 @@ export default function TripImporter({
           </div>
         )}
 
-        {lost && (
+        {lost && !row.travel && (
           <div className="mt-2 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <input
@@ -937,6 +984,25 @@ export default function TripImporter({
           />
         )}
 
+        {/* While drafting, the raw itinerary is an intermediate step rather
+            than a thing to read. The count says what came back and the button
+            does the next bit; the lines themselves are behind a click. */}
+        {destination === "draft" && text.trim().length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span className="text-foreground">
+              {preview.length} {preview.length === 1 ? "stop" : "stops"} across {dayCount}{" "}
+              {dayCount === 1 ? "day" : "days"}.
+            </span>
+            <button
+              type="button"
+              className="font-medium text-accent-text hover:underline"
+              onClick={() => setShowText((on) => !on)}
+            >
+              {showText ? "Hide the itinerary text" : "Edit it as text"}
+            </button>
+          </div>
+        )}
+
         {/* The other half of this page: a list somebody already has, and the
             lookups that turn it into places.
 
@@ -946,7 +1012,7 @@ export default function TripImporter({
             in — and the disabled button beneath it said so outright. Once the
             draft lands it is an ordinary pasted itinerary and gets the
             ordinary screen. */}
-        {(destination !== "draft" || text.trim().length > 0) && (
+        {(destination !== "draft" || showText) && (
           <>
         {/* A file, for the list somebody already keeps somewhere else.
             Everything lands in the same box, so what gets imported is always
@@ -1040,6 +1106,8 @@ export default function TripImporter({
             </>
           )}
         </p>
+          </>
+        )}
 
         {error && <p className="text-xs text-red-500">{error}</p>}
 
@@ -1065,7 +1133,7 @@ export default function TripImporter({
           {/* A dead button that says nothing is the worst thing on this page:
               the example in the box above is grey placeholder text, and it is
               easy to read it as an itinerary you have already pasted. */}
-          {!busy && preview.length === 0 && (
+          {!busy && preview.length === 0 && destination !== "draft" && (
             <span className="text-xs text-amber-600 dark:text-amber-400">
               {destination === "trip" && !intoTripId
                 ? "Paste an itinerary to add its places, or just add the trip and its dates."
@@ -1083,8 +1151,6 @@ export default function TripImporter({
           <p className="text-xs text-muted">
             One lookup a second — that&apos;s the free map service&apos;s limit, not slowness.
           </p>
-        )}
-          </>
         )}
       </div>
 
@@ -1128,7 +1194,7 @@ export default function TripImporter({
           <h2 className="text-sm font-semibold">
             Found on the map
             <span className="ml-2 text-xs font-normal text-muted">
-              {found.length} of {rows.length}
+              {found.length} of {rows.length - legs.length}
             </span>
           </h2>
           {found.length > 0 && (

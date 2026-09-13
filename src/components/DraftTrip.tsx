@@ -188,6 +188,10 @@ export default function DraftTrip({
         <DatePicker
           single
           start={startDate}
+          // The whole trip shaded, not only the day it starts. The days above
+          // already say how long it runs, so the calendar can show it —
+          // clicking still only moves the first day.
+          end={lastDay}
           onChange={(next) => onStartDate(next.start)}
           emptyHint="Click the first day, or leave it for a trip with no dates."
         />

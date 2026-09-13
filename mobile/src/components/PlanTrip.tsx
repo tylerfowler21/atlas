@@ -371,7 +371,8 @@ export default function PlanTrip({
             <DateRangePicker
               single
               start={start}
-              end={start}
+              // The whole trip shaded, not only the day it starts.
+              end={end}
               emptyHint="Tap the first day, or leave it for a trip with no dates."
               onChange={(next) => setStart(next.start)}
             />
