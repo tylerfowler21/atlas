@@ -98,6 +98,12 @@ const SAME_AREA = 0.25;
 /// Enough of a margin that pins are not welded to the edge of the screen.
 const PADDING = 1.4;
 const MIN_SPAN = 0.02;
+/// The widest region MapKit will accept. It throws rather than clamping, and
+/// the exception is fatal: places spread from Reykjavík to Queenstown asked
+/// for 375° of longitude and took the app down on launch, before the map had
+/// drawn anything. Padding a wide enough spread is all it takes.
+const MAX_LAT_SPAN = 180;
+const MAX_LNG_SPAN = 360;
 
 /// The region containing every pin. Somebody with places in Lisbon and Tokyo
 /// legitimately gets the whole world; somebody with one place gets a
@@ -115,8 +121,8 @@ function regionFor(places: { lat: number; lng: number }[]): Region | undefined {
   return {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLng + maxLng) / 2,
-    latitudeDelta: Math.max((maxLat - minLat) * PADDING, MIN_SPAN),
-    longitudeDelta: Math.max((maxLng - minLng) * PADDING, MIN_SPAN),
+    latitudeDelta: Math.min(Math.max((maxLat - minLat) * PADDING, MIN_SPAN), MAX_LAT_SPAN),
+    longitudeDelta: Math.min(Math.max((maxLng - minLng) * PADDING, MIN_SPAN), MAX_LNG_SPAN),
   };
 }
 
