@@ -227,6 +227,10 @@ export const profileSchema = z.object({
     .nullable()
     .optional(),
   bio: optionalText(280),
+  /// Where you are based, in your own words — "Lisbon", "Brooklyn", "between
+  /// Berlin and Lisbon". Not geocoded and not a place on anybody's map: it is
+  /// the line under your name that says where you are answering from.
+  homeCity: optionalText(80),
 });
 
 export const followSchema = z.object({

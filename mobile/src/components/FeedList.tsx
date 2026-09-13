@@ -102,7 +102,20 @@ export default function FeedList() {
                   router.push({ pathname: "/published/[id]", params: { id: item.id } })
                 }
               >
-                <Text style={[styles.author, { color: palette.muted }]} numberOfLines={1}>
+                {/* Whose trip this is, and the way to them. Somebody worth
+                    following is usually discovered by reading one of their
+                    trips, not by scrolling a list of names. */}
+                <Text
+                  style={[styles.author, { color: palette.accentText }]}
+                  numberOfLines={1}
+                  onPress={() =>
+                    item.author.username &&
+                    router.push({
+                      pathname: "/u/[username]",
+                      params: { username: item.author.username },
+                    })
+                  }
+                >
                   {item.author.name ?? item.author.username ?? "Someone"}
                   {item.author.username ? ` · @${item.author.username}` : ""}
                 </Text>

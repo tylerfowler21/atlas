@@ -86,13 +86,27 @@ export default function PublishedTripScreen() {
         <View style={styles.head}>
           <Text style={[styles.title, { color: palette.ink }]}>{data.trip.title}</Text>
           <Text style={{ color: palette.muted, fontSize: 13, marginTop: 2 }}>
-            {[
-              by && `by ${by}`,
-              tripWhere(data.trip),
-              data.trip.startDate ? formatDay(data.trip.startDate) : null,
-            ]
+            {/* The author's name is the way to the rest of what they have
+                published — which is the whole reason somebody reads one of
+                these and then wants more. */}
+            {by && (
+              <Text
+                style={{ color: palette.accentText }}
+                onPress={() =>
+                  data.author?.username &&
+                  router.push({
+                    pathname: "/u/[username]",
+                    params: { username: data.author.username },
+                  })
+                }
+              >
+                by {by}
+              </Text>
+            )}
+            {[tripWhere(data.trip), data.trip.startDate ? formatDay(data.trip.startDate) : null]
               .filter(Boolean)
-              .join(" · ")}
+              .map((part, i) => (i === 0 && !by ? part : ` · ${part}`))
+              .join("")}
           </Text>
         </View>
 

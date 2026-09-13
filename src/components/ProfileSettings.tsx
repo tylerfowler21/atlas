@@ -5,12 +5,15 @@ import { useState } from "react";
 export default function ProfileSettings({
   initialUsername,
   initialBio,
+  initialHomeCity,
 }: {
   initialUsername: string | null;
   initialBio: string | null;
+  initialHomeCity: string | null;
 }) {
   const [username, setUsername] = useState(initialUsername ?? "");
   const [bio, setBio] = useState(initialBio ?? "");
+  const [homeCity, setHomeCity] = useState(initialHomeCity ?? "");
   const [saved, setSaved] = useState<string | null>(initialUsername);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export default function ProfileSettings({
       body: JSON.stringify({
         username: username.trim() || null,
         bio: bio.trim() || null,
+        homeCity: homeCity.trim() || null,
       }),
     });
     const body = await res.json().catch(() => ({}));
@@ -65,6 +69,21 @@ export default function ProfileSettings({
           value={bio}
           onChange={(e) => setBio(e.target.value)}
         />
+      </label>
+
+      <label className="block text-xs text-muted">
+        Where you&apos;re based
+        <input
+          className="input mt-1"
+          placeholder="Lisbon"
+          maxLength={80}
+          value={homeCity}
+          onChange={(e) => setHomeCity(e.target.value)}
+        />
+        <span className="mt-1 block text-xs text-muted">
+          In your own words, and as rough as you like — it sits under your name
+          on your profile. It is not a pin and goes on nobody&apos;s map.
+        </span>
       </label>
 
       {error && <p className="text-xs text-red-500">{error}</p>}

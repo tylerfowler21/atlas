@@ -19,6 +19,7 @@ async function loadProfile(username: string) {
       username: true,
       image: true,
       bio: true,
+      homeCity: true,
       _count: { select: { followers: true, following: true } },
     },
   });
@@ -89,7 +90,10 @@ export default async function ProfilePage({
 
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold">{profile.name ?? profile.username}</h1>
-          <p className="text-sm text-muted">@{profile.username}</p>
+          <p className="text-sm text-muted">
+            @{profile.username}
+            {profile.homeCity && <> · {profile.homeCity}</>}
+          </p>
           {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
           <p className="mt-2 text-xs text-muted">
             <span className="font-medium text-foreground tabular-nums">

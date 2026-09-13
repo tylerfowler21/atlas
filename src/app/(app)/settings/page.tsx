@@ -18,6 +18,7 @@ export default async function SettingsPage() {
     select: {
       username: true,
       bio: true,
+      homeCity: true,
       email: true,
       _count: {
         select: { followers: true, following: true, trips: true, places: true, memories: true },
@@ -34,7 +35,11 @@ export default async function SettingsPage() {
       </p>
 
       <div className="mt-6">
-        <ProfileSettings initialUsername={me.username} initialBio={me.bio} />
+        <ProfileSettings
+          initialUsername={me.username}
+          initialBio={me.bio}
+          initialHomeCity={me.homeCity}
+        />
       </div>
 
       <div className="mt-8 border-t border-line pt-6">

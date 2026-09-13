@@ -17,6 +17,7 @@ import { api, type Person } from "@/lib/api";
 import { REPORT_REASONS } from "@/lib/report-reasons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
+import { useRouter } from "expo-router";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -25,6 +26,7 @@ export default function PeopleList() {
   const path = query.trim() ? `/api/people?q=${encodeURIComponent(query.trim())}` : "/api/people";
   const { data, error, loading, reload } = useApi<{ people: Person[] }>(path);
   const palette = usePalette();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   /// Follows are optimistic: the button flips immediately and the list is
@@ -181,21 +183,32 @@ export default function PeopleList() {
           const following = pending[item.id] ?? item.following;
           return (
             <View style={[styles.row, { borderBottomColor: palette.border }]}>
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, { backgroundColor: palette.brandSurface }]} />
-              )}
-              <View style={styles.body}>
-                <Text style={[styles.name, { color: palette.ink }]} numberOfLines={1}>
-                  {item.name ?? item.username}
-                </Text>
-                <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
-                  @{item.username} · {item.followers} follower
-                  {item.followers === 1 ? "" : "s"} · {item.publishedTrips} trip
-                  {item.publishedTrips === 1 ? "" : "s"}
-                </Text>
-              </View>
+              {/* The name and face open the person. Following a stranger you
+                  cannot read first is a strange thing to be asked to do, and
+                  this list was nothing but Follow buttons. */}
+              <Pressable
+                onPress={() =>
+                  item.username &&
+                  router.push({ pathname: "/u/[username]", params: { username: item.username } })
+                }
+                style={styles.person}
+              >
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, { backgroundColor: palette.brandSurface }]} />
+                )}
+                <View style={styles.body}>
+                  <Text style={[styles.name, { color: palette.ink }]} numberOfLines={1}>
+                    {item.name ?? item.username}
+                  </Text>
+                  <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
+                    @{item.username} · {item.followers} follower
+                    {item.followers === 1 ? "" : "s"} · {item.publishedTrips} trip
+                    {item.publishedTrips === 1 ? "" : "s"}
+                  </Text>
+                </View>
+              </Pressable>
               <Pressable onPress={() => moderate(item)} hitSlop={8} style={styles.more}>
                 <Text style={{ color: palette.muted, fontSize: 20 }}>⋯</Text>
               </Pressable>
@@ -248,6 +261,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: { width: 40, height: 40, borderRadius: 20 },
+  person: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   body: { flex: 1 },
   name: { fontSize: 15, fontWeight: "500" },
   meta: { fontSize: 12, marginTop: 2 },
