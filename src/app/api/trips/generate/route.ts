@@ -2,17 +2,9 @@ import { NextResponse } from "next/server";
 import { TRIP_STYLE_IDS } from "@/lib/trip-styles";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/user";
-import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { generateItinerary, itineraryToText, modelConfigured } from "@/lib/generate-trip";
-
-/// What one account may draft in a day.
-///
-/// Every generation is a paid call to somebody else's API, and an endpoint that
-/// will run one on request is an endpoint that will run a thousand. This is the
-/// free allowance; it is also the shape of the thing to sell, if drafting turns
-/// out to be worth paying for.
-const DRAFTS_PER_DAY = 5;
+import { RUNS_PER_DAY, noneLeft, recordRun, runsUsedToday } from "@/lib/ai-allowance";
 
 const bodySchema = z.object({
   destination: z.string().trim().min(2).max(120),
@@ -54,31 +46,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Check the details" }, { status: 400 });
   }
 
-  /// Midnight, rather than twenty-four hours ago.
-  ///
-  /// A rolling window makes the message below a lie: somebody told their
-  /// drafts "come back tomorrow" who spent them across an evening gets them
-  /// back one at a time through the following evening, and coming back the
-  /// next morning finds the door still shut. A day that starts at midnight is
-  /// also the rule people can hold in their head — five a day, new ones in the
-  /// morning — which a sliding twenty-four hours is not.
-  ///
-  /// Midnight UTC, like every other date this app reasons about. West of
-  /// Greenwich that falls in the evening, so the allowance comes back earlier
-  /// than promised rather than later, which is the safe direction for a
-  /// promise to be wrong in.
-  const now = new Date();
-  const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const used = await prisma.aiDraft.count({
-    where: { userId: user.id, createdAt: { gte: since } },
-  });
-  if (used >= DRAFTS_PER_DAY) {
-    return NextResponse.json(
-      {
-        error: `That's ${DRAFTS_PER_DAY} drafts today, which is the limit for now. They come back tomorrow.`,
-      },
-      { status: 429 },
-    );
+  // The same allowance a day with Otto in it spends. One gate, so a second AI
+  // feature does not quietly get its own separate five.
+  const used = await runsUsedToday(user.id);
+  if (used >= RUNS_PER_DAY) {
+    return NextResponse.json({ error: noneLeft }, { status: 429 });
   }
 
   try {
@@ -105,18 +77,12 @@ export async function POST(request: Request) {
 
     const text = itineraryToText(itinerary);
 
-    await prisma.aiDraft.create({
-      data: {
-        userId: user.id,
-        destination: parsed.data.destination,
-        days,
-        itinerary: text,
-        // What it cost to produce. The columns have been here since the table
-        // was, and nothing ever filled them, so every draft anybody has made
-        // reads as free — which is the one thing it certainly is not.
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-      },
+    await recordRun({
+      userId: user.id,
+      destination: parsed.data.destination,
+      days,
+      text,
+      usage,
     });
 
     // Also said out loud, where a bad afternoon can be seen without opening
@@ -138,7 +104,7 @@ export async function POST(request: Request) {
       stops: itinerary.stops,
       /// Getting between the cities, for the same reason.
       journeys: itinerary.journeys,
-      remaining: DRAFTS_PER_DAY - used - 1,
+      remaining: RUNS_PER_DAY - used - 1,
     });
   } catch (error) {
     console.error("[generate] draft failed", error);
