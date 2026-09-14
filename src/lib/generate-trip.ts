@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { BUILT_IN_CATEGORY_IDS, TRAVEL_MODE_IDS } from "@/lib/taxonomy";
+import { BUILT_IN_CATEGORY_IDS, TRAVEL_MODE_IDS, type BuiltInCategoryId } from "@/lib/taxonomy";
 import { styleAsks } from "@/lib/trip-styles";
 
 /// Asking Claude to draft an itinerary.
@@ -15,6 +15,101 @@ import { styleAsks } from "@/lib/trip-styles";
 
 export const modelConfigured = Boolean(process.env["ANTHROPIC_API_KEY"]);
 
+/// What the model called it, in the words this app files things under.
+///
+/// A draft used to die on this. The category was asked for as a strict list,
+/// and a model writing up three days in Florence reaches for "museum",
+/// "church", "landmark" — true words, none of them on the list — which failed
+/// the whole response and threw away sixteen good stops along with the six odd
+/// labels. One wrong word should cost one wrong word.
+///
+/// So the list is asked for in the description and enforced here instead,
+/// where an unknown answer is a thing to interpret rather than a thing to
+/// refuse. Anything still unrecognised becomes Other, which is what somebody
+/// filing it by hand would do.
+const CATEGORY_SYNONYMS: Record<string, BuiltInCategoryId> = {
+  museum: "sight",
+  gallery: "sight",
+  church: "sight",
+  cathedral: "sight",
+  basilica: "sight",
+  temple: "sight",
+  shrine: "sight",
+  castle: "sight",
+  palace: "sight",
+  monument: "sight",
+  landmark: "sight",
+  ruins: "sight",
+  viewpoint: "sight",
+  bridge: "sight",
+  square: "sight",
+  park: "nature",
+  garden: "nature",
+  beach: "nature",
+  lake: "nature",
+  mountain: "nature",
+  hike: "nature",
+  trail: "nature",
+  walk: "nature",
+  market: "shop",
+  bakery: "cafe",
+  "coffee shop": "cafe",
+  coffee: "cafe",
+  gelato: "cafe",
+  "ice cream": "cafe",
+  pub: "bar",
+  wine: "bar",
+  winery: "bar",
+  enoteca: "bar",
+  brewery: "bar",
+  nightlife: "bar",
+  food: "restaurant",
+  dining: "restaurant",
+  trattoria: "restaurant",
+  osteria: "restaurant",
+  tour: "activity",
+  experience: "activity",
+  class: "activity",
+  workshop: "activity",
+  show: "activity",
+  theatre: "activity",
+  theater: "activity",
+  accommodation: "hotel",
+  stay: "hotel",
+  lodging: "hotel",
+  airport: "transport",
+  station: "transport",
+  train: "transport",
+  flight: "transport",
+  town: "city",
+  village: "city",
+  neighbourhood: "city",
+  neighborhood: "city",
+};
+
+export function nearestCategory(value: string): BuiltInCategoryId {
+  const asked = value.trim().toLowerCase();
+  if ((BUILT_IN_CATEGORY_IDS as readonly string[]).includes(asked)) {
+    return asked as BuiltInCategoryId;
+  }
+  const known = CATEGORY_SYNONYMS[asked];
+  if (known) return known;
+  // "art museum", "historic church", "wine bar" — the useful word is in there
+  // somewhere. Real category names are looked for before synonyms, so "wine
+  // bar" lands on bar rather than on what wine alone would suggest.
+  const words = asked.split(/[^a-z]+/).filter(Boolean);
+  for (const word of words) {
+    if ((BUILT_IN_CATEGORY_IDS as readonly string[]).includes(word)) {
+      return word as BuiltInCategoryId;
+    }
+  }
+  for (const word of words) {
+    const synonym = CATEGORY_SYNONYMS[word];
+    if (synonym) return synonym;
+  }
+  return "other";
+}
+
 const stopSchema = z.object({
   day: z.number().int().min(1).max(30).describe("Which day of the trip, from 1"),
   time: z
@@ -27,7 +122,11 @@ const stopSchema = z.object({
       "The place's actual name, as it is written on the door and on a map. Not a description.",
     ),
   city: z.string().describe("The town or city the place is in"),
-  category: z.enum(BUILT_IN_CATEGORY_IDS),
+  category: z
+    .string()
+    .describe(
+      `One of: ${BUILT_IN_CATEGORY_IDS.join(", ")}. Use other if none of them fit.`,
+    ),
   note: z
     .string()
     .nullable()
@@ -158,7 +257,11 @@ export async function generateItinerary(input: ItineraryRequest): Promise<Genera
   const parsed = response.parsed_output;
   if (!parsed) throw new Error("The itinerary came back in a shape we could not read");
 
-  return parsed;
+  // Filed under what this app understands, whatever words came back.
+  return {
+    ...parsed,
+    stops: parsed.stops.map((stop) => ({ ...stop, category: nearestCategory(stop.category) })),
+  };
 }
 
 /// The draft, written in the format the importer already reads.
