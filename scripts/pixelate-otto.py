@@ -42,8 +42,12 @@ FULL = (80, 96)
 #: Head and shoulders. A second family, and never mixed with the first in the
 #: same place on screen: he would change size when he changed mood.
 BUST = (80, 96)
-#: Round, for a tab bar or a row.
+#: Round, for a row. 
 FACE = (64, 64)
+#: Round, for a tab bar. Its own grid rather than the 64 drawn smaller: React
+#: Native smooths whatever it resizes, so the only size that stays crisp is the
+#: one the asset was written at.
+TAB = (32, 32)
 
 JOBS = [
     ("Idle pixel-art Otto with backpack straps.png", "otto-idle", FULL),
@@ -63,6 +67,7 @@ JOBS = [
     ("Otto Pixel Avatar with Forest Bucket Hat.png", "otto-avatar", FACE),
     ("Otto Pixel Avatar with Green Hat.png", "otto-avatar-alt", FACE),
     ("Pixel Otto Waving in Forest Green.png", "otto-avatar-waving", FACE),
+    ("Otto Pixel Avatar with Forest Bucket Hat.png", "otto-avatar-small", TAB),
 ]
 
 #: Below this an alpha channel means transparent. Not zero: one export came
