@@ -201,9 +201,28 @@ export async function geocode(
   const asked = words(comma === -1 ? query : query.slice(0, comma));
   const hint = comma === -1 ? [] : words(query.slice(comma + 1));
 
-  /// Whether the result is where the query said it was. Only ever a tiebreak
-  /// between two places of the same name — the St-Viateur Bagel in Montréal
-  /// and the one in Dollard-des-Ormeaux.
+  /// How well the result's own town answers the hint.
+  ///
+  /// The tiebreak below used to ask whether any hint word appeared anywhere in
+  /// the result's address, which cannot separate a place from its twin inside
+  /// the same province. "Place Royale, Quebec City" matched the one in
+  /// Vieux-Montréal just as well as the one in Vieux-Québec, because Montréal
+  /// is in Quebec and so the word is in both addresses — and the tie fell
+  /// through to the gazetteer's own order, which answered Montréal, 250km from
+  /// the trip.
+  ///
+  /// Scored against the town rather than the whole address, and scored rather
+  /// than answered yes or no: "Quebec City" is a better account of Quebec than
+  /// of Mexico City, which sharing the word "city" would otherwise make equal.
+  const inTown = (r: SearchResult) => {
+    if (hint.length === 0 || !r.city) return 0;
+    return similarity(hint, words(r.city));
+  };
+
+  /// Whether the result is anywhere the query said it was — the town, the
+  /// country, anywhere in the address. Weaker than the town on its own, and
+  /// kept behind it: a result with no city still deserves to beat one that is
+  /// in the wrong country entirely.
   const placed = (r: SearchResult) => {
     if (hint.length === 0) return false;
     const where = fold(`${r.city ?? ""} ${r.country ?? ""} ${r.context}`);
@@ -239,6 +258,7 @@ export async function geocode(
       i,
       nearby,
       score: similarity(asked, words(r.name)),
+      town: inTown(r),
       placed: placed(r),
     };
   });
@@ -247,6 +267,7 @@ export async function geocode(
     (a, b) =>
       Number(b.nearby) - Number(a.nearby) ||
       b.score - a.score ||
+      b.town - a.town ||
       Number(b.placed) - Number(a.placed) ||
       a.i - b.i,
   );
