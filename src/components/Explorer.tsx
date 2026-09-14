@@ -54,6 +54,7 @@ export default function Explorer({
   firstSteps = null,
   user,
   otto = false,
+  ottoIntro = false,
 }: {
   initialPlaces: PlaceDTO[];
   trips: TripDTO[];
@@ -61,9 +62,12 @@ export default function Explorer({
   initialSelectedId?: string | null;
   /// The short list of first steps, or null once it is finished or hidden.
   firstSteps?: Steps | null;
-  /// Whether to stand Otto on the map. Decided on the server — he is not
-  /// offered to everybody yet.
+  /// Whether Otto explains an empty map. Free, and around for everybody.
   otto?: boolean;
+  /// Whether he stands on the map introducing himself. A narrower question:
+  /// what he says there is an offer to fill a day, and offering that to
+  /// somebody who cannot ask is a promise nobody keeps.
+  ottoIntro?: boolean;
   /// Only for the avatar beside the search on a phone, where the bar that
   /// usually carries it is hidden.
   user?: { name: string | null; image: string | null };
@@ -1176,7 +1180,7 @@ export default function Explorer({
         {/* Where the app opens, because the place he actually works is a day
             with nothing on it and nobody opens one of those on purpose.
             Hidden while dropping a pin: the map is being aimed at. */}
-        {otto && !dropMode && <OttoIntro />}
+        {ottoIntro && !dropMode && <OttoIntro />}
       </div>
     </div>
   );

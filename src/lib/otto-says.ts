@@ -49,13 +49,21 @@ export const OTTO_SAYS = {
   noPlaces: {
     says:
       "Nothing on the map yet. The quickest start is a list you already have — a note full of places, a spreadsheet, a document — and every one gets found and pinned for you.",
-    then: "Or search for somewhere above. Anywhere you have already been counts too: mark it visited and it joins the map behind you.",
+    then: "Anywhere you have already been counts too — mark it visited and it joins the map behind you.",
   },
 
   /// The journal.
+  ///
+  /// The `then` is not optional here, whatever the shape of the others. An
+  /// entry hangs off a place rather than being written from this page, so a
+  /// screen that says only what a journal is for is a dead end — which is the
+  /// one thing he exists to stop.
   emptyJournal: {
     says:
-      "What a place was actually like, written down while you remember. Journal entries stay private — publishing a trip never publishes them.",
+      "What a place was actually like, written down while you remember. Entries stay private — publishing a trip never publishes them.",
+    then:
+      "They hang off a place rather than starting here: open one on the map and choose Memories & journal.",
+    go: { label: "Open the map", href: "/" },
   },
 
   /// The feed, before anybody is followed.
