@@ -211,10 +211,15 @@ export default function AccountScreen() {
           Nothing is deleted — your places and trips stay as they are.
         </Text>
 
-        <Text style={[styles.label, { color: palette.muted }]}>Privacy</Text>
+        <Text style={[styles.label, { color: palette.muted }]}>Privacy and terms</Text>
         <Pressable onPress={() => Linking.openURL(`${API_URL}/privacy`)} style={styles.link}>
           <Text style={{ color: palette.accentText, fontSize: 14 }}>
             What Roava stores and who can see it
+          </Text>
+        </Pressable>
+        <Pressable onPress={() => Linking.openURL(`${API_URL}/terms`)} style={styles.link}>
+          <Text style={{ color: palette.accentText, fontSize: 14 }}>
+            The rules for using Roava
           </Text>
         </Pressable>
 

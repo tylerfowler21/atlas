@@ -264,8 +264,14 @@ export default async function SignInPage({
           )}
 
           <p className="text-center text-xs text-white/60 lg:text-muted">
-            By continuing you agree to how Roava handles your data, set out in
-            the{" "}
+            By continuing you agree to the{" "}
+            <a
+              href="/terms"
+              className="text-white underline underline-offset-2 lg:text-accent-text lg:no-underline lg:hover:underline"
+            >
+              Terms
+            </a>
+            , and to how Roava handles your data, set out in the{" "}
             <a
               href="/privacy"
               className="text-white underline underline-offset-2 lg:text-accent-text lg:no-underline lg:hover:underline"

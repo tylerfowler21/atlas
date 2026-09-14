@@ -167,6 +167,9 @@ export default async function SharedTripPage({
             <Link href="/privacy" className="hover:underline">
               Privacy
             </Link>
+            <Link href="/terms" className="hover:underline">
+              Terms
+            </Link>
             {/* Somewhere to go when a shared link turns out to be something it
                 should not be. The link is unlisted, so this page is the only
                 place a reader could report it from. */}

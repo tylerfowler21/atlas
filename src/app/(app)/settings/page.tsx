@@ -77,6 +77,9 @@ export default async function SettingsPage() {
         <Link href="/privacy" className="block text-xs text-accent-text hover:underline">
           What Roava stores and who can see it →
         </Link>
+        <Link href="/terms" className="block text-xs text-accent-text hover:underline">
+          The rules for using Roava →
+        </Link>
         <DeleteAccount
           username={me.username}
           email={me.email}
