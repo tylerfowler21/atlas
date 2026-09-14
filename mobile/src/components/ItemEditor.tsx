@@ -328,6 +328,11 @@ export default function ItemEditor({
   function adopt(place: Place | null) {
     setPlaceId(place?.id ?? null);
     if (!place) return;
+    // A journey is not called after the city it leaves — "Montreal" is a poor
+    // name for the train to Quebec, and it is the wrong end of it besides. Its
+    // look is settled too: every journey is filed as transport and wears the
+    // icon of how it travels.
+    if (kind === "travel") return;
     setTitle(place.name);
     if (place.category) {
       setCategory(place.category);
