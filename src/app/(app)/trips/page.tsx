@@ -6,6 +6,8 @@ import { visibleTripsWhere } from "@/lib/trip-access";
 import { serializeTrip } from "@/lib/types";
 import { formatRange, relativeLabel } from "@/lib/trips";
 import NewTripForm from "@/components/NewTripForm";
+import OttoSays from "@/components/OttoSays";
+import { ottoAround } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -45,11 +47,18 @@ export default async function TripsPage() {
       {trips.length === 0 ? (
         <div className="card mt-10 space-y-3 p-5 text-center">
           <p className="text-sm font-medium">No trips yet</p>
-          <p className="mx-auto max-w-md text-sm text-muted">
-            Planning something? Start a new trip and build it from your saved
-            places. Already been somewhere? Paste the itinerary and every stop
-            is found and pinned for you.
-          </p>
+          {/* Otto says it when he is around, and the card says it when he is
+              not — the same thing either way, never both. Two explanations of
+              one screen is worse than none. */}
+          {ottoAround(user) ? (
+            <OttoSays topic="noTrips" pose="planning" className="mx-auto max-w-md" />
+          ) : (
+            <p className="mx-auto max-w-md text-sm text-muted">
+              Planning something? Start a new trip and build it from your saved
+              places. Already been somewhere? Paste the itinerary and every stop
+              is found and pinned for you.
+            </p>
+          )}
           <div className="flex flex-wrap justify-center gap-2">
             <Link href="/import?mode=draft" className="btn btn-primary">
               ✨ Plan one for me

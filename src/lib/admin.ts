@@ -27,12 +27,21 @@ export async function requireAdmin() {
   return user;
 }
 
-/// Whether to offer Otto at all.
+/// Whether Otto is around at all.
 ///
-/// Two conditions and one place to change them: the person is on the admin
-/// list while he is being tried out, and the server has a model to run him
-/// with. Kept here rather than in each screen that draws him, so releasing
-/// him is one edit instead of a search.
+/// His quiet half — standing on an empty screen and saying what it is for —
+/// runs no model and costs nothing, so this is only about whether the
+/// character has been introduced to anybody yet. Releasing him is returning
+/// true.
+export function ottoAround(user: Pick<CurrentUser, "email"> | null) {
+  return isAdmin(user);
+}
+
+/// Whether he may be *asked to work*.
+///
+/// The half that runs a model and spends somebody's allowance. Narrower than
+/// being around, and separate on purpose: the day he is introduced to
+/// everybody is not necessarily the day everybody may spend runs.
 export function ottoOffered(user: Pick<CurrentUser, "email"> | null) {
-  return isAdmin(user) && Boolean(process.env["ANTHROPIC_API_KEY"]);
+  return ottoAround(user) && Boolean(process.env["ANTHROPIC_API_KEY"]);
 }
