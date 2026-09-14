@@ -453,3 +453,29 @@ h1,
     letter-spacing: 0.05em;
   }
 }
+
+/* Otto is pixel art, and a browser will scale it without smoothing it if
+   asked. That is the whole reason the website needs no @2x and @3x copies of
+   him: one file, any screen, hard edges. */
+.otto-pixels {
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* Two pixels, slowly. Enough that he is not a sticker, little enough that
+   nobody watches it — presence comes from the timing, not the distance. */
+@keyframes otto-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.otto-breathes {
+  animation: otto-breathe 3.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otto-breathes {
+    animation: none;
+  }
+}
+

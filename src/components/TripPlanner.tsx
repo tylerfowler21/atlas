@@ -31,6 +31,7 @@ import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
+import AskOtto from "@/components/AskOtto";
 import { useTripWeather } from "@/lib/use-trip-weather";
 import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
@@ -965,9 +966,15 @@ export default function TripPlanner({
           ))}
 
           {dayItems.length === 0 && arrivalsToday.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">
-              Nothing planned for this day yet.
-            </p>
+            <>
+              <p className="mt-3 text-sm text-muted">
+                Nothing planned for this day yet.
+              </p>
+              {/* The empty day is Otto's moment: it is the one place where
+                  somebody is looking at a gap and would rather not fill it
+                  themselves. He draws nothing at all unless he is available. */}
+              <AskOtto tripId={trip.id} dayIndex={activeDay} onApplied={reloadItems} />
+            </>
           ) : (
             <ol ref={listRef} className="mt-3 space-y-2">
               {dayItems.map((item, index) => {
