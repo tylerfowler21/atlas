@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
 import { serializePlace, serializeTrip } from "@/lib/types";
 import { firstSteps } from "@/lib/first-steps";
+import { ottoOffered } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,8 @@ export default async function MapPage({
       initialSelectedId={place ?? null}
       firstSteps={steps.hidden ? null : steps}
       user={{ name: user.name, image: user.image }}
+      // Worked out on the server, so the map does not have to ask.
+      otto={ottoOffered(user)}
     />
   );
 }

@@ -26,3 +26,13 @@ export async function requireAdmin() {
   if (!isAdmin(user)) redirect("/");
   return user;
 }
+
+/// Whether to offer Otto at all.
+///
+/// Two conditions and one place to change them: the person is on the admin
+/// list while he is being tried out, and the server has a model to run him
+/// with. Kept here rather than in each screen that draws him, so releasing
+/// him is one edit instead of a search.
+export function ottoOffered(user: Pick<CurrentUser, "email"> | null) {
+  return isAdmin(user) && Boolean(process.env["ANTHROPIC_API_KEY"]);
+}

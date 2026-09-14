@@ -7,7 +7,7 @@ import { tripAccess } from "@/lib/trip-access";
 import { firstIssue } from "@/lib/validation";
 import { RUNS_PER_DAY, noneLeft, recordRun, runsUsedToday } from "@/lib/ai-allowance";
 import { ottoConfigured, runOtto } from "@/lib/otto";
-import { isAdmin } from "@/lib/admin";
+import { ottoOffered } from "@/lib/admin";
 
 /// Otto, asked to fill one day of a trip.
 ///
@@ -16,16 +16,6 @@ import { isAdmin } from "@/lib/admin";
 /// shows them the way it already shows a pasted itinerary and posts the
 /// accepted ones back through the importer. This route writes nothing to the
 /// trip, which is why an editor may call it as freely as an owner.
-
-/// Who may use him yet.
-///
-/// Temporary, and deliberately configuration rather than a database flag: the
-/// list is ADMIN_EMAILS, so access cannot be granted by anything happening
-/// inside the app, and with the variable unset — the default — nobody has it
-/// at all. That is the right default for something half-built.
-///
-/// Releasing him is deleting this and its two uses.
-const letIn = isAdmin;
 
 const bodySchema = z.object({
   /// Zero-based, as every other day index here is.
@@ -44,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   // 404 rather than 403, so an unreleased feature is not advertised by
   // refusing to do it.
-  if (!letIn(user)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!ottoOffered(user)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const access = await tripAccess(id, user);
   if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -123,7 +113,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({
     /// Whether to offer him at all. A plain answer rather than a 404, because
     /// the client asks this in order to decide whether to draw him.
-    available: letIn(user) && ottoConfigured,
+    available: ottoOffered(user),
     remaining: Math.max(0, RUNS_PER_DAY - used),
     lastSaid: last?.itinerary ?? null,
     lastAt: last?.createdAt ?? null,

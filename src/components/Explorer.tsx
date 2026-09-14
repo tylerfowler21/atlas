@@ -16,6 +16,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
+import OttoIntro from "@/components/OttoIntro";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
 import { STATUSES, status as statusOf } from "@/lib/taxonomy";
@@ -51,6 +52,7 @@ export default function Explorer({
   initialSelectedId = null,
   firstSteps = null,
   user,
+  otto = false,
 }: {
   initialPlaces: PlaceDTO[];
   trips: TripDTO[];
@@ -58,6 +60,9 @@ export default function Explorer({
   initialSelectedId?: string | null;
   /// The short list of first steps, or null once it is finished or hidden.
   firstSteps?: Steps | null;
+  /// Whether to stand Otto on the map. Decided on the server — he is not
+  /// offered to everybody yet.
+  otto?: boolean;
   /// Only for the avatar beside the search on a phone, where the bar that
   /// usually carries it is hidden.
   user?: { name: string | null; image: string | null };
@@ -1158,6 +1163,10 @@ export default function Explorer({
             </p>
           </div>
         )}
+        {/* Where the app opens, because the place he actually works is a day
+            with nothing on it and nobody opens one of those on purpose.
+            Hidden while dropping a pin: the map is being aimed at. */}
+        {otto && !dropMode && <OttoIntro />}
       </div>
     </div>
   );
