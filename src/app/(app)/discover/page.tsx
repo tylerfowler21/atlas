@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import OttoSays from "@/components/OttoSays";
+import { ottoAround } from "@/lib/admin";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
@@ -160,13 +162,17 @@ export default async function DiscoverPage({
           </div>
 
           {feedIds.length === 0 ? (
-            <p className="mt-6 text-sm text-muted">
-              You aren&apos;t following anyone yet.{" "}
-              <Link href="/discover?view=people" className="text-accent-text underline">
-                Find people to follow
-              </Link>
-              .
-            </p>
+            ottoAround(user) ? (
+              <OttoSays topic="noFollowing" pose="pointing" className="mt-6 max-w-xl" />
+            ) : (
+              <p className="mt-6 text-sm text-muted">
+                You aren&apos;t following anyone yet.{" "}
+                <Link href="/discover?view=people" className="text-accent-text underline">
+                  Find people to follow
+                </Link>
+                .
+              </p>
+            )
           ) : trips.length === 0 ? (
             <p className="mt-6 text-sm text-muted">
               Nobody you follow has published a trip yet.

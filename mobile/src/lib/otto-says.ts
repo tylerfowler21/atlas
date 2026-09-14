@@ -15,15 +15,6 @@ export type OttoTip = {
 };
 
 export const OTTO_SAYS = {
-  /// The first screen of an empty account. What Roava is, in two sentences,
-  /// from somebody standing in it.
-  firstRun: {
-    says:
-      "Everywhere you have been and everywhere you want to go, on one map. Save a place when you hear about it, and it is waiting when you plan the trip.",
-    then: "Nothing is public unless you publish it.",
-    go: { label: "Save your first place", href: "/places" },
-  },
-
   /// The trips list, before there are any.
   noTrips: {
     says:
@@ -41,8 +32,8 @@ export const OTTO_SAYS = {
   /// The map, before anything is on it.
   noPlaces: {
     says:
-      "Nothing saved yet. Search for somewhere, or press the map where you are, and it goes on as a place you want to go.",
-    then: "Somewhere you have already been is a place too — mark it visited and it joins the map behind you.",
+      "Nothing on the map yet. The quickest start is a list you already have — a note full of places, a spreadsheet, a document — and every one gets found and pinned for you.",
+    then: "Or search for somewhere above. Anywhere you have already been counts too: mark it visited and it joins the map behind you.",
   },
 
   /// The journal.
@@ -51,12 +42,12 @@ export const OTTO_SAYS = {
       "What a place was actually like, written down while you remember. Journal entries stay private — publishing a trip never publishes them.",
   },
 
-  /// Sharing, which is the thing most often misunderstood: three different
-  /// doors, and people reach for the wrong one.
-  sharing: {
+  /// The feed, before anybody is followed.
+  noFollowing: {
     says:
-      "Three ways out, and they are not the same. A share link makes one trip readable by anyone holding it. Publishing puts it on your profile. Inviting somebody lets them edit it.",
-    then: "Only inviting gives anybody your account. The other two are read-only.",
+      "Nobody followed yet. Following somebody puts the trips they publish here — their itineraries, not their map.",
+    then: "What you publish shows up in theirs the same way. Nothing else of yours does.",
+    go: { label: "Find people", href: "/discover?view=people" },
   },
 } as const satisfies Record<string, OttoTip>;
 

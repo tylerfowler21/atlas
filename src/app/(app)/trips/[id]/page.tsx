@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { placeForViewer, serializePlace, serializeTrip, type ItineraryItemDTO } from "@/lib/types";
 import TripPlanner from "@/components/TripPlanner";
+import { ottoAround } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,7 @@ export default async function TripPage({
 
   return (
     <TripPlanner
+      otto={ottoAround(user)}
       trip={serializeTrip(trip)}
       initialItems={items}
       places={places.map(serializePlace)}

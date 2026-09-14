@@ -32,6 +32,7 @@ import TripResources from "@/components/TripResources";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
 import AskOtto from "@/components/AskOtto";
+import OttoSays from "@/components/OttoSays";
 import { useTripWeather } from "@/lib/use-trip-weather";
 import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
@@ -52,6 +53,7 @@ import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
 
 export default function TripPlanner({
+  otto = false,
   trip: initialTrip,
   initialItems,
   places,
@@ -62,6 +64,8 @@ export default function TripPlanner({
   resources,
   documents,
 }: {
+  /// Whether Otto is around to explain an empty trip. Decided on the server.
+  otto?: boolean;
   trip: TripDTO;
   initialItems: ItineraryItemDTO[];
   places: PlaceDTO[];
@@ -970,10 +974,16 @@ export default function TripPlanner({
               <p className="mt-3 text-sm text-muted">
                 Nothing planned for this day yet.
               </p>
-              {/* The empty day is Otto's moment: it is the one place where
-                  somebody is looking at a gap and would rather not fill it
-                  themselves. He draws nothing at all unless he is available. */}
-              <AskOtto tripId={trip.id} dayIndex={activeDay} onApplied={reloadItems} />
+              {/* A gap in a trip is Otto's moment, but which half of him
+                  depends on what is around it. With nothing anywhere on the
+                  trip he has nothing to read, so he explains instead of
+                  offering — and the offer would spend a run to guess. Once
+                  there is something to work from, he offers. */}
+              {items.length === 0 ? (
+                otto && <OttoSays topic="emptyTrip" pose="planning" className="mt-4" />
+              ) : (
+                <AskOtto tripId={trip.id} dayIndex={activeDay} onApplied={reloadItems} />
+              )}
             </>
           ) : (
             <ol ref={listRef} className="mt-3 space-y-2">

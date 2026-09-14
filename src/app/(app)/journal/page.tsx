@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import OttoSays from "@/components/OttoSays";
+import { ottoAround } from "@/lib/admin";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
@@ -41,13 +43,17 @@ export default async function JournalPage() {
       </p>
 
       {memories.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">
-          Nothing written yet. Open a place on the{" "}
-          <Link href="/" className="text-accent-text underline">
-            map
-          </Link>{" "}
-          and choose <span className="font-medium">Memories &amp; journal</span>.
-        </p>
+        ottoAround(user) ? (
+          <OttoSays topic="emptyJournal" pose="typing" className="mt-8 max-w-xl" />
+        ) : (
+          <p className="mt-8 text-sm text-muted">
+            Nothing written yet. Open a place on the{" "}
+            <Link href="/" className="text-accent-text underline">
+              map
+            </Link>{" "}
+            and choose <span className="font-medium">Memories &amp; journal</span>.
+          </p>
+        )
       ) : (
         <div className="mt-8 space-y-8">
           {[...byYear.entries()].map(([year, entries]) => (

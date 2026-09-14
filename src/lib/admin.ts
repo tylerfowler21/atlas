@@ -30,18 +30,24 @@ export async function requireAdmin() {
 /// Whether Otto is around at all.
 ///
 /// His quiet half — standing on an empty screen and saying what it is for —
-/// runs no model and costs nothing, so this is only about whether the
-/// character has been introduced to anybody yet. Releasing him is returning
-/// true.
+/// runs no model, spends no allowance and says the same authored sentences
+/// every time. There is nothing to ration and nothing to pay for, so he is
+/// around for everybody.
+// The argument stays although nothing reads it: who somebody is decided this
+// once and may again — a paid tier, a beta, an account too new to be offered
+// help it has not asked for. Keeping it means that is one edit here rather
+// than at every screen he stands on.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ottoAround(user: Pick<CurrentUser, "email"> | null) {
-  return isAdmin(user);
+  return true;
 }
 
 /// Whether he may be *asked to work*.
 ///
-/// The half that runs a model and spends somebody's allowance. Narrower than
-/// being around, and separate on purpose: the day he is introduced to
-/// everybody is not necessarily the day everybody may spend runs.
+/// The half that runs a model and spends somebody's allowance. Deliberately
+/// not built on `ottoAround`: the point of the two is that meeting him and
+/// being able to spend runs on him are different permissions, and chaining
+/// them would have opened the second the day the first opened.
 export function ottoOffered(user: Pick<CurrentUser, "email"> | null) {
-  return ottoAround(user) && Boolean(process.env["ANTHROPIC_API_KEY"]);
+  return isAdmin(user) && Boolean(process.env["ANTHROPIC_API_KEY"]);
 }

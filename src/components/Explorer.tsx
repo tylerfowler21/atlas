@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
 import OttoIntro from "@/components/OttoIntro";
+import OttoSays from "@/components/OttoSays";
 import PlaceForm from "@/components/PlaceForm";
 import PlaceDetail from "@/components/PlaceDetail";
 import { STATUSES, status as statusOf } from "@/lib/taxonomy";
@@ -990,11 +991,16 @@ export default function Explorer({
                   // map that feels like yours, so lead with it.
                   <div className="card space-y-3 p-3">
                     <p className="text-sm font-medium">Your map is empty</p>
-                    <p className="text-xs text-muted">
-                      The quickest start is a list you already have — a note full
-                      of places, a spreadsheet, a document. Every place gets found
-                      and pinned for you.
-                    </p>
+                    {/* His words or the card's, never both. */}
+                    {otto ? (
+                      <OttoSays topic="noPlaces" pose="planning" />
+                    ) : (
+                      <p className="text-xs text-muted">
+                        The quickest start is a list you already have — a note full
+                        of places, a spreadsheet, a document. Every place gets found
+                        and pinned for you.
+                      </p>
+                    )}
                     <Link href="/import" className="btn btn-primary w-full justify-center">
                       Import a list or a file
                     </Link>
