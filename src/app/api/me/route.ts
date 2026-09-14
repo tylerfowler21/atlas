@@ -19,6 +19,10 @@ export async function GET() {
       name: true,
       username: true,
       image: true,
+      /// Their own address, back to them. The app needs it to take itself off
+      /// a trip somebody else owns: a collaborator is recorded by the address
+      /// they were invited at, and leaving is removing that row.
+      email: true,
       onboardedAt: true,
     },
   });

@@ -208,6 +208,9 @@ export type Me = {
   name: string | null;
   username: string | null;
   image: string | null;
+  /// Their own address. Used to leave a trip, where the row to remove is the
+  /// one they were invited at.
+  email: string | null;
   onboarded: boolean;
 };
 

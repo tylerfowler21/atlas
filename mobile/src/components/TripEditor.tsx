@@ -22,6 +22,7 @@ import { api, type Trip } from "@/lib/api";
 import { TRIP_COLORS } from "@/lib/theme";
 import { regionLabel, regionOfColor } from "@/lib/regions";
 import { usePalette } from "@/lib/use-palette";
+import { useAuth } from "@/lib/auth";
 
 /// Dates as text rather than a picker.
 ///
@@ -32,11 +33,15 @@ import { usePalette } from "@/lib/use-palette";
 
 export default function TripEditor({
   trip,
+  role,
   onClose,
   onSaved,
 }: {
   /// Null when creating.
   trip: Trip | null;
+  /// "owner" for your own trip, "editor" for one you were invited to.
+  /// Absent while creating, which only an owner does.
+  role?: string;
   onClose: () => void;
   onSaved: (tripId: string) => void;
 }) {
@@ -53,7 +58,10 @@ export default function TripEditor({
   const [published, setPublished] = useState(Boolean(trip?.publishedAt));
   const [busy, setBusy] = useState(false);
 
+  const { user } = useAuth();
   const editing = Boolean(trip);
+  /// A trip being created has no role yet, and only its owner is creating it.
+  const isOwner = !editing || role === "owner";
 
   async function save() {
     const name = title.trim();
@@ -101,6 +109,45 @@ export default function TripEditor({
             onClose();
           } catch (e) {
             Alert.alert("Could not delete", e instanceof Error ? e.message : "Try again");
+          }
+        },
+      },
+    ]);
+  }
+
+  /// Letting yourself out of somebody else's trip.
+  ///
+  /// The server has always allowed it — an editor may remove themselves from
+  /// the people on a trip — but the app only ever offered the owner's Remove
+  /// button, so an editor invited to a trip they no longer wanted was stuck
+  /// with it on their list until the owner noticed. The website could do this;
+  /// the phone is where you are when you decide.
+  ///
+  /// A collaborator is recorded against the address they were invited at, so
+  /// that is the row to take away.
+  function leave() {
+    Alert.alert(trip!.title, "Leave this trip? You will not be able to open it again.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress: async () => {
+          const address = user?.email;
+          if (!address) {
+            Alert.alert("Could not leave", "Sign in again and try that once more.");
+            return;
+          }
+          try {
+            await api(
+              `/api/trips/${trip!.id}/collaborators?email=${encodeURIComponent(address)}`,
+              { method: "DELETE" },
+            );
+            // The same signal deleting sends: it is gone, so go back rather
+            // than returning to a trip that is no longer readable.
+            onSaved("");
+            onClose();
+          } catch (e) {
+            Alert.alert("Could not leave", e instanceof Error ? e.message : "Try again");
           }
         },
       },
@@ -220,9 +267,14 @@ export default function TripEditor({
               is the screen people already open to answer it. */}
           {editing && <TripPeople tripId={trip!.id} />}
 
+          {/* Deleting is the owner's; leaving is everybody else's. Offering
+              Delete to an editor was offering a button that could only ever
+              answer "only the trip owner can delete this trip". */}
           {editing && (
-            <Pressable onPress={remove} style={styles.remove}>
-              <Text style={{ color: SEMANTIC.danger, fontWeight: "500" }}>Delete this trip</Text>
+            <Pressable onPress={isOwner ? remove : leave} style={styles.remove}>
+              <Text style={{ color: SEMANTIC.danger, fontWeight: "500" }}>
+                {isOwner ? "Delete this trip" : "Leave this trip"}
+              </Text>
             </Pressable>
           )}
         </ScrollView>

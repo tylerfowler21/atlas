@@ -363,6 +363,7 @@ export default function TripScreen() {
       {settings && (
         <TripEditor
           trip={data.trip}
+          role={data.role}
           onClose={() => setSettings(false)}
           onSaved={(tripId) => {
             // An empty id means it was deleted; there is nothing to go back to.
