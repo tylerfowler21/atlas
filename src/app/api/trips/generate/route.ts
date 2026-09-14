@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const itinerary = await generateItinerary({
+    const { itinerary, usage } = await generateItinerary({
       destination: parsed.data.destination,
       days,
       legs,
@@ -111,8 +111,20 @@ export async function POST(request: Request) {
         destination: parsed.data.destination,
         days,
         itinerary: text,
+        // What it cost to produce. The columns have been here since the table
+        // was, and nothing ever filled them, so every draft anybody has made
+        // reads as free — which is the one thing it certainly is not.
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
       },
     });
+
+    // Also said out loud, where a bad afternoon can be seen without opening
+    // the database: a draft that suddenly costs five times what it did is a
+    // thing to notice while it is happening.
+    console.log(
+      `[generate] ${days}d ${parsed.data.destination} — ${usage.inputTokens} in, ${usage.outputTokens} out`,
+    );
 
     return NextResponse.json({
       title: itinerary.title,

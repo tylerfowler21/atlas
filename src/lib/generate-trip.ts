@@ -163,6 +163,21 @@ const itinerarySchema = z.object({
 
 export type GeneratedItinerary = z.infer<typeof itinerarySchema>;
 
+/// What one draft cost to produce.
+///
+/// Recorded on every draft because the answer to "what should this cost
+/// somebody" is not guessable: the model is billed per token, a fortnight in
+/// Japan is not the same size as a long weekend, and thinking tokens are
+/// counted as output. A few weeks of real rows answers it; an estimate does
+/// not.
+///
+/// Nothing is cached on the way in yet, so the input count is the whole input.
+/// If a cached prefix is ever added, cache reads are billed differently and
+/// will need counting separately rather than folded in here.
+export type DraftUsage = { inputTokens: number; outputTokens: number };
+
+export type DraftedItinerary = { itinerary: GeneratedItinerary; usage: DraftUsage };
+
 const SYSTEM = `You plan travel itineraries that a person will actually follow.
 
 Every place you name must be a real, specific, findable place — the name as it
@@ -239,7 +254,7 @@ export function draftPrompt(input: ItineraryRequest): string {
     .join(" ");
 }
 
-export async function generateItinerary(input: ItineraryRequest): Promise<GeneratedItinerary> {
+export async function generateItinerary(input: ItineraryRequest): Promise<DraftedItinerary> {
   const client = new Anthropic();
   const asked = draftPrompt(input);
 
@@ -259,8 +274,14 @@ export async function generateItinerary(input: ItineraryRequest): Promise<Genera
 
   // Filed under what this app understands, whatever words came back.
   return {
-    ...parsed,
-    stops: parsed.stops.map((stop) => ({ ...stop, category: nearestCategory(stop.category) })),
+    itinerary: {
+      ...parsed,
+      stops: parsed.stops.map((stop) => ({ ...stop, category: nearestCategory(stop.category) })),
+    },
+    usage: {
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+    },
   };
 }
 
