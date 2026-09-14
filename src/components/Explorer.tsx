@@ -1077,7 +1077,11 @@ export default function Explorer({
         )}
       </aside>
 
-      <div className="absolute inset-0 lg:static lg:order-2 lg:min-h-0 lg:flex-1">
+      {/* `relative` on large screens as well: below lg this is absolute and
+          already a containing block, but at lg it goes back into flow, and
+          anything positioned inside it — Otto — would otherwise escape to the
+          page and land on top of the list. */}
+      <div className="absolute inset-0 lg:relative lg:order-2 lg:min-h-0 lg:flex-1">
         {!listOpen && (
           <button
             type="button"
