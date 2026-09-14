@@ -52,7 +52,7 @@ async function fromNominatim(
   return raw.map((r) => ({
     id: `osm-${r.place_id}`,
     ...toPlaceFields(r),
-    category: guessCategory(r.category, r.type),
+    category: guessCategory(r.category, r.type, r.addresstype),
     context: r.display_name,
   }));
 }

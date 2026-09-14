@@ -76,6 +76,10 @@ export type NominatimResult = {
   display_name: string;
   category?: string;
   type?: string;
+  /// What Nominatim thinks the thing *is*, which is not always what its OSM
+  /// tags say. A big city is usually an administrative relation rather than a
+  /// `place=city` node, and this is the field that still calls it a city.
+  addresstype?: string;
   address?: NominatimAddress;
 };
 

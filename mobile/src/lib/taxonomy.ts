@@ -402,9 +402,26 @@ const BY_CLASS: Record<string, BuiltInCategoryId> = {
 
 /// Always a built-in one. A category somebody invented is theirs to apply: a
 /// gazetteer has no way to know that this particular bar is a "Sunset spot".
-export function guessCategory(osmClass?: string, osmType?: string): BuiltInCategoryId {
+///
+/// `addressType` is what the gazetteer thinks the thing is, and it is the only
+/// way to tell most cities apart from the rest of the world. Florence, Kyoto,
+/// Porto, Malmö and Québec City all come back tagged `boundary` /
+/// `administrative` — they are drawn in OpenStreetMap as the relation around
+/// the place rather than as a `place=city` point — so every one of them landed
+/// on Other while Copenhagen, which happens to answer as a point, came back a
+/// City. Nominatim still calls all of them a city here.
+///
+/// Consulted after the type and before the class, so a country or a province —
+/// administrative relations too, but addressed as `state` or `country`, which
+/// are settlements of nothing — still falls through to Other.
+export function guessCategory(
+  osmClass?: string,
+  osmType?: string,
+  addressType?: string,
+): BuiltInCategoryId {
   const type = (osmType ?? "").toLowerCase();
   const klass = (osmClass ?? "").toLowerCase();
+  const addressed = (addressType ?? "").toLowerCase();
 
-  return BY_TYPE[type] ?? BY_CLASS[klass] ?? "other";
+  return BY_TYPE[type] ?? BY_TYPE[addressed] ?? BY_CLASS[klass] ?? "other";
 }
