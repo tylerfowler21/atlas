@@ -54,7 +54,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Check the details" }, { status: 400 });
   }
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  /// Midnight, rather than twenty-four hours ago.
+  ///
+  /// A rolling window makes the message below a lie: somebody told their
+  /// drafts "come back tomorrow" who spent them across an evening gets them
+  /// back one at a time through the following evening, and coming back the
+  /// next morning finds the door still shut. A day that starts at midnight is
+  /// also the rule people can hold in their head — five a day, new ones in the
+  /// morning — which a sliding twenty-four hours is not.
+  ///
+  /// Midnight UTC, like every other date this app reasons about. West of
+  /// Greenwich that falls in the evening, so the allowance comes back earlier
+  /// than promised rather than later, which is the safe direction for a
+  /// promise to be wrong in.
+  const now = new Date();
+  const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const used = await prisma.aiDraft.count({
     where: { userId: user.id, createdAt: { gte: since } },
   });
