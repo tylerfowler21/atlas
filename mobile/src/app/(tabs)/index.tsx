@@ -446,7 +446,16 @@ export default function MapScreen() {
         </View>
       )}
 
-      <PlaceEditor draft={draft} onClose={() => setDraft(null)} onSaved={reload} />
+      {/* Keyed for the same reason the trip's item editor is: it stays
+          mounted and decides for itself whether to draw, so without a key
+          every field keeps the value it was first given — and a place opened
+          for editing would show none of its own. */}
+      <PlaceEditor
+        key={draft ? (draft.id ?? `new-${draft.lat},${draft.lng}`) : "closed"}
+        draft={draft}
+        onClose={() => setDraft(null)}
+        onSaved={reload}
+      />
 
       <PlaceDetail
         // Keyed on the place so opening a different one starts fresh rather

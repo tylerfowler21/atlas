@@ -331,7 +331,20 @@ export default function TripScreen() {
         />
       )}
 
+      {/* Keyed by what is being edited, so opening the sheet builds it
+          afresh. It is mounted the whole time — it decides for itself whether
+          to draw anything — and without a key every field would keep the value
+          it was first given, which for a sheet that opens empty means every
+          stop opens empty: the wrong day, no place, and a title that saves over
+          the real one. */}
       <ItemEditor
+        key={
+          item
+            ? item.mode === "edit"
+              ? `edit-${item.item.id}`
+              : `new-${item.kind}-${item.dayIndex}`
+            : "closed"
+        }
         draft={item}
         destination={
           // What the trip says it is, or what its stops say it is.
