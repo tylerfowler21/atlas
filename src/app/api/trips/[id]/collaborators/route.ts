@@ -5,12 +5,15 @@ import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { collaboratorInviteSchema, firstIssue } from "@/lib/validation";
 import { invitationEmail, sendMail } from "@/lib/mail";
+import { isBlockedBetween } from "@/lib/moderation";
+
+const collaboratorUser = { select: { name: true, image: true, username: true } };
 
 function serialize(c: {
   email: string;
   role: string;
   acceptedAt: Date | null;
-  user: { name: string | null; image: string | null } | null;
+  user: { name: string | null; image: string | null; username: string | null } | null;
 }) {
   return {
     email: c.email,
@@ -18,6 +21,8 @@ function serialize(c: {
     accepted: c.acceptedAt !== null,
     name: c.user?.name ?? null,
     image: c.user?.image ?? null,
+    // Public handle, for matching people you follow without seeing their email.
+    username: c.user?.username ?? null,
   };
 }
 
@@ -38,7 +43,7 @@ export async function GET(
   const collaborators = await prisma.tripCollaborator.findMany({
     where: { tripId: id, ...(access.role === "owner" ? {} : { acceptedAt: { not: null } }) },
     orderBy: { invitedAt: "asc" },
-    include: { user: { select: { name: true, image: true } } },
+    include: { user: collaboratorUser },
   });
 
   // Who owns it, for a client that has no page around it to say so. An editor
@@ -76,19 +81,57 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
-  const { email } = parsed.data;
 
-  if (email === user.email?.toLowerCase()) {
-    return NextResponse.json({ error: "That's you — you already own this trip" }, { status: 400 });
+  let email: string;
+  let existingUser: { id: string } | null = null;
+
+  if (parsed.data.username || parsed.data.userId) {
+    // Invite by handle (or id) so the client never has to know their email.
+    const target = parsed.data.username
+      ? await prisma.user.findUnique({
+          where: { username: parsed.data.username },
+          select: { id: true, email: true },
+        })
+      : await prisma.user.findUnique({
+          where: { id: parsed.data.userId! },
+          select: { id: true, email: true },
+        });
+
+    if (!target) return NextResponse.json({ error: "No such person" }, { status: 404 });
+    if (target.id === user.id) {
+      return NextResponse.json({ error: "That's you — you already own this trip" }, { status: 400 });
+    }
+    if (await isBlockedBetween(user.id, target.id)) {
+      return NextResponse.json({ error: "No such person" }, { status: 404 });
+    }
+    if (!target.email) {
+      return NextResponse.json(
+        { error: "They don't have an email on file, so we can't invite them this way" },
+        { status: 400 },
+      );
+    }
+
+    email = target.email.toLowerCase();
+    existingUser = { id: target.id };
+  } else {
+    email = parsed.data.email!;
+
+    if (email === user.email?.toLowerCase()) {
+      return NextResponse.json({ error: "That's you — you already own this trip" }, { status: 400 });
+    }
+
+    // Invitations are addressed to an email, so someone who has not signed up
+    // yet can still be invited; it binds to their account when they first open
+    // the trip.
+    existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingUser && (await isBlockedBetween(user.id, existingUser.id))) {
+      return NextResponse.json({ error: "No such person" }, { status: 404 });
+    }
   }
-
-  // Invitations are addressed to an email, so someone who has not signed up
-  // yet can still be invited; it binds to their account when they first open
-  // the trip.
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
 
   const collaborator = await prisma.tripCollaborator.upsert({
     where: { tripId_email: { tripId: id, email } },
@@ -99,7 +142,7 @@ export async function POST(
       userId: existingUser?.id ?? null,
       acceptedAt: existingUser ? new Date() : null,
     },
-    include: { user: { select: { name: true, image: true } } },
+    include: { user: collaboratorUser },
   });
 
   // Told about it, if we can. Deliberately after the row exists and never

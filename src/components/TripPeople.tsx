@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { TripRole } from "@/lib/trip-access";
 
@@ -8,6 +9,14 @@ export type Collaborator = {
   role: string;
   accepted: boolean;
   name: string | null;
+  image: string | null;
+  username: string | null;
+};
+
+type FollowedPerson = {
+  id: string;
+  name: string | null;
+  username: string | null;
   image: string | null;
 };
 
@@ -39,6 +48,10 @@ function Avatar({ person, title }: { person: Collaborator; title: string }) {
   );
 }
 
+function personLabel(person: { name: string | null; username: string | null; email?: string }) {
+  return person.name ?? (person.username ? `@${person.username}` : (person.email ?? "them"));
+}
+
 export default function TripPeople({
   tripId,
   role,
@@ -61,6 +74,7 @@ export default function TripPeople({
   /// The person still has access — silence here would let the owner assume
   /// something landed in an inbox when nothing did.
   const [notice, setNotice] = useState<string | null>(null);
+  const [followed, setFollowed] = useState<FollowedPerson[] | null>(null);
 
   useEffect(() => {
     if (!open || people !== null) return;
@@ -80,7 +94,25 @@ export default function TripPeople({
     };
   }, [open, people, tripId]);
 
-  async function invite() {
+  useEffect(() => {
+    if (!open || role !== "owner" || followed !== null) return;
+    let cancelled = false;
+
+    fetch("/api/people?following=1")
+      .then((res) => res.json())
+      .then((body) => {
+        if (!cancelled) setFollowed(body.people ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setFollowed([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, role, followed]);
+
+  async function invite(payload: { email: string } | { username: string }) {
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -88,7 +120,7 @@ export default function TripPeople({
     const res = await fetch(`/api/trips/${tripId}/collaborators`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim() }),
+      body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
@@ -101,12 +133,16 @@ export default function TripPeople({
       ...(prev ?? []).filter((p) => p.email !== body.collaborator.email),
       body.collaborator,
     ]);
+    const byHandle = "username" in payload;
+    const who = byHandle
+      ? personLabel(body.collaborator)
+      : body.collaborator.email;
     setNotice(
       body.emailed
-        ? `Invitation sent to ${body.collaborator.email}.`
-        : `${body.collaborator.email} has access, but the email didn't send — tell them yourself and send them this trip's link.`,
+        ? `Invitation sent to ${who}.`
+        : `${who} has access, but the email didn't send — tell them yourself and send them this trip's link.`,
     );
-    setEmail("");
+    if ("email" in payload) setEmail("");
   }
 
   async function remove(target: string) {
@@ -147,6 +183,7 @@ export default function TripPeople({
               accepted: true,
               name: ownerLabel,
               image: ownerImage,
+              username: null,
             }}
             title={`${ownerLabel} — owner`}
           />
@@ -174,6 +211,13 @@ export default function TripPeople({
       </button>
     );
   }
+
+  const taken = new Set(
+    (people ?? []).map((p) => p.username).filter((u): u is string => Boolean(u)),
+  );
+  const candidates = (followed ?? []).filter(
+    (p) => p.username && !taken.has(p.username),
+  );
 
   return (
     <div className="card space-y-3 p-3">
@@ -236,6 +280,60 @@ export default function TripPeople({
 
       {role === "owner" && (
         <>
+          {followed === null ? (
+            <p className="text-xs text-muted">Loading people you follow…</p>
+          ) : followed.length === 0 ? (
+            <p className="text-xs text-muted">
+              Follow someone on{" "}
+              <Link href="/discover?view=people" className="text-accent-text underline">
+                Discover
+              </Link>{" "}
+              to invite them without typing an email.
+            </p>
+          ) : candidates.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted">People you follow</p>
+              <ul className="space-y-1">
+                {candidates.map((person) => {
+                  const handle = person.username!;
+                  const initial = (person.name ?? handle).charAt(0).toUpperCase();
+                  return (
+                    <li key={person.id} className="flex items-center gap-2 text-sm">
+                      {person.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={person.image}
+                          alt=""
+                          width={24}
+                          height={24}
+                          className="size-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="grid size-6 place-items-center rounded-full bg-foreground/10 text-xs font-semibold">
+                          {initial}
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1 truncate">
+                        {person.name ?? `@${handle}`}
+                        {person.name && (
+                          <span className="text-xs text-muted"> @{handle}</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded px-1.5 py-0.5 text-xs text-accent-text hover:bg-foreground/5"
+                        disabled={busy}
+                        onClick={() => invite({ username: handle })}
+                      >
+                        Invite
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="flex gap-2">
             <input
               className="input"
@@ -248,7 +346,7 @@ export default function TripPeople({
               type="button"
               className="btn btn-primary shrink-0"
               disabled={busy || email.trim().length === 0}
-              onClick={invite}
+              onClick={() => invite({ email: email.trim() })}
             >
               Invite
             </button>
