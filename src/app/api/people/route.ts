@@ -71,6 +71,9 @@ export async function GET(request: Request) {
         ...(hidden.length ? { followingId: { notIn: hidden } } : {}),
         following: {
           username: { not: null },
+          // An invite is addressed to an email; someone with none on file
+          // cannot be invited this way, so they are not offered.
+          email: { not: null },
           ...searchWhere(query),
         },
       },
