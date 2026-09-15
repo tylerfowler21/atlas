@@ -232,15 +232,18 @@ export default function TripPeople({ tripId }: { tripId: string }) {
             ]}
           />
 
-          {/* People you follow until somebody types, then anybody matching.
-              Follows offered unasked are not browsing — it is a short list
-              they chose themselves. */}
-          <FollowedInvites
-            collaborators={people.collaborators}
-            busy={busy}
-            onInvite={inviteByUsername}
-            query={looksLikeEmail(email) ? "" : email.trim()}
-          />
+          {/* Nobody until somebody is asked for. This offered the people you
+              follow while the box was empty, which for anybody following more
+              than a handful is a wall of names above the field — the thing
+              this was meant to remove. The search finds them too. */}
+          {!looksLikeEmail(email) && email.trim().length >= 2 && (
+            <PeopleToInvite
+              collaborators={people.collaborators}
+              busy={busy}
+              onInvite={inviteByUsername}
+              query={email.trim()}
+            />
+          )}
 
           {/* And an address for somebody who is not here yet, which is the
               whole reason this is not only a people picker. */}
@@ -260,9 +263,10 @@ export default function TripPeople({ tripId }: { tripId: string }) {
               cannot call it back, so the field says so rather than letting
               anybody find out afterwards. */}
           <Text style={[type.meta, { color: palette.muted }]}>
-            They can add stops, times and notes. They cannot publish it, share
-            it or delete it — that stays with you. Invitations go out as soon as
-            you tap Invite, not when you save.
+            Search for anybody here, or type an address — they do not need an
+            account yet. They can add stops, times and notes; they cannot
+            publish, share or delete the trip. Invitations go out as soon as you
+            tap Invite, not when you save.
           </Text>
         </>
       )}
@@ -272,7 +276,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
 
 /// Compact rows rather than a FlatList: this lives inside the trip editor's
 /// ScrollView, and nesting a virtualized list there is a fight we do not need.
-function FollowedInvites({
+function PeopleToInvite({
   collaborators,
   busy,
   onInvite,
@@ -281,14 +285,13 @@ function FollowedInvites({
   collaborators: Collaborator[];
   busy: boolean;
   onInvite: (username: string, label: string) => void;
-  /// What was typed. Empty means offer the people they follow; anything else
-  /// is a search across everybody.
+  /// What was typed. Never empty — the parent draws nothing until there is
+  /// something to look for.
   query: string;
 }) {
   const palette = usePalette();
-  const searching = query.length >= 2;
   const { data, loading } = useApi<{ people: Person[] }>(
-    searching ? `/api/people?q=${encodeURIComponent(query)}` : "/api/people?following=1",
+    `/api/people?q=${encodeURIComponent(query)}`,
   );
   const taken = new Set(
     collaborators.map((c) => c.username).filter((u): u is string => Boolean(u)),
@@ -300,7 +303,7 @@ function FollowedInvites({
   if (loading && !data) {
     return (
       <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
-        {searching ? "Looking…" : "Loading people you follow…"}
+        Looking…
       </Text>
     );
   }
@@ -308,9 +311,7 @@ function FollowedInvites({
   if (!data?.people.length) {
     return (
       <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
-        {searching
-          ? "Nobody by that name."
-          : "Type a name to find somebody, or follow people on Discover."}
+        Nobody by that name.
       </Text>
     );
   }
@@ -319,9 +320,7 @@ function FollowedInvites({
 
   return (
     <>
-      <Text style={[styles.sublabel, { color: palette.muted }]}>
-        {searching ? "Matches" : "People you follow"}
-      </Text>
+      <Text style={[styles.sublabel, { color: palette.muted }]}>Matches</Text>
       {candidates.map((person) => {
         const handle = person.username!;
         const label = person.name ?? `@${handle}`;

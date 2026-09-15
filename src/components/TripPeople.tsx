@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { TripRole } from "@/lib/trip-access";
 
@@ -80,7 +79,6 @@ export default function TripPeople({
   /// The person still has access — silence here would let the owner assume
   /// something landed in an inbox when nothing did.
   const [notice, setNotice] = useState<string | null>(null);
-  const [followed, setFollowed] = useState<FollowedPerson[] | null>(null);
   /// Anybody the search turned up, kept with the query they answered so a
   /// result from two keystrokes ago is never shown against a word nobody
   /// typed. Derived rather than cleared: emptying it in an effect is a render
@@ -107,24 +105,6 @@ export default function TripPeople({
       cancelled = true;
     };
   }, [open, people, tripId]);
-
-  useEffect(() => {
-    if (!open || role !== "owner" || followed !== null) return;
-    let cancelled = false;
-
-    fetch("/api/people?following=1")
-      .then((res) => res.json())
-      .then((body) => {
-        if (!cancelled) setFollowed(body.people ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setFollowed([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, role, followed]);
 
   /// Looked up as they type, unless what they are typing is plainly an
   /// address — nobody searching for "friend@example.com" wants a list of
@@ -254,11 +234,16 @@ export default function TripPeople({
   );
   const typed = email.trim();
   const searching = typed.length >= 2 && !looksLikeEmail(typed);
-  /// People you follow until somebody types, then anybody matching. Follows
-  /// unasked are not browsing — it is a short list they chose themselves —
-  /// and typing is the moment they have said who they are after.
-  const pool = searching && found.q === typed ? found.people : searching ? [] : (followed ?? []);
-  const candidates = pool.filter((p) => p.username && !taken.has(p.username));
+  /// Nobody until somebody is asked for.
+  ///
+  /// This offered the people you follow while the box was empty, on the
+  /// grounds that a list you assembled yourself is not browsing. That is true
+  /// and beside the point: somebody following seventeen people gets seventeen
+  /// rows above the field, which is the wall this was meant to remove. The
+  /// field is the interface; the search finds the people you follow too.
+  const candidates = (searching && found.q === typed ? found.people : []).filter(
+    (p) => p.username && !taken.has(p.username),
+  );
 
   return (
     <div className="card space-y-3 p-3">
@@ -333,20 +318,8 @@ export default function TripPeople({
 
           {searching && candidates.length === 0 && found.q === typed ? (
             <p className="text-xs text-muted">Nobody by that name.</p>
-          ) : !searching && followed === null ? (
-            <p className="text-xs text-muted">Loading people you follow…</p>
-          ) : !searching && followed?.length === 0 ? (
-            <p className="text-xs text-muted">
-              Type a name to find somebody, or follow people on{" "}
-              <Link href="/discover?view=people" className="text-accent-text underline">
-                Discover
-              </Link>
-              .
-            </p>
           ) : candidates.length > 0 ? (
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted">
-                {searching ? "Matches" : "People you follow"}</p>
               <ul className="space-y-1">
                 {candidates.map((person) => {
                   const handle = person.username!;
