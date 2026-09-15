@@ -86,6 +86,17 @@ export async function GET(request: Request) {
     });
   }
 
+  // Only ever what somebody searched for. An empty query used to answer with
+  // the hundred most recent accounts, which is a list of strangers rather than
+  // a way to find anybody — nobody arrives wanting to read the newest people to
+  // sign up, and everybody who picked a username was in it whether they wanted
+  // to be browsed or not. Findable and listed are different things, and picking
+  // a username was consent to the first.
+  //
+  // The list above is the exception and stays: people you already follow are a
+  // short list you chose yourself, so offering it unasked is not browsing.
+  if (!query) return NextResponse.json({ people: [] });
+
   const people = await prisma.user.findMany({
     where: {
       username: { not: null },

@@ -51,7 +51,14 @@ export default async function DiscoverPage({
           include: feedTripInclude,
         });
 
-  const directory = people
+  /// Only ever what somebody searched for.
+  ///
+  /// This used to answer an empty box with the hundred most recent accounts,
+  /// which is a list of strangers rather than a way to find anybody: nobody
+  /// arrives wanting to browse the newest people to sign up, and everybody who
+  /// picked a username was on it whether they wanted to be found that way or
+  /// not. Typing a name is the only thing this page is for.
+  const directory = people && query
     ? await prisma.user.findMany({
         where: {
           username: { not: null },
@@ -125,7 +132,9 @@ export default async function DiscoverPage({
 
           {directory.length === 0 ? (
             <p className="mt-6 text-sm text-muted">
-              {query ? "Nobody by that name." : "Nobody has picked a username yet."}
+              {query
+                ? "Nobody by that name."
+                : "Search for somebody by name or username."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-line">

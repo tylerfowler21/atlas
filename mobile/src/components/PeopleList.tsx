@@ -176,7 +176,7 @@ export default function PeopleList() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
         ListEmptyComponent={
           <Text style={[styles.empty, { color: palette.muted }]}>
-            {query ? "Nobody by that name." : "Nobody has picked a username yet."}
+            {query ? "Nobody by that name." : "Search for somebody by name or username."}
           </Text>
         }
         renderItem={({ item }) => {

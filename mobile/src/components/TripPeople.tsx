@@ -215,48 +215,46 @@ export default function TripPeople({ tripId }: { tripId: string }) {
 
       {isOwner && (
         <>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Name, username, or email address"
+            placeholderTextColor={palette.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={() => {
+              if (looksLikeEmail(email)) void inviteByEmail();
+            }}
+            returnKeyType="search"
+            style={[
+              styles.input,
+              { borderColor: palette.border, backgroundColor: palette.surface, color: palette.ink },
+            ]}
+          />
+
+          {/* People you follow until somebody types, then anybody matching.
+              Follows offered unasked are not browsing — it is a short list
+              they chose themselves. */}
           <FollowedInvites
             collaborators={people.collaborators}
             busy={busy}
             onInvite={inviteByUsername}
+            query={looksLikeEmail(email) ? "" : email.trim()}
           />
-          <View style={styles.invite}>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="their@email.com"
-              placeholderTextColor={palette.muted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              onSubmitEditing={() => void inviteByEmail()}
-              returnKeyType="send"
-              style={[
-                styles.input,
-                { borderColor: palette.border, backgroundColor: palette.surface, color: palette.ink },
-              ]}
-            />
+
+          {/* And an address for somebody who is not here yet, which is the
+              whole reason this is not only a people picker. */}
+          {looksLikeEmail(email) && (
             <Pressable
               onPress={() => void inviteByEmail()}
-              disabled={busy || !looksLikeEmail(email)}
-              style={[
-                styles.send,
-                {
-                  backgroundColor: looksLikeEmail(email) ? palette.primary : palette.border,
-                },
-              ]}
+              disabled={busy}
+              style={[styles.send, { backgroundColor: palette.primary, alignItems: "center" }]}
             >
-              <Text
-                style={{
-                  color: looksLikeEmail(email) ? palette.onPrimary : palette.muted,
-                  fontWeight: "600",
-                  fontSize: 14,
-                }}
-              >
-                Invite
+              <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 14 }}>
+                Invite {email.trim()}
               </Text>
             </Pressable>
-          </View>
+          )}
           {/* The rest of this sheet waits for Save; this does not. Inviting
               somebody sends them an email the moment it is tapped, and Cancel
               cannot call it back, so the field says so rather than letting
@@ -278,13 +276,20 @@ function FollowedInvites({
   collaborators,
   busy,
   onInvite,
+  query,
 }: {
   collaborators: Collaborator[];
   busy: boolean;
   onInvite: (username: string, label: string) => void;
+  /// What was typed. Empty means offer the people they follow; anything else
+  /// is a search across everybody.
+  query: string;
 }) {
   const palette = usePalette();
-  const { data, loading } = useApi<{ people: Person[] }>("/api/people?following=1");
+  const searching = query.length >= 2;
+  const { data, loading } = useApi<{ people: Person[] }>(
+    searching ? `/api/people?q=${encodeURIComponent(query)}` : "/api/people?following=1",
+  );
   const taken = new Set(
     collaborators.map((c) => c.username).filter((u): u is string => Boolean(u)),
   );
@@ -295,7 +300,7 @@ function FollowedInvites({
   if (loading && !data) {
     return (
       <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
-        Loading people you follow…
+        {searching ? "Looking…" : "Loading people you follow…"}
       </Text>
     );
   }
@@ -303,7 +308,9 @@ function FollowedInvites({
   if (!data?.people.length) {
     return (
       <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
-        Follow someone on Discover to invite them without typing an email.
+        {searching
+          ? "Nobody by that name."
+          : "Type a name to find somebody, or follow people on Discover."}
       </Text>
     );
   }
@@ -312,7 +319,9 @@ function FollowedInvites({
 
   return (
     <>
-      <Text style={[styles.sublabel, { color: palette.muted }]}>People you follow</Text>
+      <Text style={[styles.sublabel, { color: palette.muted }]}>
+        {searching ? "Matches" : "People you follow"}
+      </Text>
       {candidates.map((person) => {
         const handle = person.username!;
         const label = person.name ?? `@${handle}`;
@@ -367,7 +376,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  invite: { flexDirection: "row", gap: 8, alignItems: "center" },
   input: {
     flex: 1,
     borderWidth: 1,

@@ -52,6 +52,12 @@ function personLabel(person: { name: string | null; username: string | null; ema
   return person.name ?? (person.username ? `@${person.username}` : (person.email ?? "them"));
 }
 
+/// Enough of an address to be worth offering to send to. The server checks it
+/// properly; this only decides which half of the field is showing.
+function looksLikeEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export default function TripPeople({
   tripId,
   role,
@@ -75,6 +81,14 @@ export default function TripPeople({
   /// something landed in an inbox when nothing did.
   const [notice, setNotice] = useState<string | null>(null);
   const [followed, setFollowed] = useState<FollowedPerson[] | null>(null);
+  /// Anybody the search turned up, kept with the query they answered so a
+  /// result from two keystrokes ago is never shown against a word nobody
+  /// typed. Derived rather than cleared: emptying it in an effect is a render
+  /// that causes another render.
+  const [found, setFound] = useState<{ q: string; people: FollowedPerson[] }>({
+    q: "",
+    people: [],
+  });
 
   useEffect(() => {
     if (!open || people !== null) return;
@@ -111,6 +125,29 @@ export default function TripPeople({
       cancelled = true;
     };
   }, [open, role, followed]);
+
+  /// Looked up as they type, unless what they are typing is plainly an
+  /// address — nobody searching for "friend@example.com" wants a list of
+  /// people whose names contain an @.
+  useEffect(() => {
+    const q = email.trim();
+    if (!open || role !== "owner" || q.length < 2 || looksLikeEmail(q)) return;
+    // A pause, so a five-letter name is one request rather than four.
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(`/api/people?q=${encodeURIComponent(q)}`);
+          if (!res.ok) return;
+          const body = (await res.json()) as { people: FollowedPerson[] };
+          setFound({ q, people: body.people.slice(0, 6) });
+        } catch {
+          // A search that failed is a search with nothing in it. The address
+          // route is still open and the line underneath says so.
+        }
+      })();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [email, open, role]);
 
   async function invite(payload: { email: string } | { username: string }) {
     setBusy(true);
@@ -215,9 +252,13 @@ export default function TripPeople({
   const taken = new Set(
     (people ?? []).map((p) => p.username).filter((u): u is string => Boolean(u)),
   );
-  const candidates = (followed ?? []).filter(
-    (p) => p.username && !taken.has(p.username),
-  );
+  const typed = email.trim();
+  const searching = typed.length >= 2 && !looksLikeEmail(typed);
+  /// People you follow until somebody types, then anybody matching. Follows
+  /// unasked are not browsing — it is a short list they chose themselves —
+  /// and typing is the moment they have said who they are after.
+  const pool = searching && found.q === typed ? found.people : searching ? [] : (followed ?? []);
+  const candidates = pool.filter((p) => p.username && !taken.has(p.username));
 
   return (
     <div className="card space-y-3 p-3">
@@ -280,19 +321,32 @@ export default function TripPeople({
 
       {role === "owner" && (
         <>
-          {followed === null ? (
+          <input
+            className="input w-full"
+            type="text"
+            id={`invite-${tripId}`}
+            placeholder="Name, username, or email address"
+            autoComplete="off"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          {searching && candidates.length === 0 && found.q === typed ? (
+            <p className="text-xs text-muted">Nobody by that name.</p>
+          ) : !searching && followed === null ? (
             <p className="text-xs text-muted">Loading people you follow…</p>
-          ) : followed.length === 0 ? (
+          ) : !searching && followed?.length === 0 ? (
             <p className="text-xs text-muted">
-              Follow someone on{" "}
+              Type a name to find somebody, or follow people on{" "}
               <Link href="/discover?view=people" className="text-accent-text underline">
                 Discover
-              </Link>{" "}
-              to invite them without typing an email.
+              </Link>
+              .
             </p>
           ) : candidates.length > 0 ? (
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted">People you follow</p>
+              <p className="text-xs font-medium text-muted">
+                {searching ? "Matches" : "People you follow"}</p>
               <ul className="space-y-1">
                 {candidates.map((person) => {
                   const handle = person.username!;
@@ -334,30 +388,25 @@ export default function TripPeople({
             </div>
           ) : null}
 
-          <div className="flex gap-2">
-            <input
-              className="input"
-              type="email"
-              placeholder="friend@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          {/* An address for somebody who is not here yet, which is the whole
+              reason this is not only a people picker. */}
+          {looksLikeEmail(typed) && (
             <button
               type="button"
-              className="btn btn-primary shrink-0"
-              disabled={busy || email.trim().length === 0}
-              onClick={() => invite({ email: email.trim() })}
+              className="btn btn-primary w-full justify-center"
+              disabled={busy}
+              onClick={() => invite({ email: typed })}
             >
-              Invite
+              Invite {typed}
             </button>
-          </div>
+          )}
           {/* What actually happens, which is not what this said. Roava has
               emailed invitations since the collaborator work landed — the line
               below it says "Invitation sent to …" — and this paragraph was
               still telling people to go and pass it on themselves. */}
           <p className="text-xs text-muted">
-            They don&apos;t need an account yet — we&apos;ll email them an
-            invitation, and it works the moment they sign in with that address.
+            Search for anybody here, or type an address — they don&apos;t need
+            an account yet, and it works the moment they sign in with it.
           </p>
         </>
       )}
