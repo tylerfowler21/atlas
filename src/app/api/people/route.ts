@@ -53,8 +53,9 @@ function searchWhere(query: string) {
 /// so this makes existing public profiles findable rather than listing anyone
 /// who never opted in. Same rule as the web page.
 ///
-/// `?following=1` is the short list trip invites need: only people you follow,
-/// never their emails. The full directory is everyone, which gets large.
+/// `?following=1&q=` is the invite typeahead: only people you follow whose
+/// name or handle contains the query, never their emails. An empty query
+/// returns nobody — the whole following graph is not a suggestion list.
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return unauthorized();
@@ -65,6 +66,8 @@ export async function GET(request: Request) {
   const hidden = await hiddenUserIds(user.id);
 
   if (followingOnly) {
+    if (!query) return NextResponse.json({ people: [] });
+
     const follows = await prisma.follow.findMany({
       where: {
         followerId: user.id,
@@ -78,6 +81,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 8,
       select: { following: { select: personSelect } },
     });
 

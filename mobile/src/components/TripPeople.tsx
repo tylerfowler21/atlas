@@ -9,9 +9,9 @@
 /// An invitation is addressed to an email rather than to an account, so you
 /// can invite somebody who has not signed up yet; it binds to them when they
 /// first open the trip. Until then they show as invited rather than as here.
-/// People you already follow can be invited by username, so you never have to
-/// remember their address.
-import { useState } from "react";
+/// People you already follow can be invited by typing a name, so you never
+/// have to remember their address.
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -51,6 +51,20 @@ function personLabel(person: { name: string | null; username: string | null; ema
   return person.name ?? (person.username ? `@${person.username}` : (person.email ?? "them"));
 }
 
+function searchNeedle(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || looksLikeEmail(trimmed)) return "";
+  return trimmed.replace(/^@+/, "").trim();
+}
+
+function matchesNeedle(person: { name: string | null; username: string | null }, needle: string) {
+  const n = needle.toLowerCase();
+  return (
+    (person.username ?? "").toLowerCase().includes(n) ||
+    (person.name ?? "").toLowerCase().includes(n)
+  );
+}
+
 export default function TripPeople({ tripId }: { tripId: string }) {
   const palette = usePalette();
   // The same hook every other screen reads through: it cancels a response that
@@ -59,7 +73,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
   const { data: people, loading, error, reload } = useApi<People>(
     `/api/trips/${tripId}/collaborators`,
   );
-  const [email, setEmail] = useState("");
+  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
   const isOwner = people?.role === "owner";
@@ -71,7 +85,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
     (isOwner ? "You" : "The owner");
 
   async function inviteByEmail() {
-    const address = email.trim().toLowerCase();
+    const address = query.trim().toLowerCase();
     if (!looksLikeEmail(address)) {
       Alert.alert("Check that address", "It needs to look like an email address.");
       return;
@@ -83,7 +97,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
         `/api/trips/${tripId}/collaborators`,
         { method: "POST", body: JSON.stringify({ email: address }) },
       );
-      setEmail("");
+      setQuery("");
       reload();
       // The invitation is recorded either way. Whether the email actually went
       // is a separate question, and one they need answering — otherwise they
@@ -103,11 +117,13 @@ export default function TripPeople({ tripId }: { tripId: string }) {
 
   async function inviteByUsername(username: string, label: string) {
     setBusy(true);
+    Keyboard.dismiss();
     try {
       const body = await api<{ emailed?: boolean; collaborator?: Collaborator }>(
         `/api/trips/${tripId}/collaborators`,
         { method: "POST", body: JSON.stringify({ username }) },
       );
+      setQuery("");
       reload();
       if (body.emailed === false) {
         const who = body.collaborator ? personLabel(body.collaborator) : label;
@@ -215,22 +231,19 @@ export default function TripPeople({ tripId }: { tripId: string }) {
 
       {isOwner && (
         <>
-          <FollowedInvites
-            collaborators={people.collaborators}
-            busy={busy}
-            onInvite={inviteByUsername}
-          />
           <View style={styles.invite}>
             <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="their@email.com"
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Name, @username or email"
               placeholderTextColor={palette.muted}
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="email-address"
-              onSubmitEditing={() => void inviteByEmail()}
-              returnKeyType="send"
+              keyboardType="default"
+              onSubmitEditing={() => {
+                if (looksLikeEmail(query)) void inviteByEmail();
+              }}
+              returnKeyType={looksLikeEmail(query) ? "send" : "search"}
               style={[
                 styles.input,
                 { borderColor: palette.border, backgroundColor: palette.surface, color: palette.ink },
@@ -238,17 +251,17 @@ export default function TripPeople({ tripId }: { tripId: string }) {
             />
             <Pressable
               onPress={() => void inviteByEmail()}
-              disabled={busy || !looksLikeEmail(email)}
+              disabled={busy || !looksLikeEmail(query)}
               style={[
                 styles.send,
                 {
-                  backgroundColor: looksLikeEmail(email) ? palette.primary : palette.border,
+                  backgroundColor: looksLikeEmail(query) ? palette.primary : palette.border,
                 },
               ]}
             >
               <Text
                 style={{
-                  color: looksLikeEmail(email) ? palette.onPrimary : palette.muted,
+                  color: looksLikeEmail(query) ? palette.onPrimary : palette.muted,
                   fontWeight: "600",
                   fontSize: 14,
                 }}
@@ -257,14 +270,19 @@ export default function TripPeople({ tripId }: { tripId: string }) {
               </Text>
             </Pressable>
           </View>
+          <FollowedMatches
+            query={query}
+            collaborators={people.collaborators}
+            busy={busy}
+            onInvite={inviteByUsername}
+          />
           {/* The rest of this sheet waits for Save; this does not. Inviting
               somebody sends them an email the moment it is tapped, and Cancel
               cannot call it back, so the field says so rather than letting
               anybody find out afterwards. */}
           <Text style={[type.meta, { color: palette.muted }]}>
-            They can add stops, times and notes. They cannot publish it, share
-            it or delete it — that stays with you. Invitations go out as soon as
-            you tap Invite, not when you save.
+            Type a name to pick someone you follow, or an email for anyone else.
+            Invitations go out as soon as you invite, not when you save.
           </Text>
         </>
       )}
@@ -274,46 +292,74 @@ export default function TripPeople({ tripId }: { tripId: string }) {
 
 /// Compact rows rather than a FlatList: this lives inside the trip editor's
 /// ScrollView, and nesting a virtualized list there is a fight we do not need.
-function FollowedInvites({
+function FollowedMatches({
+  query,
   collaborators,
   busy,
   onInvite,
 }: {
+  query: string;
   collaborators: Collaborator[];
   busy: boolean;
   onInvite: (username: string, label: string) => void;
 }) {
   const palette = usePalette();
-  const { data, loading } = useApi<{ people: Person[] }>("/api/people?following=1");
+  const needle = searchNeedle(query);
+  const [fetched, setFetched] = useState<{ needle: string; people: Person[] } | null>(null);
+
+  useEffect(() => {
+    if (!needle) return;
+
+    let cancelled = false;
+    const requested = needle;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const body = await api<{ people: Person[] }>(
+            `/api/people?following=1&q=${encodeURIComponent(requested)}`,
+          );
+          if (!cancelled) setFetched({ needle: requested, people: body.people ?? [] });
+        } catch {
+          if (!cancelled) setFetched({ needle: requested, people: [] });
+        }
+      })();
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [needle]);
+
+  if (!needle) return null;
+
   const taken = new Set(
     collaborators.map((c) => c.username).filter((u): u is string => Boolean(u)),
   );
-  const candidates = (data?.people ?? []).filter(
-    (p) => p.username && !taken.has(p.username),
+  const matches = (fetched?.people ?? []).filter(
+    (p) => p.username && !taken.has(p.username) && matchesNeedle(p, needle),
   );
+  const searching = fetched?.needle !== needle;
 
-  if (loading && !data) {
+  if (searching && matches.length === 0) {
     return (
       <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
-        Loading people you follow…
+        Looking among people you follow…
       </Text>
     );
   }
 
-  if (!data?.people.length) {
+  if (matches.length === 0) {
     return (
       <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
-        Follow someone on Discover to invite them without typing an email.
+        Nobody you follow matches that.
       </Text>
     );
   }
-
-  if (candidates.length === 0) return null;
 
   return (
     <>
-      <Text style={[styles.sublabel, { color: palette.muted }]}>People you follow</Text>
-      {candidates.map((person) => {
+      {matches.map((person) => {
         const handle = person.username!;
         const label = person.name ?? `@${handle}`;
         return (
@@ -356,7 +402,6 @@ function FollowedInvites({
 
 const styles = StyleSheet.create({
   label: { fontSize: 12, marginTop: 18, marginBottom: 6, textTransform: "uppercase" },
-  sublabel: { fontSize: 12, marginTop: 10, marginBottom: 6, textTransform: "uppercase" },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -367,7 +412,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  invite: { flexDirection: "row", gap: 8, alignItems: "center" },
+  invite: { flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 8 },
   input: {
     flex: 1,
     borderWidth: 1,

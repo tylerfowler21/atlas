@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { TripRole } from "@/lib/trip-access";
 
@@ -52,6 +51,25 @@ function personLabel(person: { name: string | null; username: string | null; ema
   return person.name ?? (person.username ? `@${person.username}` : (person.email ?? "them"));
 }
 
+function looksLikeEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+/// What to send to the following search. Empty, or an email, is not a name.
+function searchNeedle(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed || looksLikeEmail(trimmed)) return "";
+  return trimmed.replace(/^@+/, "").trim();
+}
+
+function matchesNeedle(person: FollowedPerson, needle: string) {
+  const n = needle.toLowerCase();
+  return (
+    (person.username ?? "").toLowerCase().includes(n) ||
+    (person.name ?? "").toLowerCase().includes(n)
+  );
+}
+
 export default function TripPeople({
   tripId,
   role,
@@ -67,14 +85,17 @@ export default function TripPeople({
 }) {
   const [open, setOpen] = useState(false);
   const [people, setPeople] = useState<Collaborator[] | null>(initialPeople);
-  const [email, setEmail] = useState("");
+  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /// Said out loud when an invitation is recorded but the email did not go.
   /// The person still has access — silence here would let the owner assume
   /// something landed in an inbox when nothing did.
   const [notice, setNotice] = useState<string | null>(null);
-  const [followed, setFollowed] = useState<FollowedPerson[] | null>(null);
+  const [fetched, setFetched] = useState<{ needle: string; people: FollowedPerson[] } | null>(
+    null,
+  );
+  const needle = searchNeedle(query);
 
   useEffect(() => {
     if (!open || people !== null) return;
@@ -95,22 +116,26 @@ export default function TripPeople({
   }, [open, people, tripId]);
 
   useEffect(() => {
-    if (!open || role !== "owner" || followed !== null) return;
-    let cancelled = false;
+    if (!open || role !== "owner" || !needle) return;
 
-    fetch("/api/people?following=1")
-      .then((res) => res.json())
-      .then((body) => {
-        if (!cancelled) setFollowed(body.people ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setFollowed([]);
-      });
+    let cancelled = false;
+    const requested = needle;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/people?following=1&q=${encodeURIComponent(requested)}`)
+        .then((res) => res.json())
+        .then((body) => {
+          if (!cancelled) setFetched({ needle: requested, people: body.people ?? [] });
+        })
+        .catch(() => {
+          if (!cancelled) setFetched({ needle: requested, people: [] });
+        });
+    }, 250);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [open, role, followed]);
+  }, [open, role, needle]);
 
   async function invite(payload: { email: string } | { username: string }) {
     setBusy(true);
@@ -142,7 +167,7 @@ export default function TripPeople({
         ? `Invitation sent to ${who}.`
         : `${who} has access, but the email didn't send — tell them yourself and send them this trip's link.`,
     );
-    if ("email" in payload) setEmail("");
+    setQuery("");
   }
 
   async function remove(target: string) {
@@ -215,9 +240,13 @@ export default function TripPeople({
   const taken = new Set(
     (people ?? []).map((p) => p.username).filter((u): u is string => Boolean(u)),
   );
-  const candidates = (followed ?? []).filter(
-    (p) => p.username && !taken.has(p.username),
-  );
+  const matches = needle
+    ? (fetched?.people ?? []).filter(
+        (p) => p.username && !taken.has(p.username) && matchesNeedle(p, needle),
+      )
+    : [];
+  const searching = Boolean(needle) && fetched?.needle !== needle;
+  const canEmail = looksLikeEmail(query);
 
   return (
     <div className="card space-y-3 p-3">
@@ -280,21 +309,39 @@ export default function TripPeople({
 
       {role === "owner" && (
         <>
-          {followed === null ? (
-            <p className="text-xs text-muted">Loading people you follow…</p>
-          ) : followed.length === 0 ? (
-            <p className="text-xs text-muted">
-              Follow someone on{" "}
-              <Link href="/discover?view=people" className="text-accent-text underline">
-                Discover
-              </Link>{" "}
-              to invite them without typing an email.
-            </p>
-          ) : candidates.length > 0 ? (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted">People you follow</p>
+          <div className="flex gap-2">
+            <input
+              className="input"
+              type="text"
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Name, @username or email"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canEmail) {
+                  e.preventDefault();
+                  void invite({ email: query.trim() });
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-primary shrink-0"
+              disabled={busy || !canEmail}
+              onClick={() => invite({ email: query.trim() })}
+            >
+              Invite
+            </button>
+          </div>
+          {needle ? (
+            searching && matches.length === 0 ? (
+              <p className="text-xs text-muted">Looking among people you follow…</p>
+            ) : matches.length > 0 ? (
               <ul className="space-y-1">
-                {candidates.map((person) => {
+                {matches.map((person) => {
                   const handle = person.username!;
                   const initial = (person.name ?? handle).charAt(0).toUpperCase();
                   return (
@@ -331,33 +378,17 @@ export default function TripPeople({
                   );
                 })}
               </ul>
-            </div>
+            ) : (
+              <p className="text-xs text-muted">Nobody you follow matches that.</p>
+            )
           ) : null}
-
-          <div className="flex gap-2">
-            <input
-              className="input"
-              type="email"
-              placeholder="friend@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn-primary shrink-0"
-              disabled={busy || email.trim().length === 0}
-              onClick={() => invite({ email: email.trim() })}
-            >
-              Invite
-            </button>
-          </div>
           {/* What actually happens, which is not what this said. Roava has
               emailed invitations since the collaborator work landed — the line
               below it says "Invitation sent to …" — and this paragraph was
               still telling people to go and pass it on themselves. */}
           <p className="text-xs text-muted">
-            They don&apos;t need an account yet — we&apos;ll email them an
-            invitation, and it works the moment they sign in with that address.
+            Type a name to pick someone you follow, or an email for anyone else
+            — they don&apos;t need an account yet.
           </p>
         </>
       )}
