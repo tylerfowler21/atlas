@@ -46,7 +46,7 @@ export default async function TripPage({
   const collaborators = await prisma.tripCollaborator.findMany({
     where: { tripId: id, ...(access.role === "owner" ? {} : { acceptedAt: { not: null } }) },
     orderBy: { invitedAt: "asc" },
-    include: { user: { select: { name: true, image: true } } },
+    include: { user: { select: { name: true, image: true, username: true } } },
   });
 
   const places = await prisma.place.findMany({
@@ -87,6 +87,7 @@ export default async function TripPage({
         accepted: c.acceptedAt !== null,
         name: c.user?.name ?? null,
         image: c.user?.image ?? null,
+        username: c.user?.username ?? null,
       }))}
     />
   );

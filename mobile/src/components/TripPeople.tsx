@@ -9,6 +9,8 @@
 /// An invitation is addressed to an email rather than to an account, so you
 /// can invite somebody who has not signed up yet; it binds to them when they
 /// first open the trip. Until then they show as invited rather than as here.
+/// People you already follow can be invited by username, so you never have to
+/// remember their address.
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -21,7 +23,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api } from "@/lib/api";
+import { api, type Person } from "@/lib/api";
 import { RADIUS, SEMANTIC } from "@/lib/brand";
 import { type } from "@/lib/type";
 import { useApi } from "@/lib/use-api";
@@ -33,6 +35,7 @@ type Collaborator = {
   accepted: boolean;
   name: string | null;
   image: string | null;
+  username: string | null;
 };
 
 type Owner = { name: string | null; username: string | null; image: string | null } | null;
@@ -42,6 +45,10 @@ type People = { role: string; owner: Owner; collaborators: Collaborator[] };
 /// this only decides whether the button is worth offering.
 function looksLikeEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function personLabel(person: { name: string | null; username: string | null; email?: string }) {
+  return person.name ?? (person.username ? `@${person.username}` : (person.email ?? "them"));
 }
 
 export default function TripPeople({ tripId }: { tripId: string }) {
@@ -63,7 +70,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
     (people?.owner?.username ? `@${people.owner.username}` : null) ??
     (isOwner ? "You" : "The owner");
 
-  async function invite() {
+  async function inviteByEmail() {
     const address = email.trim().toLowerCase();
     if (!looksLikeEmail(address)) {
       Alert.alert("Check that address", "It needs to look like an email address.");
@@ -85,6 +92,28 @@ export default function TripPeople({ tripId }: { tripId: string }) {
         Alert.alert(
           "Invited, but no email went out",
           `${address} can open the trip once they sign in, but you'll have to tell them yourself.`,
+        );
+      }
+    } catch (e) {
+      Alert.alert("Could not invite them", e instanceof Error ? e.message : "Try again");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function inviteByUsername(username: string, label: string) {
+    setBusy(true);
+    try {
+      const body = await api<{ emailed?: boolean; collaborator?: Collaborator }>(
+        `/api/trips/${tripId}/collaborators`,
+        { method: "POST", body: JSON.stringify({ username }) },
+      );
+      reload();
+      if (body.emailed === false) {
+        const who = body.collaborator ? personLabel(body.collaborator) : label;
+        Alert.alert(
+          "Invited, but no email went out",
+          `${who} can open the trip once they sign in, but you'll have to tell them yourself.`,
         );
       }
     } catch (e) {
@@ -186,6 +215,11 @@ export default function TripPeople({ tripId }: { tripId: string }) {
 
       {isOwner && (
         <>
+          <FollowedInvites
+            collaborators={people.collaborators}
+            busy={busy}
+            onInvite={inviteByUsername}
+          />
           <View style={styles.invite}>
             <TextInput
               value={email}
@@ -195,7 +229,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
-              onSubmitEditing={() => void invite()}
+              onSubmitEditing={() => void inviteByEmail()}
               returnKeyType="send"
               style={[
                 styles.input,
@@ -203,7 +237,7 @@ export default function TripPeople({ tripId }: { tripId: string }) {
               ]}
             />
             <Pressable
-              onPress={() => void invite()}
+              onPress={() => void inviteByEmail()}
               disabled={busy || !looksLikeEmail(email)}
               style={[
                 styles.send,
@@ -238,8 +272,91 @@ export default function TripPeople({ tripId }: { tripId: string }) {
   );
 }
 
+/// Compact rows rather than a FlatList: this lives inside the trip editor's
+/// ScrollView, and nesting a virtualized list there is a fight we do not need.
+function FollowedInvites({
+  collaborators,
+  busy,
+  onInvite,
+}: {
+  collaborators: Collaborator[];
+  busy: boolean;
+  onInvite: (username: string, label: string) => void;
+}) {
+  const palette = usePalette();
+  const { data, loading } = useApi<{ people: Person[] }>("/api/people?following=1");
+  const taken = new Set(
+    collaborators.map((c) => c.username).filter((u): u is string => Boolean(u)),
+  );
+  const candidates = (data?.people ?? []).filter(
+    (p) => p.username && !taken.has(p.username),
+  );
+
+  if (loading && !data) {
+    return (
+      <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
+        Loading people you follow…
+      </Text>
+    );
+  }
+
+  if (!data?.people.length) {
+    return (
+      <Text style={[type.meta, { color: palette.muted, marginBottom: 8 }]}>
+        Follow someone on Discover to invite them without typing an email.
+      </Text>
+    );
+  }
+
+  if (candidates.length === 0) return null;
+
+  return (
+    <>
+      <Text style={[styles.sublabel, { color: palette.muted }]}>People you follow</Text>
+      {candidates.map((person) => {
+        const handle = person.username!;
+        const label = person.name ?? `@${handle}`;
+        return (
+          <View
+            key={person.id}
+            style={[styles.row, { borderColor: palette.border, backgroundColor: palette.surface }]}
+          >
+            {person.image ? (
+              <Image source={{ uri: person.image }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: palette.border }]}>
+                <Text style={{ color: palette.ink, fontSize: 13, fontWeight: "600" }}>
+                  {label.replace("@", "").charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[type.item, { color: palette.ink }]} numberOfLines={1}>
+                {label}
+              </Text>
+              <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
+                @{handle}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => onInvite(handle, label)}
+              disabled={busy}
+              hitSlop={8}
+            >
+              <Text style={{ color: palette.primary, fontSize: 13, fontWeight: "600" }}>
+                Invite
+              </Text>
+            </Pressable>
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   label: { fontSize: 12, marginTop: 18, marginBottom: 6, textTransform: "uppercase" },
+  sublabel: { fontSize: 12, marginTop: 10, marginBottom: 6, textTransform: "uppercase" },
   row: {
     flexDirection: "row",
     alignItems: "center",

@@ -250,14 +250,27 @@ export const placeImportSchema = z.object({
   entries: z.array(importEntrySchema).min(1, "Nothing to import").max(300),
 });
 
-export const collaboratorInviteSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .pipe(z.email("That doesn't look like an email address"))
-    .refine((v) => v.length <= 200, "That email is too long"),
-});
+/// Addressed to an email (someone who may not have an account yet) or to a
+/// Roava username / user id (someone you already follow). Exactly one, so a
+/// client never has to know a followed person's email to invite them.
+export const collaboratorInviteSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.email("That doesn't look like an email address"))
+      .refine((v) => v.length <= 200, "That email is too long")
+      .optional(),
+    username: z.string().trim().toLowerCase().min(1, "Which person?").optional(),
+    userId: z.string().trim().min(1, "Which person?").optional(),
+  })
+  .refine((v) => [v.email, v.username, v.userId].filter(Boolean).length >= 1, {
+    message: "Who are you inviting?",
+  })
+  .refine((v) => [v.email, v.username, v.userId].filter(Boolean).length <= 1, {
+    message: "Invite with an email or a username, not both",
+  });
 
 /// Handles are lowercase, URL-safe and unmistakable in a path like /u/tyler.
 /// The reserved list stops someone claiming a name that collides with a route.
