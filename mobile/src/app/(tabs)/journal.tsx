@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
 import OfflineNote from "@/components/OfflineNote";
+import OttoSays from "@/components/OttoSays";
 import {
   ActivityIndicator,
   FlatList,
@@ -80,11 +81,7 @@ export default function JournalScreen() {
         contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         keyExtractor={(m) => m.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={
-          <Text style={[styles.empty, { color: palette.muted }]}>
-            Nothing written yet. Journal entries you add on the website appear here.
-          </Text>
-        }
+        ListEmptyComponent={<OttoSays topic="emptyJournal" pose="typing" />}
         renderItem={({ item }) => (
           <Pressable
             onPress={() => setEditing(item)}
@@ -117,7 +114,6 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: SEMANTIC.danger, padding: 16 },
-  empty: { textAlign: "center", padding: 32, lineHeight: 20 },
   new: { margin: 12, borderRadius: 10, alignItems: "center", paddingVertical: 12 },
   entry: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
   date: { fontSize: 12 },

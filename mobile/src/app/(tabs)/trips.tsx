@@ -1,5 +1,6 @@
 import { useState } from "react";
 import OfflineNote from "@/components/OfflineNote";
+import OttoSays from "@/components/OttoSays";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
 import { SEMANTIC } from "@/lib/brand";
@@ -86,7 +87,7 @@ export default function TripsScreen() {
         contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         keyExtractor={(t) => t.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={<Text style={[styles.empty, { color: palette.muted }]}>No trips yet.</Text>}
+        ListEmptyComponent={<OttoSays topic="noTrips" />}
         renderItem={({ item }) => {
           const when = dateRange(item);
           return (
@@ -117,7 +118,6 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: SEMANTIC.danger, padding: 16 },
-  empty: { textAlign: "center", padding: 32 },
   actions: { flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 4 },
   new: { flex: 1, borderRadius: 10, alignItems: "center", paddingVertical: 12 },
   secondary: { backgroundColor: "transparent", borderWidth: 1 },

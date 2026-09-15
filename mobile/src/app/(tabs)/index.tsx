@@ -5,6 +5,7 @@ import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
+import OttoSays from "@/components/OttoSays";
 import { useCategories } from "@/lib/categories";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
@@ -1189,10 +1190,19 @@ export default function MapScreen() {
                 contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
                 ListHeaderComponent={<FirstSteps />}
+                // He explains the map only when there is no map to explain.
+                // The same list is empty for a much more ordinary reason —
+                // panning somewhere you have not saved anything — and telling
+                // somebody with four hundred places how to start their map is
+                // how a helpful character becomes a nag.
                 ListEmptyComponent={
-                  <Text style={[styles.listEmpty, { color: palette.muted }]}>
-                    Nothing here yet.
-                  </Text>
+                  places.length === 0 ? (
+                    <OttoSays topic="noPlaces" />
+                  ) : (
+                    <Text style={[styles.listEmpty, { color: palette.muted }]}>
+                      Nothing here yet.
+                    </Text>
+                  )
                 }
                 renderItem={({ item }) => (
                   <Pressable

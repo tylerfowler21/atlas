@@ -17,6 +17,7 @@ import { api } from "@/lib/api";
 import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
+import OttoSays from "@/components/OttoSays";
 import { formatDay } from "@/lib/dates";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
@@ -84,12 +85,7 @@ export default function FeedList() {
         // bottom of the screen entirely.
         contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={
-          <Text style={[styles.empty, { color: palette.muted }]}>
-            Nothing here yet. Follow someone on the People tab and the trips they
-            publish show up here.
-          </Text>
-        }
+        ListEmptyComponent={<OttoSays topic="noFollowing" pose="pointing" />}
         renderItem={({ item }) => {
           const when = dates(item);
           return (
@@ -163,7 +159,6 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: SEMANTIC.danger, padding: 16 },
-  empty: { textAlign: "center", padding: 32, lineHeight: 20 },
   card: {
     flexDirection: "row",
     gap: 12,

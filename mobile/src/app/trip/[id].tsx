@@ -24,6 +24,7 @@ import TripDays from "@/components/TripDays";
 import { dayCount } from "@/lib/trip-days";
 import PlaceThumb from "@/components/PlaceThumb";
 import OfflineNote from "@/components/OfflineNote";
+import OttoSays from "@/components/OttoSays";
 import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
@@ -447,6 +448,12 @@ export default function TripScreen() {
             single day gets below — but a fortnight would mount fourteen of
             them, and a MapView is not a cheap thing to mount. */}
         {mapDay === null && <TripMap items={data.items} color={data.trip.color} />}
+
+        {/* A trip with nothing in it at all. Said once, here, rather than
+            under each of fourteen empty days — and only when the trip is
+            wholly empty, because a single blank day in a full trip is a gap,
+            not a beginning. */}
+        {data.items.length === 0 && <OttoSays topic="emptyTrip" />}
 
         {/* Picking a date shows that day. It used to only move the map, which
             made the calendar look broken: you tap the 20th, the list underneath
