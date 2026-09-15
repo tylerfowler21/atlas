@@ -60,3 +60,39 @@ export const OTTO_SAYS = {
 } as const satisfies Record<string, OttoTip>;
 
 export type OttoTopic = keyof typeof OTTO_SAYS;
+
+/// What Otto adds to each of the first steps.
+///
+/// The checklist already says what to do and has a line of hint under it. He
+/// says the thing neither has room for: why it is worth doing, or the part
+/// people get wrong. He only ever talks about the step somebody is actually on
+/// — the first one not yet ticked — so the list teaches as it is worked
+/// through rather than explaining five things at once to somebody who has done
+/// none of them.
+export const OTTO_STEPS: Record<string, { says: string; pose: string }> = {
+  save: {
+    says:
+      "Start with somewhere you have actually been meaning to go. One real place is worth more than fifty added to fill the map up.",
+    pose: "pointing",
+  },
+  been: {
+    says:
+      "Somewhere you have already been turns this from a wishlist into a record. The counts by city and country are built from these.",
+    pose: "planning",
+  },
+  trip: {
+    says:
+      "A trip can be imaginary. Dates you might never use still make the days line up, and nothing about them is fixed.",
+    pose: "planning",
+  },
+  stop: {
+    says:
+      "One thing on one day is already a plan. Times are optional — most days read better with three things and room between them than with nine.",
+    pose: "typing",
+  },
+  share: {
+    says:
+      "Three different doors, and people reach for the wrong one. A link is read-only and needs no account. Publishing puts it on your profile. Inviting is the only one that lets somebody change it.",
+    pose: "pointing",
+  },
+};

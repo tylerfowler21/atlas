@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { FirstSteps as Steps } from "@/lib/first-steps";
+import Otto, { type OttoPose } from "@/components/Otto";
+import { OTTO_STEPS } from "@/lib/otto-says";
 
 /// The short list that carries on after the welcome.
 ///
@@ -21,6 +23,12 @@ export default function FirstSteps({ initial }: { initial: Steps }) {
   const [open, setOpen] = useState(initial.done <= 1);
 
   if (steps.hidden) return null;
+
+  /// The one somebody is actually on. He talks about that and nothing else:
+  /// explaining five things at once to somebody who has done none of them is
+  /// how a checklist becomes a wall.
+  const next = steps.steps.find((s) => !s.done);
+  const word = next ? OTTO_STEPS[next.id] : undefined;
 
   async function dismiss() {
     setSteps((current) => ({ ...current, hidden: true }));
@@ -57,6 +65,13 @@ export default function FirstSteps({ initial }: { initial: Steps }) {
           Hide
         </button>
       </div>
+
+      {open && word && (
+        <div className="flex items-start gap-3 border-t border-line bg-brand-surface/40 px-3 py-3">
+          <Otto pose={word.pose as OttoPose} />
+          <p className="min-w-0 flex-1 pt-1 text-sm text-muted">{word.says}</p>
+        </div>
+      )}
 
       {open && (
         <ul className="divide-y divide-line border-t border-line">

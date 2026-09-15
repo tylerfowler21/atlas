@@ -3,6 +3,8 @@
 /// The same five steps, counted from the same data by the same endpoint, so
 /// doing one on the phone ticks it off on the website and the other way round.
 import { useCallback, useState } from "react";
+import Otto, { type OttoPose } from "@/components/Otto";
+import { OTTO_STEPS } from "@/lib/otto-says";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "@/lib/api";
@@ -59,6 +61,12 @@ export default function FirstSteps() {
     }
   }
 
+  /// The one somebody is actually on. He talks about that and nothing else:
+  /// explaining five things at once to somebody who has done none of them is
+  /// how a checklist becomes a wall.
+  const next = steps.steps.find((s) => !s.done);
+  const word = next ? OTTO_STEPS[next.id] : undefined;
+
   return (
     <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={styles.header}>
@@ -73,6 +81,15 @@ export default function FirstSteps() {
           <Text style={{ color: palette.muted, fontSize: 12 }}>Hide</Text>
         </Pressable>
       </View>
+
+      {open && word && (
+        <View style={[styles.otto, { borderTopColor: palette.border }]}>
+          <Otto pose={word.pose as OttoPose} />
+          <Text style={[styles.ottoWords, { color: palette.muted }]}>
+            {word.says}
+          </Text>
+        </View>
+      )}
 
       {open &&
         steps.steps.map((step) => (
@@ -103,6 +120,8 @@ export default function FirstSteps() {
 }
 
 const styles = StyleSheet.create({
+  otto: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14, borderTopWidth: 1 },
+  ottoWords: { flex: 1, paddingTop: 4, fontSize: 13, lineHeight: 19 },
   card: { borderWidth: 1, borderRadius: 12, overflow: "hidden", marginBottom: 8 },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10 },
   headerMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
