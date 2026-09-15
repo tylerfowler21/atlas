@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
+import OfflineNote from "@/components/OfflineNote";
 import {
   ActivityIndicator,
   FlatList,
@@ -32,7 +33,7 @@ function when(memory: Memory) {
 }
 
 export default function JournalScreen() {
-  const { data, error, loading, reload } = useApi<{ memories: Memory[] }>("/api/memories");
+  const { data, error, loading, reload, offlineAt } = useApi<{ memories: Memory[] }>("/api/memories");
   const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
   const { data: tripData } = useApi<{ trips: Trip[] }>("/api/trips");
   const palette = usePalette();
@@ -72,6 +73,7 @@ export default function JournalScreen() {
         </Text>
       </Pressable>
 
+      <OfflineNote at={offlineAt} />
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data?.memories ?? []}

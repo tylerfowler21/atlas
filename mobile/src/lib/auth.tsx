@@ -1,5 +1,6 @@
 /// Sign in with Apple on the device, exchanged for the app's own token.
 import * as AppleAuthentication from "expo-apple-authentication";
+import { forgetEverything } from "@/lib/offline";
 import { router } from "expo-router";
 import { Alert, Linking } from "react-native";
 import { useRef , createContext, use, useCallback, useEffect, useState } from "react";
@@ -176,6 +177,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     await clearToken();
+    // Everything kept for reading offline goes with the token. The next
+    // person to hold this phone should not find the last one's itinerary in
+    // it.
+    forgetEverything();
     setUser(null);
   }, []);
 

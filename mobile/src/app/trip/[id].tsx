@@ -23,6 +23,7 @@ import TripCover from "@/components/TripCover";
 import TripDays from "@/components/TripDays";
 import { dayCount } from "@/lib/trip-days";
 import PlaceThumb from "@/components/PlaceThumb";
+import OfflineNote from "@/components/OfflineNote";
 import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
@@ -117,7 +118,7 @@ function dayJourney(stops: { place?: { city?: string | null } | null }[]): strin
 export default function TripScreen() {
   const { stopIconOf, categoryOf } = useCategories();
   const { id, shareUrl } = useLocalSearchParams<{ id: string; shareUrl?: string }>();
-  const { data, error, loading, reload } = useApi<TripResponse>(`/api/trips/${id}`);
+  const { data, error, loading, reload, offlineAt } = useApi<TripResponse>(`/api/trips/${id}`);
   const { data: placeData } = useApi<{ places: Place[] }>("/api/places");
   const palette = usePalette();
 
@@ -373,6 +374,7 @@ export default function TripScreen() {
         />
       )}
       <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
+        <OfflineNote at={offlineAt} />
         <TripCover
           trip={data.trip}
           items={data.items}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import OfflineNote from "@/components/OfflineNote";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
 import { SEMANTIC } from "@/lib/brand";
@@ -30,7 +31,7 @@ function dateRange(trip: Trip) {
 }
 
 export default function TripsScreen() {
-  const { data, error, loading, reload } = useApi<{ trips: Trip[] }>("/api/trips");
+  const { data, error, loading, reload, offlineAt } = useApi<{ trips: Trip[] }>("/api/trips");
   const palette = usePalette();
   const insets = useSafeAreaInsets();
   const [creating, setCreating] = useState(false);
@@ -79,6 +80,7 @@ export default function TripsScreen() {
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
+      <OfflineNote at={offlineAt} />
       <FlatList
         data={data?.trips ?? []}
         contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}

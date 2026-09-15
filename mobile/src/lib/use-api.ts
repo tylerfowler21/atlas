@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { ApiError, api } from "@/lib/api";
+import { recall, remember } from "@/lib/offline";
 import { useAuth } from "@/lib/auth";
 
 /// A GET with the three states every screen here needs to show: loading, an
@@ -13,6 +14,9 @@ export function useApi<T>(path: string) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  /// When what is on screen was last true, if it came off the phone rather
+  /// than off the network. Null whenever the server answered.
+  const [offlineAt, setOfflineAt] = useState<Date | null>(null);
   /// Bumped to ask for a refetch. A counter rather than a boolean so two pulls
   /// in quick succession are two fetches, not one.
   const [attempt, setAttempt] = useState(0);
@@ -28,10 +32,22 @@ export function useApi<T>(path: string) {
         if (cancelled) return;
         setData(result);
         setError(null);
+        setOfflineAt(null);
+        remember(path, result);
       } catch (e) {
         if (cancelled) return;
         if (e instanceof ApiError && e.isSignedOut) {
           await signOut();
+          return;
+        }
+        // The last thing the server said, rather than nothing at all. This is
+        // the whole point: the moment somebody most needs their itinerary is
+        // the moment they are least likely to be able to fetch it.
+        const kept = recall<T>(path);
+        if (kept) {
+          setData(kept.data);
+          setError(null);
+          setOfflineAt(kept.at);
           return;
         }
         setError(e instanceof Error ? e.message : "Something went wrong");
@@ -74,9 +90,20 @@ export function useApi<T>(path: string) {
           if (cancelled) return;
           setData(result);
           setError(null);
+          setOfflineAt(null);
+          remember(path, result);
         } catch (e) {
           // Except a lapsed token, which every screen has to act on.
-          if (e instanceof ApiError && e.isSignedOut) await signOut();
+          if (e instanceof ApiError && e.isSignedOut) {
+            await signOut();
+            return;
+          }
+          // What is already on screen stays — but it is now known to be old,
+          // and the note says so. Coming back to a tab you opened this morning
+          // and being told it is this morning's is the honest version of the
+          // stale data that was already here.
+          const kept = recall<T>(path);
+          if (kept && !cancelled) setOfflineAt(kept.at);
         }
       })();
 
@@ -99,8 +126,15 @@ export function useApi<T>(path: string) {
           const result = await api<T>(path);
           setData(result);
           setError(null);
+          setOfflineAt(null);
+          remember(path, result);
         } catch (e) {
-          if (e instanceof ApiError && e.isSignedOut) await signOut();
+          if (e instanceof ApiError && e.isSignedOut) {
+            await signOut();
+            return;
+          }
+          const kept = recall<T>(path);
+          if (kept) setOfflineAt(kept.at);
         }
       })();
     });
@@ -114,5 +148,5 @@ export function useApi<T>(path: string) {
     setAttempt((n) => n + 1);
   }, []);
 
-  return { data, error, loading, reload };
+  return { data, error, loading, reload, offlineAt };
 }
