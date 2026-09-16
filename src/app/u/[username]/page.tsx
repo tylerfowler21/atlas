@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import AvatarImage from "@/components/AvatarImage";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/user";
 import { feedTripInclude, toFeedTrip } from "@/lib/social";
@@ -99,20 +100,16 @@ export default async function ProfilePage({
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="flex items-start gap-4">
-        {profile.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.image}
-            alt=""
-            width={56}
-            height={56}
-            className="size-14 rounded-full object-cover"
-          />
-        ) : (
-          <span className="grid size-14 place-items-center rounded-full bg-accent/15 text-lg font-semibold text-accent-text">
-            {(profile.name ?? profile.username ?? "?").charAt(0).toUpperCase()}
-          </span>
-        )}
+        <AvatarImage
+          src={profile.image}
+          size={56}
+          className="size-14 rounded-full object-cover"
+          fallback={
+            <span className="grid size-14 place-items-center rounded-full bg-accent/15 text-lg font-semibold text-accent-text">
+              {(profile.name ?? profile.username ?? "?").charAt(0).toUpperCase()}
+            </span>
+          }
+        />
 
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold">{profile.name ?? profile.username}</h1>

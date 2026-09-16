@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import AvatarImage from "@/components/AvatarImage";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -190,22 +191,16 @@ export default function NavBar({
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          {user.image ? (
-            // Avatars come from the identity provider on arbitrary hosts, and
-            // next/image would need every one of them allow-listed.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.image}
-              alt=""
-              width={28}
-              height={28}
-              className="size-7 rounded-full object-cover"
-            />
-          ) : (
-            <span className="grid size-7 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent-text">
-              {initial}
-            </span>
-          )}
+          <AvatarImage
+            src={user.image}
+            size={28}
+            className="size-7 rounded-full object-cover"
+            fallback={
+              <span className="grid size-7 place-items-center rounded-full bg-accent/15 text-xs font-semibold text-accent-text">
+                {initial}
+              </span>
+            }
+          />
         </button>
 
         {menuOpen && (
