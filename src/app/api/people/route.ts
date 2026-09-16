@@ -62,6 +62,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
   const followingOnly = url.searchParams.get("following") === "1";
+  const suggested = url.searchParams.get("suggested") === "1";
   const hidden = await hiddenUserIds(user.id);
 
   if (followingOnly) {
@@ -83,6 +84,41 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       people: follows.map((f) => toPerson(f.following, true)),
+    });
+  }
+
+  /// People worth following, for somebody following nobody.
+  ///
+  /// The rule is published trips, most first. Not a name in the code and not
+  /// an algorithm either — with two people publishing, anything cleverer would
+  /// be theatre performed over a list of two. It is the honest answer to "who
+  /// is worth following here", it can be said out loud on the screen, and it
+  /// keeps being right as more people publish without anybody maintaining it.
+  ///
+  /// Nobody is suggested who has published nothing: following them leads to an
+  /// empty feed, which is the thing that teaches people following is pointless.
+  /// People already followed are left out for the same reason.
+  if (suggested) {
+    const followed = await prisma.follow.findMany({
+      where: { followerId: user.id },
+      select: { followingId: true },
+    });
+
+    const candidates = await prisma.user.findMany({
+      where: {
+        username: { not: null },
+        id: { notIn: [user.id, ...hidden, ...followed.map((f) => f.followingId)] },
+        trips: { some: { publishedAt: { not: null } } },
+      },
+      take: 20,
+      select: personSelect,
+    });
+
+    return NextResponse.json({
+      people: candidates
+        .map((p) => toPerson(p, false))
+        .sort((a, b) => b.publishedTrips - a.publishedTrips)
+        .slice(0, 5),
     });
   }
 

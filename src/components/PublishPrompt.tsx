@@ -27,9 +27,47 @@ export default function PublishPrompt({
   onPublished: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [answered, setAnswered] = useState(false);
+  const [answered, setAnswered] = useState<"no" | "yes" | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  if (answered || !worthPublishing(trip, stops, owned)) return null;
+  /// Where it now lives, which is the thing nobody was ever told.
+  ///
+  /// The page has existed all along and is linked from feed cards and
+  /// profiles — everywhere except the trip itself, so the one person
+  /// guaranteed to want the address was the one person never given it.
+  const url = typeof window === "undefined" ? "" : `${window.location.origin}/t/${tripId}`;
+
+  if (answered === "yes") {
+    return (
+      <div className="card mt-4 p-4">
+        <p className="text-sm font-medium">It&apos;s on your profile.</p>
+        <p className="mt-1 text-sm text-muted">
+          Anyone with this link can read it, with or without an account.
+        </p>
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            readOnly
+            value={url}
+            onFocus={(e) => e.currentTarget.select()}
+            className="input min-w-0 flex-1 text-xs"
+            aria-label="Link to this trip"
+          />
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              void navigator.clipboard?.writeText(url);
+              setCopied(true);
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (answered === "no" || !worthPublishing(trip, stops, owned)) return null;
 
   async function answer(publish: boolean) {
     setBusy(true);
@@ -39,12 +77,12 @@ export default function PublishPrompt({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(publish ? { published: true } : { publishAsked: true }),
       });
-      setAnswered(true);
+      setAnswered(publish ? "yes" : "no");
       if (publish) onPublished();
     } catch {
       // A failed offer should not become an error message about a trip
       // somebody was only reading. The switch in settings is still there.
-      setAnswered(true);
+      setAnswered("no");
     } finally {
       setBusy(false);
     }

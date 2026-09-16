@@ -18,6 +18,7 @@ import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 import OttoSays from "@/components/OttoSays";
+import SuggestedPeople from "@/components/SuggestedPeople";
 import { formatDay } from "@/lib/dates";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
@@ -85,7 +86,12 @@ export default function FeedList() {
         // bottom of the screen entirely.
         contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={<OttoSays topic="noFollowing" pose="pointing" />}
+        ListEmptyComponent={
+          <>
+            <OttoSays topic="noFollowing" pose="pointing" />
+            <SuggestedPeople />
+          </>
+        }
         renderItem={({ item }) => {
           const when = dates(item);
           return (

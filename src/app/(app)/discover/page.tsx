@@ -53,6 +53,31 @@ export default async function DiscoverPage({
 
   /// Only ever what somebody searched for.
   ///
+  /// Worth following, for somebody following nobody.
+  ///
+  /// Published trips, most first — not a name in the code and not an algorithm
+  /// either. Following somebody who has published nothing leads to an empty
+  /// feed, which is what teaches people that following is pointless, so nobody
+  /// without a published trip is offered.
+  const worthFollowing =
+    feedIds.length === 0
+      ? await prisma.user.findMany({
+          where: {
+            username: { not: null },
+            id: { notIn: [user.id, ...hidden] },
+            trips: { some: { publishedAt: { not: null } } },
+          },
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            bio: true,
+            _count: { select: { trips: { where: { publishedAt: { not: null } } } } },
+          },
+        })
+      : [];
+
   /// This used to answer an empty box with the hundred most recent accounts,
   /// which is a list of strangers rather than a way to find anybody: nobody
   /// arrives wanting to browse the newest people to sign up, and everybody who
@@ -169,6 +194,32 @@ export default async function DiscoverPage({
           <div className="mt-4">
             <FindPeople />
           </div>
+
+          {feedIds.length === 0 && worthFollowing.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-sm font-semibold">Worth following</h2>
+              <ul className="mt-2 space-y-2">
+                {worthFollowing.map((person) => (
+                  <li key={person.id} className="card flex items-center gap-3 p-3">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/u/${person.username}`}
+                        className="text-sm font-medium hover:underline"
+                      >
+                        {person.name ?? person.username}
+                      </Link>
+                      <p className="text-xs text-muted">
+                        {person._count.trips} published{" "}
+                        {person._count.trips === 1 ? "trip" : "trips"}
+                        {person.bio ? ` · ${person.bio}` : ""}
+                      </p>
+                    </div>
+                    <FollowButton username={person.username!} initiallyFollowing={false} signedIn />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {feedIds.length === 0 ? (
             ottoAround(user) ? (
