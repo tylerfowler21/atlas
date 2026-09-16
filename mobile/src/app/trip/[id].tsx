@@ -25,6 +25,8 @@ import { dayCount } from "@/lib/trip-days";
 import PlaceThumb from "@/components/PlaceThumb";
 import OfflineNote from "@/components/OfflineNote";
 import OttoSays from "@/components/OttoSays";
+import Column from "@/components/Column";
+import { WIDE } from "@/lib/wide";
 import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
@@ -374,361 +376,363 @@ export default function TripScreen() {
           }}
         />
       )}
-      <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
-        <OfflineNote at={offlineAt} />
-        <TripCover
-          trip={data.trip}
-          items={data.items}
-          days={days}
-          onChanged={reload}
-          onEdit={() => setSettings(true)}
-        />
-
-
-        {/* Three lists, not three screens. The counts sit on the tabs because
-            something unbooked that has been forgotten about is the only one of
-            the three that can cost you anything. */}
-        <View style={styles.views}>
-          {(
-            [
-              ["days", "Days", 0],
-              ["bookings", "Bookings", toBook],
-              ["before", "Before you go", toSort],
-              ["files", "Files", (data?.documents ?? []).length],
-            ] as const
-          ).map(([id, label, count]) => {
-            const on = view === id;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setView(id)}
-                style={[
-                  styles.viewTab,
-                  { borderColor: on ? palette.primary : palette.border },
-                  on && { backgroundColor: palette.primary },
-                ]}
-              >
-                <Text style={{ fontSize: 13, color: on ? palette.onPrimary : palette.muted }}>
-                  {label}
-                  {count > 0 ? ` ${count}` : ""}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {view === "bookings" && (
-          <TripBookings trip={data.trip} items={data.items} onChanged={reload} />
-        )}
-
-        {view === "before" && (
-          <TripResources
-            tripId={id}
-            resources={data.resources ?? []}
+      <Column max={WIDE}>
+        <ScrollView style={[styles.fill, { backgroundColor: palette.background }]}>
+          <OfflineNote at={offlineAt} />
+          <TripCover
+            trip={data.trip}
+            items={data.items}
+            days={days}
             onChanged={reload}
+            onEdit={() => setSettings(true)}
           />
-        )}
 
-        {view === "files" && (
-          <TripFiles tripId={id} files={data.documents ?? []} onChanged={reload} />
-        )}
 
-        {view === "days" && (
-          <>
-        <TripDays
-          startDate={data.trip.startDate}
-          days={days}
-          active={mapDay}
-          counts={dayCounts}
-          onPick={setMapDay}
-        />
-
-        {/* The whole trip's shape, once, above all of its days. A map inside
-            each day section would be the better arrangement — and is what a
-            single day gets below — but a fortnight would mount fourteen of
-            them, and a MapView is not a cheap thing to mount. */}
-        {mapDay === null && <TripMap items={data.items} color={data.trip.color} />}
-
-        {/* A trip with nothing in it at all. Said once, here, rather than
-            under each of fourteen empty days — and only when the trip is
-            wholly empty, because a single blank day in a full trip is a gap,
-            not a beginning. */}
-        {data.items.length === 0 && <OttoSays topic="emptyTrip" />}
-
-        {/* Picking a date shows that day. It used to only move the map, which
-            made the calendar look broken: you tap the 20th, the list underneath
-            is still every day of the trip, and nothing appears to have
-            happened. "Whole trip" is still there for the long view. */}
-        {(mapDay === null ? Array.from({ length: days }, (_, d) => d) : [mapDay]).map((day) => {
-          const stops = data.items.filter((i) => i.dayIndex === day);
-          return (
-            <View
-              key={day}
-              style={styles.day}
-              onLayout={(e) =>
-                recordDayBounds(day, e.nativeEvent.layout.y, e.nativeEvent.layout.height)
-              }
-            >
-              <View style={styles.dayHeading}>
-                <View style={styles.dayTitles}>
-                  <Text
-                    style={[
-                      type.section,
-                      {
-                        color:
-                          drag?.onto === day ? palette.accentText : palette.ink,
-                      },
-                    ]}
-                  >
-                    Day {day + 1}
-                    {drag?.onto === day ? " · drop here" : ""}
+          {/* Three lists, not three screens. The counts sit on the tabs because
+              something unbooked that has been forgotten about is the only one of
+              the three that can cost you anything. */}
+          <View style={styles.views}>
+            {(
+              [
+                ["days", "Days", 0],
+                ["bookings", "Bookings", toBook],
+                ["before", "Before you go", toSort],
+                ["files", "Files", (data?.documents ?? []).length],
+              ] as const
+            ).map(([id, label, count]) => {
+              const on = view === id;
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => setView(id)}
+                  style={[
+                    styles.viewTab,
+                    { borderColor: on ? palette.primary : palette.border },
+                    on && { backgroundColor: palette.primary },
+                  ]}
+                >
+                  <Text style={{ fontSize: 13, color: on ? palette.onPrimary : palette.muted }}>
+                    {label}
+                    {count > 0 ? ` ${count}` : ""}
                   </Text>
-                  {/* What the day is, in one line: how much of it there is and
-                      where it goes. The second half only appears when the day
-                      actually moves between two places — most days do not, and
-                      "Lisbon to Lisbon" says nothing. */}
-                  <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
-                    {[
-                      // Journeys are not stops. A day with two places and a
-                      // tram between them is a two-stop day.
-                      (() => {
-                        const n = stops.filter((i) => i.kind !== "travel").length;
-                        return `${n} ${n === 1 ? "stop" : "stops"}`;
-                      })(),
-                      dayJourney(stops),
-                      dayLabel(data.trip, day),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </Text>
-                </View>
-                {/* Only when there is something real to say. A day beyond the
-                    forecast shows nothing rather than a number to pack from. */}
-                {(() => {
-                  const date = data.trip.startDate
-                    ? new Date(Date.parse(data.trip.startDate) + day * 86_400_000)
-                        .toISOString()
-                        .slice(0, 10)
-                    : null;
-                  const sky = date ? weather.get(date) : undefined;
-                  if (!sky) return null;
-                  return (
-                    <Text style={{ color: palette.muted, fontSize: 12 }}>
-                      {condition(sky.code).icon} {sky.high}°/{sky.low}°
-                    </Text>
-                  );
-                })()}
-              </View>
+                </Pressable>
+              );
+            })}
+          </View>
 
-              {mapDay === day && stops.length > 0 && (
-                <TripMap items={stops} color={data.trip.color} />
-              )}
+          {view === "bookings" && (
+            <TripBookings trip={data.trip} items={data.items} onChanged={reload} />
+          )}
 
-              {/* An overnight flight belongs to the evening it left, but the
-                  morning it lands is a real part of this day and the one thing
-                  on it that cannot move. */}
-              {data.items
-                .filter(
-                  (i) =>
-                    i.kind === "travel" &&
-                    i.endDayOffset > 0 &&
-                    i.endTime &&
-                    i.dayIndex + i.endDayOffset === day,
-                )
-                .map((leg) => (
-                  <Text
-                    key={`arrives-${leg.id}`}
-                    style={{ color: palette.accentText, fontSize: 13, marginTop: 6 }}
-                  >
-                    ✈️ Lands {leg.endTime}
-                    {leg.toPlace ? ` · ${leg.toPlace.name}` : ""}
-                  </Text>
-                ))}
+          {view === "before" && (
+            <TripResources
+              tripId={id}
+              resources={data.resources ?? []}
+              onChanged={reload}
+            />
+          )}
 
-              {stops.map((entry, index) => {
-                const leg = entry.kind === "travel";
-                const mode = leg ? travelMode(entry.mode) : null;
+          {view === "files" && (
+            <TripFiles tripId={id} files={data.documents ?? []} onChanged={reload} />
+          )}
 
-                // Made per row so it closes over this row's day and index
-                // rather than over whatever they were when the screen mounted.
-                // PanResponder.create is a plain factory, not a hook.
-                const landingIndex = (dy: number) =>
-                  Math.max(0, Math.min(stops.length - 1, index + rowsMoved(day, index, dy)));
+          {view === "days" && (
+            <>
+          <TripDays
+            startDate={data.trip.startDate}
+            days={days}
+            active={mapDay}
+            counts={dayCounts}
+            onPick={setMapDay}
+          />
 
-                /// Where the finger is down the page, from where this row
-                /// started plus how far it has travelled.
-                const pageY = (dy: number) =>
-                  (dayBounds[day]?.y ?? 0) + (rowOffsets[day]?.[index] ?? 0) + dy;
+          {/* The whole trip's shape, once, above all of its days. A map inside
+              each day section would be the better arrangement — and is what a
+              single day gets below — but a fortnight would mount fourteen of
+              them, and a MapView is not a cheap thing to mount. */}
+          {mapDay === null && <TripMap items={data.items} color={data.trip.color} />}
 
-                /// The day being dragged over, when it is a different one.
-                /// Dragging within a day is a reorder and stays that way.
-                const overDay = (dy: number) => {
-                  const found = dayUnder(pageY(dy));
-                  return found === null || found === day ? null : found;
-                };
+          {/* A trip with nothing in it at all. Said once, here, rather than
+              under each of fourteen empty days — and only when the trip is
+              wholly empty, because a single blank day in a full trip is a gap,
+              not a beginning. */}
+          {data.items.length === 0 && <OttoSays topic="emptyTrip" />}
 
-                const pan = PanResponder.create({
-                  onStartShouldSetPanResponder: () => true,
-                  onMoveShouldSetPanResponder: () => true,
-                  onPanResponderGrant: () =>
-                    setDrag({ day, from: index, to: index, onto: null }),
-                  onPanResponderMove: (_event, gesture) => {
-                    const onto = overDay(gesture.dy);
-                    setDrag({
-                      day,
-                      from: index,
-                      to: onto === null ? landingIndex(gesture.dy) : index,
-                      onto,
-                    });
-                  },
-                  // The final distance comes with the release, so where it
-                  // lands is worked out from the gesture rather than read back
-                  // out of state written by an earlier render.
-                  onPanResponderRelease: (_event, gesture) => {
-                    setDrag(null);
-                    const onto = overDay(gesture.dy);
-                    if (onto !== null) void moveToDay(entry, onto);
-                    else void moveTo(day, index, landingIndex(gesture.dy));
-                  },
-                  onPanResponderTerminate: () => setDrag(null),
-                });
-
-                const held = drag?.day === day && drag.from === index;
-                const target = drag?.day === day && drag.to === index;
-
-                return (
-                  <View
-                    key={entry.id}
-                    onLayout={(e) => {
-                      recordRowHeight(day, index, e.nativeEvent.layout.height);
-                      recordRowOffset(day, index, e.nativeEvent.layout.y);
-                    }}
-                    style={[
-                      styles.stop,
-                      // A journey is not a card at all. The day reads as a
-                      // sequence of places, and the thing that carries you
-                      // between two of them is the line between them rather
-                      // than another place on the list.
-                      leg
-                        ? styles.legRow
-                        : { backgroundColor: palette.surface, borderColor: palette.border },
-                      held && { opacity: 0.4 },
-                      target && !held && { borderColor: palette.primary, borderWidth: 2 },
-                    ]}
-                  >
-                    <Pressable
-                      style={styles.stopMain}
-                      onPress={() => setItem({ mode: "edit", item: entry })}
+          {/* Picking a date shows that day. It used to only move the map, which
+              made the calendar look broken: you tap the 20th, the list underneath
+              is still every day of the trip, and nothing appears to have
+              happened. "Whole trip" is still there for the long view. */}
+          {(mapDay === null ? Array.from({ length: days }, (_, d) => d) : [mapDay]).map((day) => {
+            const stops = data.items.filter((i) => i.dayIndex === day);
+            return (
+              <View
+                key={day}
+                style={styles.day}
+                onLayout={(e) =>
+                  recordDayBounds(day, e.nativeEvent.layout.y, e.nativeEvent.layout.height)
+                }
+              >
+                <View style={styles.dayHeading}>
+                  <View style={styles.dayTitles}>
+                    <Text
+                      style={[
+                        type.section,
+                        {
+                          color:
+                            drag?.onto === day ? palette.accentText : palette.ink,
+                        },
+                      ]}
                     >
-                      {leg ? (
-                        <Text style={styles.legGlyph}>
-                          {entry.emoji || mode?.icon || "→"}
-                        </Text>
-                      ) : (
-                        // The same number the pin on the map above carries, so
-                        // the two can be read against each other.
-                        <View>
-                          <PlaceThumb
-                            icon={entry.emoji || stopIconOf(entry)}
-                            color={categoryOf(entry.category).color}
-                            photoUrl={entry.place?.photoUrl}
-                            size={52}
-                          />
-                          <View style={[styles.stopNumber, { backgroundColor: palette.primary }]}>
-                            <Text style={[styles.stopNumberText, { color: palette.onPrimary }]}>
-                              {stops.filter((x, i) => i < index && x.kind !== "travel").length + 1}
-                            </Text>
-                          </View>
-                        </View>
-                      )}
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>
-                          {entry.title}
-                        </Text>
-                        {(timingLabel(entry) || entry.notes || entry.booking) && (
-                          <Text style={[styles.stopMeta, { color: palette.muted }]} numberOfLines={1}>
-                            {[
-                              // A journey reads as its times, a stop as how
-                              // long it takes; the +1 stays on a flight that
-                              // lands the next morning.
-                              entry.kind === "travel" && entry.endDayOffset > 0
-                                ? `${timingLabel(entry)} +${entry.endDayOffset}`
-                                : timingLabel(entry),
-                              entry.notes,
-                              entry.booking === BOOKING_BOOKED ? "booked ✓" : null,
-                              entry.booking === BOOKING_NEEDED ? "to book" : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
+                      Day {day + 1}
+                      {drag?.onto === day ? " · drop here" : ""}
+                    </Text>
+                    {/* What the day is, in one line: how much of it there is and
+                        where it goes. The second half only appears when the day
+                        actually moves between two places — most days do not, and
+                        "Lisbon to Lisbon" says nothing. */}
+                    <Text style={[type.meta, { color: palette.muted }]} numberOfLines={1}>
+                      {[
+                        // Journeys are not stops. A day with two places and a
+                        // tram between them is a two-stop day.
+                        (() => {
+                          const n = stops.filter((i) => i.kind !== "travel").length;
+                          return `${n} ${n === 1 ? "stop" : "stops"}`;
+                        })(),
+                        dayJourney(stops),
+                        dayLabel(data.trip, day),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </Text>
+                  </View>
+                  {/* Only when there is something real to say. A day beyond the
+                      forecast shows nothing rather than a number to pack from. */}
+                  {(() => {
+                    const date = data.trip.startDate
+                      ? new Date(Date.parse(data.trip.startDate) + day * 86_400_000)
+                          .toISOString()
+                          .slice(0, 10)
+                      : null;
+                    const sky = date ? weather.get(date) : undefined;
+                    if (!sky) return null;
+                    return (
+                      <Text style={{ color: palette.muted, fontSize: 12 }}>
+                        {condition(sky.code).icon} {sky.high}°/{sky.low}°
+                      </Text>
+                    );
+                  })()}
+                </View>
+
+                {mapDay === day && stops.length > 0 && (
+                  <TripMap items={stops} color={data.trip.color} />
+                )}
+
+                {/* An overnight flight belongs to the evening it left, but the
+                    morning it lands is a real part of this day and the one thing
+                    on it that cannot move. */}
+                {data.items
+                  .filter(
+                    (i) =>
+                      i.kind === "travel" &&
+                      i.endDayOffset > 0 &&
+                      i.endTime &&
+                      i.dayIndex + i.endDayOffset === day,
+                  )
+                  .map((leg) => (
+                    <Text
+                      key={`arrives-${leg.id}`}
+                      style={{ color: palette.accentText, fontSize: 13, marginTop: 6 }}
+                    >
+                      ✈️ Lands {leg.endTime}
+                      {leg.toPlace ? ` · ${leg.toPlace.name}` : ""}
+                    </Text>
+                  ))}
+
+                {stops.map((entry, index) => {
+                  const leg = entry.kind === "travel";
+                  const mode = leg ? travelMode(entry.mode) : null;
+
+                  // Made per row so it closes over this row's day and index
+                  // rather than over whatever they were when the screen mounted.
+                  // PanResponder.create is a plain factory, not a hook.
+                  const landingIndex = (dy: number) =>
+                    Math.max(0, Math.min(stops.length - 1, index + rowsMoved(day, index, dy)));
+
+                  /// Where the finger is down the page, from where this row
+                  /// started plus how far it has travelled.
+                  const pageY = (dy: number) =>
+                    (dayBounds[day]?.y ?? 0) + (rowOffsets[day]?.[index] ?? 0) + dy;
+
+                  /// The day being dragged over, when it is a different one.
+                  /// Dragging within a day is a reorder and stays that way.
+                  const overDay = (dy: number) => {
+                    const found = dayUnder(pageY(dy));
+                    return found === null || found === day ? null : found;
+                  };
+
+                  const pan = PanResponder.create({
+                    onStartShouldSetPanResponder: () => true,
+                    onMoveShouldSetPanResponder: () => true,
+                    onPanResponderGrant: () =>
+                      setDrag({ day, from: index, to: index, onto: null }),
+                    onPanResponderMove: (_event, gesture) => {
+                      const onto = overDay(gesture.dy);
+                      setDrag({
+                        day,
+                        from: index,
+                        to: onto === null ? landingIndex(gesture.dy) : index,
+                        onto,
+                      });
+                    },
+                    // The final distance comes with the release, so where it
+                    // lands is worked out from the gesture rather than read back
+                    // out of state written by an earlier render.
+                    onPanResponderRelease: (_event, gesture) => {
+                      setDrag(null);
+                      const onto = overDay(gesture.dy);
+                      if (onto !== null) void moveToDay(entry, onto);
+                      else void moveTo(day, index, landingIndex(gesture.dy));
+                    },
+                    onPanResponderTerminate: () => setDrag(null),
+                  });
+
+                  const held = drag?.day === day && drag.from === index;
+                  const target = drag?.day === day && drag.to === index;
+
+                  return (
+                    <View
+                      key={entry.id}
+                      onLayout={(e) => {
+                        recordRowHeight(day, index, e.nativeEvent.layout.height);
+                        recordRowOffset(day, index, e.nativeEvent.layout.y);
+                      }}
+                      style={[
+                        styles.stop,
+                        // A journey is not a card at all. The day reads as a
+                        // sequence of places, and the thing that carries you
+                        // between two of them is the line between them rather
+                        // than another place on the list.
+                        leg
+                          ? styles.legRow
+                          : { backgroundColor: palette.surface, borderColor: palette.border },
+                        held && { opacity: 0.4 },
+                        target && !held && { borderColor: palette.primary, borderWidth: 2 },
+                      ]}
+                    >
+                      <Pressable
+                        style={styles.stopMain}
+                        onPress={() => setItem({ mode: "edit", item: entry })}
+                      >
+                        {leg ? (
+                          <Text style={styles.legGlyph}>
+                            {entry.emoji || mode?.icon || "→"}
                           </Text>
+                        ) : (
+                          // The same number the pin on the map above carries, so
+                          // the two can be read against each other.
+                          <View>
+                            <PlaceThumb
+                              icon={entry.emoji || stopIconOf(entry)}
+                              color={categoryOf(entry.category).color}
+                              photoUrl={entry.place?.photoUrl}
+                              size={52}
+                            />
+                            <View style={[styles.stopNumber, { backgroundColor: palette.primary }]}>
+                              <Text style={[styles.stopNumberText, { color: palette.onPrimary }]}>
+                                {stops.filter((x, i) => i < index && x.kind !== "travel").length + 1}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.stopTitle, { color: palette.ink }]} numberOfLines={2}>
+                            {entry.title}
+                          </Text>
+                          {(timingLabel(entry) || entry.notes || entry.booking) && (
+                            <Text style={[styles.stopMeta, { color: palette.muted }]} numberOfLines={1}>
+                              {[
+                                // A journey reads as its times, a stop as how
+                                // long it takes; the +1 stays on a flight that
+                                // lands the next morning.
+                                entry.kind === "travel" && entry.endDayOffset > 0
+                                  ? `${timingLabel(entry)} +${entry.endDayOffset}`
+                                  : timingLabel(entry),
+                                entry.notes,
+                                entry.booking === BOOKING_BOOKED ? "booked ✓" : null,
+                                entry.booking === BOOKING_NEEDED ? "to book" : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </Text>
+                          )}
+                        </View>
+                      </Pressable>
+
+                      <View style={styles.controls}>
+                        <View {...pan.panHandlers} hitSlop={8} style={styles.grip}>
+                          <Text style={{ color: palette.muted, fontSize: 16 }}>≡</Text>
+                        </View>
+                        {entry.place && (
+                          <Pressable
+                            onPress={() =>
+                              openDirections(entry.place!.lat, entry.place!.lng, entry.title)
+                            }
+                            hitSlop={8}
+                            accessibilityLabel={`Directions to ${entry.title}`}
+                          >
+                            {/* The supplied artwork, not a redrawn one — so it
+                                keeps its own colours rather than following the
+                                row's. 22px because the corner badge is a smudge
+                                much below that. */}
+                            <Image
+                              source={require("../../../assets/images/directions.png")}
+                              style={styles.directions}
+                            />
+                          </Pressable>
                         )}
                       </View>
-                    </Pressable>
-
-                    <View style={styles.controls}>
-                      <View {...pan.panHandlers} hitSlop={8} style={styles.grip}>
-                        <Text style={{ color: palette.muted, fontSize: 16 }}>≡</Text>
-                      </View>
-                      {entry.place && (
-                        <Pressable
-                          onPress={() =>
-                            openDirections(entry.place!.lat, entry.place!.lng, entry.title)
-                          }
-                          hitSlop={8}
-                          accessibilityLabel={`Directions to ${entry.title}`}
-                        >
-                          {/* The supplied artwork, not a redrawn one — so it
-                              keeps its own colours rather than following the
-                              row's. 22px because the corner badge is a smudge
-                              much below that. */}
-                          <Image
-                            source={require("../../../assets/images/directions.png")}
-                            style={styles.directions}
-                          />
-                        </Pressable>
-                      )}
                     </View>
-                  </View>
-                );
-              })}
+                  );
+                })}
 
-              <View style={styles.addRow}>
-                <Pressable
-                  onPress={() =>
-                    setItem({ mode: "create", tripId: id, dayIndex: day, kind: "stop" })
-                  }
-                  style={styles.add}
-                >
-                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a stop</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() =>
-                    setItem({ mode: "create", tripId: id, dayIndex: day, kind: "travel" })
-                  }
-                  style={styles.add}
-                >
-                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a journey</Text>
-                </Pressable>
-                {/* The reel is on this phone, so the places should go in from
-                    this phone — and onto the day whose button was pressed. */}
-                <Pressable onPress={() => setLinkDay(day)} style={styles.add}>
-                  <Text style={{ color: palette.accentText, fontSize: 14 }}>+ From TikTok</Text>
-                </Pressable>
+                <View style={styles.addRow}>
+                  <Pressable
+                    onPress={() =>
+                      setItem({ mode: "create", tripId: id, dayIndex: day, kind: "stop" })
+                    }
+                    style={styles.add}
+                  >
+                    <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a stop</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() =>
+                      setItem({ mode: "create", tripId: id, dayIndex: day, kind: "travel" })
+                    }
+                    style={styles.add}
+                  >
+                    <Text style={{ color: palette.accentText, fontSize: 14 }}>+ Add a journey</Text>
+                  </Pressable>
+                  {/* The reel is on this phone, so the places should go in from
+                      this phone — and onto the day whose button was pressed. */}
+                  <Pressable onPress={() => setLinkDay(day)} style={styles.add}>
+                    <Text style={{ color: palette.accentText, fontSize: 14 }}>+ From TikTok</Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
-          );
-        })}
-          </>
-        )}
+            );
+          })}
+            </>
+          )}
 
-        <Pressable onPress={share} style={styles.share}>
-          <Text style={{ color: palette.accentText, fontSize: 14 }}>
-            Share a read-only link
-          </Text>
-        </Pressable>
+          <Pressable onPress={share} style={styles.share}>
+            <Text style={{ color: palette.accentText, fontSize: 14 }}>
+              Share a read-only link
+            </Text>
+          </Pressable>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </Column>
     </KeyboardAvoidingView>
   );
 }

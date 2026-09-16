@@ -4,6 +4,7 @@ import FeedList from "@/components/FeedList";
 import PeopleList from "@/components/PeopleList";
 import { usePalette } from "@/lib/use-palette";
 import ScreenTitle from "@/components/ScreenTitle";
+import Column from "@/components/Column";
 
 /// Two views of the same subject: other travellers, and what they have
 /// published. They were separate tabs, but People exists mostly to fill the
@@ -17,43 +18,45 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
-      <ScreenTitle>Discover</ScreenTitle>
-      <View style={[styles.segments, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        {(
-          [
-            ["feed", "Feed"],
-            ["people", "People"],
-          ] as const
-        ).map(([id, label]) => {
-          const on = segment === id;
-          return (
-            <Pressable
-              key={id}
-              onPress={() => setSegment(id)}
-              style={[styles.segment, on && { backgroundColor: palette.primary }]}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: on ? "600" : "400",
-                  color: on ? palette.onPrimary : palette.muted,
-                }}
+      <Column>
+        <ScreenTitle>Discover</ScreenTitle>
+        <View style={[styles.segments, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          {(
+            [
+              ["feed", "Feed"],
+              ["people", "People"],
+            ] as const
+          ).map(([id, label]) => {
+            const on = segment === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setSegment(id)}
+                style={[styles.segment, on && { backgroundColor: palette.primary }]}
               >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: on ? "600" : "400",
+                    color: on ? palette.onPrimary : palette.muted,
+                  }}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      {/* Both stay mounted so switching back does not refetch and lose your
-          place in a list you were part way down. */}
-      <View style={[styles.pane, segment !== "feed" && styles.hidden]}>
-        <FeedList />
-      </View>
-      <View style={[styles.pane, segment !== "people" && styles.hidden]}>
-        <PeopleList />
-      </View>
+        {/* Both stay mounted so switching back does not refetch and lose your
+            place in a list you were part way down. */}
+        <View style={[styles.pane, segment !== "feed" && styles.hidden]}>
+          <FeedList />
+        </View>
+        <View style={[styles.pane, segment !== "people" && styles.hidden]}>
+          <PeopleList />
+        </View>
+      </Column>
     </View>
   );
 }

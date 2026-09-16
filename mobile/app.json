@@ -10,11 +10,18 @@
     "ios": {
       "bundleIdentifier": "com.tylerfowler.roava",
       "usesAppleSignIn": true,
-      "supportsTablet": false,
+      "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Roava shows where you are on the map so you can save the place you're standing in.",
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
+      },
+      "requireFullScreen": true
     },
     "android": {
       "package": "com.tylerfowler.roava",

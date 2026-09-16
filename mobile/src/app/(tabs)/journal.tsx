@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
 import OfflineNote from "@/components/OfflineNote";
 import OttoSays from "@/components/OttoSays";
+import Column from "@/components/Column";
 import {
   ActivityIndicator,
   FlatList,
@@ -52,60 +53,62 @@ export default function JournalScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
-      <ScreenTitle>Journal</ScreenTitle>
-      <MemoryEditor
-        memory={editing}
-        open={writing || editing !== null}
-        places={placeData?.places ?? []}
-        trips={tripData?.trips ?? []}
-        onClose={() => {
-          setWriting(false);
-          setEditing(null);
-        }}
-        onSaved={reload}
-      />
+      <Column>
+        <ScreenTitle>Journal</ScreenTitle>
+        <MemoryEditor
+          memory={editing}
+          open={writing || editing !== null}
+          places={placeData?.places ?? []}
+          trips={tripData?.trips ?? []}
+          onClose={() => {
+            setWriting(false);
+            setEditing(null);
+          }}
+          onSaved={reload}
+        />
 
-      <Pressable
-        onPress={() => setWriting(true)}
-        style={[styles.new, { backgroundColor: palette.primary }]}
-      >
-        <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
-          + Write something
-        </Text>
-      </Pressable>
+        <Pressable
+          onPress={() => setWriting(true)}
+          style={[styles.new, { backgroundColor: palette.primary }]}
+        >
+          <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
+            + Write something
+          </Text>
+        </Pressable>
 
-      <OfflineNote at={offlineAt} />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <FlatList
-        data={data?.memories ?? []}
-        contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
-        keyExtractor={(m) => m.id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={<OttoSays topic="emptyJournal" pose="typing" />}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => setEditing(item)}
-            style={[styles.entry, { borderBottomColor: palette.border }]}
-          >
-            <Text style={[styles.date, { color: palette.muted }]}>
-              {when(item)}
-              {item.place ? ` · ${item.place.name}` : ""}
-              {item.trip ? ` · ${item.trip.title}` : ""}
-            </Text>
-            {item.title && (
-              <Text style={[styles.title, { color: palette.ink }]}>{item.title}</Text>
-            )}
-            <Text style={[styles.body, { color: palette.ink }]} numberOfLines={6}>
-              {item.body}
-            </Text>
-            {item.photos.length > 0 && (
-              <Text style={[styles.photos, { color: palette.accentText }]}>
-                {item.photos.length} photo{item.photos.length === 1 ? "" : "s"}
+        <OfflineNote at={offlineAt} />
+        {error && <Text style={styles.error}>{error}</Text>}
+        <FlatList
+          data={data?.memories ?? []}
+          contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
+          keyExtractor={(m) => m.id}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+          ListEmptyComponent={<OttoSays topic="emptyJournal" pose="typing" />}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => setEditing(item)}
+              style={[styles.entry, { borderBottomColor: palette.border }]}
+            >
+              <Text style={[styles.date, { color: palette.muted }]}>
+                {when(item)}
+                {item.place ? ` · ${item.place.name}` : ""}
+                {item.trip ? ` · ${item.trip.title}` : ""}
               </Text>
-            )}
-          </Pressable>
-        )}
-      />
+              {item.title && (
+                <Text style={[styles.title, { color: palette.ink }]}>{item.title}</Text>
+              )}
+              <Text style={[styles.body, { color: palette.ink }]} numberOfLines={6}>
+                {item.body}
+              </Text>
+              {item.photos.length > 0 && (
+                <Text style={[styles.photos, { color: palette.accentText }]}>
+                  {item.photos.length} photo{item.photos.length === 1 ? "" : "s"}
+                </Text>
+              )}
+            </Pressable>
+          )}
+        />
+      </Column>
     </View>
   );
 }

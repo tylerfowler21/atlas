@@ -1,6 +1,7 @@
 import { useState } from "react";
 import OfflineNote from "@/components/OfflineNote";
 import OttoSays from "@/components/OttoSays";
+import Column from "@/components/Column";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { tabBarSpace } from "@/lib/layout";
 import { SEMANTIC } from "@/lib/brand";
@@ -48,68 +49,70 @@ export default function TripsScreen() {
 
   return (
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
-      <ScreenTitle>Trips</ScreenTitle>
-      {creating && (
-        <TripEditor
-          trip={null}
-          onClose={() => setCreating(false)}
-          onSaved={() => reload()}
+      <Column>
+        <ScreenTitle>Trips</ScreenTitle>
+        {creating && (
+          <TripEditor
+            trip={null}
+            onClose={() => setCreating(false)}
+            onSaved={() => reload()}
+          />
+        )}
+
+        {planning && (
+          <PlanTrip onClose={() => setPlanning(false)} onCreated={() => reload()} />
+        )}
+
+        <View style={styles.actions}>
+          <Pressable
+            onPress={() => setCreating(true)}
+            style={[styles.new, { backgroundColor: palette.primary }]}
+          >
+            <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
+              + New trip
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setPlanning(true)}
+            style={[styles.new, styles.secondary, { borderColor: palette.primary }]}
+          >
+            <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 15 }}>
+              ✨ Plan one for me
+            </Text>
+          </Pressable>
+        </View>
+
+        {error && <Text style={styles.error}>{error}</Text>}
+        <OfflineNote at={offlineAt} />
+        <FlatList
+          data={data?.trips ?? []}
+          contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
+          keyExtractor={(t) => t.id}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
+          ListEmptyComponent={<OttoSays topic="noTrips" />}
+          renderItem={({ item }) => {
+            const when = dateRange(item);
+            return (
+              <Link href={{ pathname: "/trip/[id]", params: { id: item.id } }} asChild>
+                <Pressable style={styles.row}>
+                <View style={[styles.stripe, { backgroundColor: item.color }]} />
+                <View style={styles.rowBody}>
+                  <Text style={[styles.title, { color: palette.ink }]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
+                    {[tripWhere(item), when].filter(Boolean).join(" · ") || "No dates yet"}
+                  </Text>
+                </View>
+                {item.publishedAt && (
+                  <Text style={[styles.badge, { color: palette.accentText }]}>Published</Text>
+                  )}
+                </Pressable>
+              </Link>
+            );
+          }}
         />
-      )}
-
-      {planning && (
-        <PlanTrip onClose={() => setPlanning(false)} onCreated={() => reload()} />
-      )}
-
-      <View style={styles.actions}>
-        <Pressable
-          onPress={() => setCreating(true)}
-          style={[styles.new, { backgroundColor: palette.primary }]}
-        >
-          <Text style={{ color: palette.onPrimary, fontWeight: "600", fontSize: 15 }}>
-            + New trip
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setPlanning(true)}
-          style={[styles.new, styles.secondary, { borderColor: palette.primary }]}
-        >
-          <Text style={{ color: palette.accentText, fontWeight: "600", fontSize: 15 }}>
-            ✨ Plan one for me
-          </Text>
-        </Pressable>
-      </View>
-
-      {error && <Text style={styles.error}>{error}</Text>}
-      <OfflineNote at={offlineAt} />
-      <FlatList
-        data={data?.trips ?? []}
-        contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
-        keyExtractor={(t) => t.id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={<OttoSays topic="noTrips" />}
-        renderItem={({ item }) => {
-          const when = dateRange(item);
-          return (
-            <Link href={{ pathname: "/trip/[id]", params: { id: item.id } }} asChild>
-              <Pressable style={styles.row}>
-              <View style={[styles.stripe, { backgroundColor: item.color }]} />
-              <View style={styles.rowBody}>
-                <Text style={[styles.title, { color: palette.ink }]} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.meta, { color: palette.muted }]} numberOfLines={1}>
-                  {[tripWhere(item), when].filter(Boolean).join(" · ") || "No dates yet"}
-                </Text>
-              </View>
-              {item.publishedAt && (
-                <Text style={[styles.badge, { color: palette.accentText }]}>Published</Text>
-                )}
-              </Pressable>
-            </Link>
-          );
-        }}
-      />
+      </Column>
     </View>
   );
 }
