@@ -32,6 +32,16 @@ const write = process.argv.includes("--write");
 /// kilometres away, not fifty.
 const SAME_PLACE_DEGREES = 0.5;
 
+/// Places the gazetteer answers correctly and we still do not want re-filed.
+///
+/// Trümmelbach is the waterfall in the Lauterbrunnen valley, and there is a
+/// hamlet of the same name beside it — so the lookup returns a settlement at
+/// the right coordinates and every test here passes. The stored place is the
+/// falls. A list of names is a blunt instrument, but the alternative is asking
+/// this script to know what a person meant when they saved something, which it
+/// cannot, and the blunt instrument is two lines long.
+const LEAVE_ALONE = new Set(["trümmelbach", "trummelbach"]);
+
 async function main() {
   const places = await prisma.place.findMany({
     where: { category: "other" },
@@ -44,6 +54,11 @@ async function main() {
   const changing: { id: string; name: string; where: string }[] = [];
 
   for (const place of places) {
+    if (LEAVE_ALONE.has(place.name.trim().toLowerCase())) {
+      console.log(`  ·  ${place.name} — left alone on purpose`);
+      continue;
+    }
+
     const query = place.country ? `${place.name}, ${place.country}` : place.name;
     let results: Awaited<ReturnType<typeof search>> = [];
     try {
