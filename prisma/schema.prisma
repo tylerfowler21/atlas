@@ -276,6 +276,14 @@ model Trip {
   /// Null means private. Set when the owner publishes it to their profile,
   /// and doubles as the ordering key for followers' feeds.
   publishedAt DateTime?
+  /// When the owner was asked whether to publish this one and said not now.
+  ///
+  /// Asked at the finish line — a trip whose dates have passed with real
+  /// stops on it — because publishing otherwise lives as a switch at the
+  /// bottom of a settings sheet, where two people in twenty-four ever found
+  /// it. Recorded so the question is asked once: an offer repeated every time
+  /// you open a trip is not an offer, it is a nag.
+  publishAskedAt DateTime?
   /// Set when this trip was copied from someone else's, for attribution.
   copiedFromId String?
   createdAt   DateTime  @default(now())

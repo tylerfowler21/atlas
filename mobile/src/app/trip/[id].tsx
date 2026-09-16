@@ -25,6 +25,7 @@ import { dayCount } from "@/lib/trip-days";
 import PlaceThumb from "@/components/PlaceThumb";
 import OfflineNote from "@/components/OfflineNote";
 import OttoSays from "@/components/OttoSays";
+import PublishPrompt from "@/components/PublishPrompt";
 import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
@@ -448,6 +449,14 @@ export default function TripScreen() {
             single day gets below — but a fortnight would mount fourteen of
             them, and a MapView is not a cheap thing to mount. */}
         {mapDay === null && <TripMap items={data.items} color={data.trip.color} />}
+
+        <PublishPrompt
+          tripId={data.trip.id}
+          trip={data.trip}
+          stops={data.items.length}
+          owned={data.role === "owner"}
+          onChanged={reload}
+        />
 
         {/* A trip with nothing in it at all. Said once, here, rather than
             under each of fourteen empty days — and only when the trip is

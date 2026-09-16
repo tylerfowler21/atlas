@@ -316,4 +316,7 @@ export type Trip = {
   endDate: string | null;
   color: string;
   publishedAt: string | null;
+  /// When the owner was asked whether to publish it and said no. Only the
+  /// finish-line offer reads this; publishing itself never looks at it.
+  publishAskedAt: string | null;
 };

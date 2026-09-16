@@ -49,6 +49,7 @@ import type {
   SearchResult,
 } from "@/lib/types";
 import DirectionsIcon from "@/components/DirectionsIcon";
+import PublishPrompt from "@/components/PublishPrompt";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
 
@@ -829,6 +830,14 @@ export default function TripPlanner({
               .join(" · ")}
           </p>
         </div>
+
+        <PublishPrompt
+          tripId={trip.id}
+          trip={trip}
+          stops={items.length}
+          owned={role === "owner"}
+          onPublished={() => setTrip((t) => ({ ...t, publishedAt: new Date().toISOString() }))}
+        />
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <TripPeople

@@ -49,6 +49,9 @@ export type TripDTO = {
   coverUrl: string | null;
   /// ISO timestamp when the owner published it, or null while private.
   publishedAt: string | null;
+  /// When the owner was asked whether to publish it and said no. Only the
+  /// finish-line offer reads this.
+  publishAskedAt: string | null;
 };
 
 export type ItineraryItemDTO = {
@@ -164,6 +167,7 @@ export function serializeTrip<
     startDate: DateLike | null;
     endDate: DateLike | null;
     publishedAt?: DateLike | null;
+    publishAskedAt?: DateLike | null;
     coverPathname?: string | null;
   },
 >(t: T): TripDTO {
@@ -178,6 +182,7 @@ export function serializeTrip<
     startDate: t.startDate ? t.startDate.toISOString() : null,
     endDate: t.endDate ? t.endDate.toISOString() : null,
     publishedAt: t.publishedAt ? t.publishedAt.toISOString() : null,
+    publishAskedAt: t.publishAskedAt ? t.publishAskedAt.toISOString() : null,
     coverUrl: coverPathname ? `/api/trips/${t.id}/cover` : null,
   };
 }
