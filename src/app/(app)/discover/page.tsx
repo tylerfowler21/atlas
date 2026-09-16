@@ -58,7 +58,7 @@ export default async function DiscoverPage({
   /// arrives wanting to browse the newest people to sign up, and everybody who
   /// picked a username was on it whether they wanted to be found that way or
   /// not. Typing a name is the only thing this page is for.
-  const directory = people && query
+  const directory = people && query.length >= 2
     ? await prisma.user.findMany({
         where: {
           username: { not: null },

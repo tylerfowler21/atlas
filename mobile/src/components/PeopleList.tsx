@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SEMANTIC } from "@/lib/brand";
 import {
   ActionSheetIOS,
@@ -21,9 +21,33 @@ import { useRouter } from "expo-router";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
+/// How long to wait after the last keystroke before asking the server.
+///
+/// Every character used to be a request: typing a six-letter name asked six
+/// questions and threw five answers away. Long enough to swallow a name typed
+/// at speed, short enough that nobody notices waiting.
+const SETTLE_MS = 250;
+
+/// Nothing is looked up for one letter.
+///
+/// A single character matches a hundred people, which is the wall of strangers
+/// this page was changed to stop showing — arriving back through the search box
+/// rather than the front door. Two characters is somebody looking for
+/// somebody.
+const ENOUGH = 2;
+
 export default function PeopleList() {
   const [query, setQuery] = useState("");
-  const path = query.trim() ? `/api/people?q=${encodeURIComponent(query.trim())}` : "/api/people";
+  /// What was actually asked, which trails what is typed.
+  const [asked, setAsked] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAsked(query.trim()), SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const path =
+    asked.length >= ENOUGH ? `/api/people?q=${encodeURIComponent(asked)}` : "/api/people";
   const { data, error, loading, reload } = useApi<{ people: Person[] }>(path);
   const palette = usePalette();
   const router = useRouter();
@@ -176,7 +200,9 @@ export default function PeopleList() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
         ListEmptyComponent={
           <Text style={[styles.empty, { color: palette.muted }]}>
-            {query ? "Nobody by that name." : "Search for somebody by name or username."}
+            {asked.length >= ENOUGH
+              ? "Nobody by that name."
+              : "Search for somebody by name or username."}
           </Text>
         }
         renderItem={({ item }) => {
