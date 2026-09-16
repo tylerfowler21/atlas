@@ -146,7 +146,7 @@ export default async function DiscoverPage({
       {people ? (
         <>
           <p className="mt-4 text-sm text-muted">
-            Everyone who has picked a username. Follow someone and their
+            Search for somebody by name or username. Follow them and their
             published trips show up in your feed.
           </p>
 
@@ -166,9 +166,9 @@ export default async function DiscoverPage({
 
           {directory.length === 0 ? (
             <p className="mt-6 text-sm text-muted">
-              {query
+              {query.length >= 2
                 ? "Nobody by that name."
-                : "Search for somebody by name or username."}
+                : "Type at least two letters of a name or username."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-line">
