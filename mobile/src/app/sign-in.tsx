@@ -7,6 +7,7 @@ import { useState } from "react";
 import {
   Image as RNImage,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -35,31 +36,44 @@ function Actions() {
   return (
     <>
       {error && <Text style={styles.error}>{error}</Text>}
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-        // White on the photograph in both appearances: the screen behind it
-        // is a dark scrim whatever the phone's setting says.
-        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-        cornerRadius={28}
-        style={styles.apple}
-        onPress={async () => {
-          setError(null);
-          try {
-            await signIn();
-          } catch (e) {
-            // Cancelling is not a failure and should not be reported as one.
-            if ((e as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
-            setError(e instanceof Error ? e.message : "That didn't work");
-          }
-        }}
-      />
+
+      {/* Apple's, on Apple's platforms. Sign in with Apple is an iOS framework
+          and there is no button to draw anywhere else — Android signs in with
+          Google, which works there for the same reason it works here: it goes
+          out to roava.co and comes back, rather than using a native SDK. */}
+      {Platform.OS === "ios" && (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          // White on the photograph in both appearances: the screen behind it
+          // is a dark scrim whatever the phone's setting says.
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+          cornerRadius={28}
+          style={styles.apple}
+          onPress={async () => {
+            setError(null);
+            try {
+              await signIn();
+            } catch (e) {
+              // Cancelling is not a failure and should not be reported as one.
+              if ((e as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
+              setError(e instanceof Error ? e.message : "That didn't work");
+            }
+          }}
+        />
+      )}
 
       {/* Google's own spec: their mark, their wording, and one of their two
           fields. The boards draw this translucent, which is not a style
           Google's terms allow — their dark field is the nearest thing that
           is, and over this scrim it reads much the same. */}
       <Pressable
-        style={[styles.google, { backgroundColor: "#131314", borderColor: "#8E918F" }]}
+        style={[
+          styles.google,
+          // The gap above belongs to the Apple button. Where there is no Apple
+          // button there is no gap to leave.
+          Platform.OS !== "ios" && { marginTop: 0 },
+          { backgroundColor: "#131314", borderColor: "#8E918F" },
+        ]}
         onPress={async () => {
           setError(null);
           try {
