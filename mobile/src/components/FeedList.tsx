@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { api } from "@/lib/api";
 import type { FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { type } from "@/lib/type";
 import { usePalette } from "@/lib/use-palette";
 import OttoSays from "@/components/OttoSays";
 import SuggestedPeople from "@/components/SuggestedPeople";
@@ -31,7 +32,14 @@ function dates(trip: FeedTrip) {
 }
 
 export default function FeedList() {
-  const { data, error, loading, reload } = useApi<{ trips: FeedTrip[] }>("/api/feed");
+  const { data, error, loading, reload } = useApi<{
+    trips: FeedTrip[];
+    /// Real trips other people published, sent when your own feed is empty.
+    /// Kept separate from `trips` rather than mixed in: a stranger's trip
+    /// shown as though somebody you follow published it would be a lie told
+    /// by the shape of the data.
+    startFrom?: FeedTrip[];
+  }>("/api/feed");
   const palette = usePalette();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -67,6 +75,9 @@ export default function FeedList() {
     );
   }, []);
 
+  const followed = data?.trips ?? [];
+  const startFrom = data?.startFrom ?? [];
+
   if (loading && !data) {
     return (
       <View style={[styles.centre, { backgroundColor: palette.background }]}>
@@ -79,18 +90,33 @@ export default function FeedList() {
     <View style={[styles.fill, { backgroundColor: palette.background }]}>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
-        data={data?.trips ?? []}
+        // The examples are drawn by the same renderItem as the feed proper,
+        // because they are the same thing — a published trip — and only the
+        // heading above them differs.
+        data={followed.length > 0 ? followed : startFrom}
         keyExtractor={(t) => t.id}
         // The tab bar floats over this list rather than sitting below it, so
         // without this the last card is cut in half by it — or drawn past the
         // bottom of the screen entirely.
         contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
-        ListEmptyComponent={
-          <>
-            <OttoSays topic="noFollowing" pose="pointing" />
-            <SuggestedPeople />
-          </>
+        ListHeaderComponent={
+          followed.length > 0 ? null : (
+            <>
+              <OttoSays topic="noFollowing" pose="pointing" />
+              <SuggestedPeople />
+              {startFrom.length > 0 && (
+                <View style={styles.startFrom}>
+                  <Text style={[type.metaStrong, { color: palette.ink }]}>
+                    Trips to start from
+                  </Text>
+                  <Text style={[type.meta, { color: palette.muted }]}>
+                    Published by other people on Roava — not from anyone you follow.
+                  </Text>
+                </View>
+              )}
+            </>
+          )
         }
         renderItem={({ item }) => {
           const when = dates(item);
@@ -162,6 +188,7 @@ export default function FeedList() {
 }
 
 const styles = StyleSheet.create({
+  startFrom: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, gap: 2 },
   fill: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: SEMANTIC.danger, padding: 16 },

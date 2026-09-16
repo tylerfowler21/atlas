@@ -4,7 +4,7 @@ import { ottoAround } from "@/lib/admin";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
-import { feedTripInclude, toFeedTrip } from "@/lib/social";
+import { feedTripInclude, toFeedTrip, tripsToStartFrom } from "@/lib/social";
 import { hiddenUserIds } from "@/lib/moderation";
 import TripCard from "@/components/TripCard";
 import FindPeople from "@/components/FindPeople";
@@ -53,6 +53,15 @@ export default async function DiscoverPage({
 
   /// Only ever what somebody searched for.
   ///
+  /// Real published trips, for a feed with nothing in it yet.
+  ///
+  /// Shown whenever the feed is empty — whether that is because nobody is
+  /// followed or because nobody followed has published — since both look the
+  /// same from the chair.
+  const startFrom = !people && trips.length === 0
+    ? await tripsToStartFrom(user.id, [...hidden])
+    : [];
+
   /// Worth following, for somebody following nobody.
   ///
   /// Published trips, most first — not a name in the code and not an algorithm
@@ -245,6 +254,23 @@ export default async function DiscoverPage({
                 </li>
               ))}
             </ul>
+          )}
+
+          {startFrom.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-sm font-semibold">Trips to start from</h2>
+              <p className="mt-1 text-sm text-muted">
+                Published by other people on Roava — not from anyone you follow.
+                Copy any of them into your own account.
+              </p>
+              <ul className="mt-3 space-y-3">
+                {startFrom.map((trip) => (
+                  <li key={trip.id}>
+                    <TripCard trip={trip} />
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </>
       )}
