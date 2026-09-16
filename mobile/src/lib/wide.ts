@@ -24,3 +24,10 @@ export function useWide() {
   const { width } = useWindowDimensions();
   return width >= WIDE;
 }
+
+/// The list's width when it stands beside the map rather than over it.
+///
+/// Wide enough for a place's name, its city and a photograph without the name
+/// wrapping; narrow enough that the map — the thing you came to look at —
+/// keeps the larger half of an iPad.
+export const PANEL = 380;

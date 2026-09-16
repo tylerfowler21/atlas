@@ -6,6 +6,7 @@ import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
 import OttoSays from "@/components/OttoSays";
+import { PANEL, useWide } from "@/lib/wide";
 import { useCategories } from "@/lib/categories";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
@@ -238,6 +239,23 @@ export default function MapScreen() {
   /// Tapped open and shut rather than dragged. A drag needs a threshold, and a
   /// threshold is something to get wrong; the bar says what it does.
   const [listOpen, setListOpen] = useState(false);
+  /// Room enough for the list to stand beside the map instead of over it.
+  ///
+  /// On a phone the list is a sheet you pull up, because the map is the whole
+  /// screen and anything else has to borrow from it. An iPad has room for
+  /// both, and a sheet dragged over a thousand points of map is a phone
+  /// gesture performed on furniture that does not need it.
+  const wide = useWide();
+
+  /// Whether the list is showing. Beside the map it always is: there is no
+  /// gesture to open something that was never closed.
+  const showList = wide || listOpen;
+
+  /// How much of the right-hand side belongs to the list rather than the map.
+  /// Everything that floats over the map — the search field, the matches, the
+  /// two round buttons — measures from here, so none of them ends up behind
+  /// the panel.
+  const mapRight = wide ? PANEL : 0;
   /// Which of the four counts the list is showing. "cities" and "countries"
   /// are not filters but groupings — the question behind them is "where have I
   /// been", and the answer is a list of cities, not of restaurants.
@@ -331,7 +349,7 @@ export default function MapScreen() {
   /// "what have I saved around here", which is not the question you are asking
   /// when you are looking for somewhere new — and it was taking a third of the
   /// screen the matches needed.
-  const matchesOnMap = results.length > 0 && !listOpen;
+  const matchesOnMap = !wide && results.length > 0 && !listOpen;
 
   /// The matches as one string, so effects can depend on which places were
   /// found rather than on the array that carries them.
@@ -349,11 +367,11 @@ export default function MapScreen() {
   /// two have to agree — a highlighted pin whose card is three swipes away is
   /// a question with the answer hidden.
   useEffect(() => {
-    if (!selected || listOpen) return;
+    if (!selected || showList) return;
     const index = inFrame.findIndex((p) => p.id === selected);
     if (index < 0) return;
     carousel.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
-  }, [selected, listOpen, inFrame]);
+  }, [selected, showList, inFrame]);
 
   /// Bring the matches into view — but only when none of them is there
   /// already.
@@ -398,16 +416,16 @@ export default function MapScreen() {
       {
         edgePadding: {
           top: insets.top + 8 + TOP_ROW_HEIGHT + 8 + RESULTS_MAX_HEIGHT + 16,
-          bottom: sheetPeekHeight(insets.bottom, true) + 16,
+          bottom: wide ? tabBarSpace(insets.bottom) + 16 : sheetPeekHeight(insets.bottom, true) + 16,
           left: 40,
-          right: 40,
+          right: mapRight + 40,
         },
         animated: true,
       },
     );
     // Keyed on the matches themselves rather than the array, which is a new
     // one on every render of a search that has not changed.
-  }, [resultKey, results, bounds, insets.top, insets.bottom]);
+  }, [resultKey, results, bounds, insets.top, insets.bottom, mapRight, wide]);
 
   /// Drilling into a city moves the map to it.
   ///
@@ -726,7 +744,14 @@ export default function MapScreen() {
         }}
         style={[
           styles.findMe,
-          { bottom: sheetPeekHeight(insets.bottom, matchesOnMap) + 14 },
+          {
+            right: mapRight + 16,
+            // Beside the map the list no longer covers its foot, so the only
+            // thing to clear down there is the bar.
+            bottom: wide
+              ? tabBarSpace(insets.bottom) + 14
+              : sheetPeekHeight(insets.bottom, matchesOnMap) + 14,
+          },
         ]}
         accessibilityLabel="Show where I am"
       >
@@ -743,7 +768,7 @@ export default function MapScreen() {
       {/* The search field and the avatar share the top line, which is why the
           field stops short of the right edge. There is no title bar above
           them: the map runs to the top of the screen and this floats on it. */}
-      <View style={[styles.topRow, { top: insets.top + 8 }]}>
+      <View style={[styles.topRow, { top: insets.top + 8, right: mapRight + 12 }]}>
         <Glass style={styles.searchBar} radius={26}>
           <MagnifyingGlassIcon size={20} color={palette.muted} />
           <TextInput
@@ -895,6 +920,7 @@ export default function MapScreen() {
               backgroundColor: palette.surface,
               borderColor: palette.border,
               top: insets.top + 8 + TOP_ROW_HEIGHT + 8,
+              right: mapRight + 12,
             },
           ]}
           keyboardShouldPersistTaps="handled"
@@ -938,29 +964,34 @@ export default function MapScreen() {
 
       <View
         style={[
-          styles.sheet,
-          {
-            backgroundColor: palette.surface,
-            borderColor: palette.border,
-            // The floating tab bar sits over the foot of this sheet, so the
-            // sheet keeps its own room underneath: without it the collapsed
-            // handle poked out below the bar and read as a second bar.
-            paddingBottom: tabBarSpace(insets.bottom),
-            maxHeight:
-              (matchesOnMap ? SHEET_SHUT : SHEET_PEEK) + tabBarSpace(insets.bottom),
-          },
-          listOpen && styles.sheetOpen,
+          wide ? styles.panel : styles.sheet,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+          wide
+            ? { paddingTop: insets.top, paddingBottom: insets.bottom }
+            : {
+                // The floating tab bar sits over the foot of this sheet, so
+                // the sheet keeps its own room underneath: without it the
+                // collapsed handle poked out below the bar and read as a
+                // second bar.
+                paddingBottom: tabBarSpace(insets.bottom),
+                maxHeight:
+                  (matchesOnMap ? SHEET_SHUT : SHEET_PEEK) + tabBarSpace(insets.bottom),
+              },
+          !wide && listOpen && styles.sheetOpen,
         ]}
       >
-        <Pressable onPress={() => setListOpen((open) => !open)} style={styles.handle}>
-          <View style={[styles.grabber, { backgroundColor: palette.border }]} />
-        </Pressable>
+        {/* Nothing to grab when nothing can be dragged. */}
+        {!wide && (
+          <Pressable onPress={() => setListOpen((open) => !open)} style={styles.handle}>
+            <View style={[styles.grabber, { backgroundColor: palette.border }]} />
+          </Pressable>
+        )}
 
         {/* Closed, the sheet is a caption for the map: what you are looking
             at, how much of it you have saved, and the first few of them. It
             used to read "Show list", which named the gesture rather than
             saying anything about the place under it. */}
-        {!listOpen && !matchesOnMap && (
+        {!showList && !matchesOnMap && (
           <>
             <Pressable onPress={() => setListOpen(true)} style={styles.peekHead}>
               <View style={styles.peekHeadText}>
@@ -1023,7 +1054,7 @@ export default function MapScreen() {
           </>
         )}
 
-        {listOpen && (
+        {showList && (
           <>
             <Text style={[type.title, styles.sheetTitle, { color: palette.ink }]}>
               Your places
@@ -1159,6 +1190,7 @@ export default function MapScreen() {
                 // country you scrolled down to, and its places open already
                 // scrolled past the end, which looks like nothing is there.
                 key="groups"
+                style={wide ? styles.fill : undefined}
                 data={view === "cities" ? groups.cities : groups.countries}
                 keyExtractor={(g) => g.name}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} />}
@@ -1185,6 +1217,7 @@ export default function MapScreen() {
             ) : (
               <FlatList
                 key={`places-${view}-${within ?? "all"}`}
+                style={wide ? styles.fill : undefined}
                 data={listed}
                 keyExtractor={(p) => p.id}
                 contentContainerStyle={{ paddingBottom: tabBarSpace(insets.bottom) }}
@@ -1269,7 +1302,7 @@ export default function MapScreen() {
         }}
         style={[
           styles.fab,
-          { bottom: fabBottom(insets.bottom), backgroundColor: palette.accent },
+          { bottom: fabBottom(insets.bottom), right: mapRight + 16, backgroundColor: palette.accent },
         ]}
         accessibilityLabel="Add a place here"
       >
@@ -1484,6 +1517,20 @@ const styles = StyleSheet.create({
     maxHeight: 72,
   },
   sheetOpen: { maxHeight: "70%" },
+
+  /// The same list, standing beside the map rather than lying over it.
+  ///
+  /// A separate style rather than an override of the sheet: the two disagree
+  /// about which edges they are pinned to, and composing them would leave
+  /// whichever properties the other did not mention.
+  panel: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: PANEL,
+    borderLeftWidth: 1,
+  },
   handle: { alignItems: "center", paddingTop: 8, paddingBottom: 8 },
   peekHead: {
     flexDirection: "row",

@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Glass from "@/components/Glass";
 import { TAB_BAR_HEIGHT, TAB_BAR_MARGIN, TAB_BAR_RIGHT } from "@/lib/layout";
+import { PANEL, useWide } from "@/lib/wide";
 import { type } from "@/lib/type";
 import { usePalette } from "@/lib/use-palette";
 
@@ -25,6 +26,12 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
   /// the map and nowhere else; on the other tabs the bar has the full width.
   const mapFocused = state.routes[state.index]?.name === "index";
 
+  /// On a wide screen the map's list stands down the right-hand side rather
+  /// than lying over the foot of it, and the bar belongs to the map — so it
+  /// ends where the map does instead of running on underneath the list.
+  const wide = useWide();
+  const asideList = mapFocused && wide ? PANEL : 0;
+
   return (
     <View
       pointerEvents="box-none"
@@ -32,7 +39,7 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
         styles.bar,
         {
           bottom: insets.bottom + TAB_BAR_MARGIN,
-          right: mapFocused ? TAB_BAR_RIGHT : 16,
+          right: asideList + (mapFocused ? TAB_BAR_RIGHT : 16),
         },
       ]}
     >
