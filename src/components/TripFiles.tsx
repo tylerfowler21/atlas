@@ -2,7 +2,14 @@
 
 import { useRef, useState } from "react";
 import { formatDay } from "@/lib/trips";
-import { MAX_DOCUMENT_BYTES, documentIcon, formatBytes } from "@/lib/trip-documents";
+import {
+  DOCUMENT_TYPE_ERROR,
+  MAX_DOCUMENT_BYTES,
+  documentIcon,
+  documentTooLargeError,
+  formatBytes,
+  resolveDocumentType,
+} from "@/lib/trip-documents";
 import type { TripDocumentDTO } from "@/lib/types";
 
 /// The paperwork a trip collects: hotel confirmations, tickets, the itinerary
@@ -45,8 +52,16 @@ export default function TripFiles({
     // One at a time and in order, so a failure names the file that failed
     // rather than leaving you to work out which of five did not arrive.
     for (const file of Array.from(chosen)) {
+      if (file.size === 0) {
+        setError(`${file.name} is empty`);
+        continue;
+      }
       if (file.size > MAX_DOCUMENT_BYTES) {
-        setError(`${file.name} is bigger than ${formatBytes(MAX_DOCUMENT_BYTES)}`);
+        setError(`${file.name}: ${documentTooLargeError()}`);
+        continue;
+      }
+      if (!resolveDocumentType({ type: file.type, name: file.name })) {
+        setError(`${file.name}: ${DOCUMENT_TYPE_ERROR}`);
         continue;
       }
       const failed = await onUpload(file, itemId);

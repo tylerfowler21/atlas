@@ -19,12 +19,17 @@ import {
   Text,
   View,
 } from "react-native";
-import { API_URL, upload, api, type TripDocument, filePart } from "@/lib/api";
+import { API_URL, api, putClientBlob, type TripDocument } from "@/lib/api";
+import { File as LocalFile } from "expo-file-system";
 import {
   ALLOWED_DOCUMENT_TYPES,
+  DOCUMENT_TYPE_ERROR,
   documentIcon,
+  documentTooLargeError,
   formatBytes,
   MAX_DOCUMENT_BYTES,
+  resolveDocumentType,
+  uploadFailureMessage,
 } from "@/lib/trip-documents";
 import { usePalette } from "@/lib/use-palette";
 
@@ -53,7 +58,12 @@ async function pickPhoto() {
   }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
-    quality: 0.85,
+    quality: 0.8,
+    // Compatible representation turns HEIC into something every phone can
+    // send. PNG screenshots stay PNG — those go straight to Blob, not through
+    // a Function, so the size that used to drop the connection is fine.
+    preferredAssetRepresentationMode:
+      ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
   });
   const asset = result.assets?.[0];
   if (result.canceled || !asset) return null;
@@ -84,19 +94,59 @@ export default function TripFiles({
   const compact = itemId !== null;
 
   async function send(picked: { uri: string; name: string; type: string; size: number }) {
-    if (picked.size > MAX_DOCUMENT_BYTES) {
-      Alert.alert("Too big", `${picked.name} is larger than ${formatBytes(MAX_DOCUMENT_BYTES)}.`);
-      return;
-    }
     setBusy(true);
     try {
-      const form = new FormData();
-      form.append("file", filePart(picked.uri, picked.name, picked.type));
-      if (itemId) form.append("itemId", itemId);
-      await upload(`/api/trips/${tripId}/documents`, form);
+      const file = new LocalFile(picked.uri);
+      const knownSize = file.size ?? picked.size;
+      if (knownSize > MAX_DOCUMENT_BYTES) {
+        Alert.alert("Too big", documentTooLargeError());
+        return;
+      }
+      const bytes = await file.bytes();
+      const size = bytes.byteLength;
+      if (size === 0) {
+        Alert.alert("That file is empty");
+        return;
+      }
+      if (size > MAX_DOCUMENT_BYTES) {
+        Alert.alert("Too big", documentTooLargeError());
+        return;
+      }
+      const contentType = resolveDocumentType({
+        type: picked.type,
+        name: picked.name,
+        bytes: bytes.subarray(0, 16),
+      });
+      if (!contentType) {
+        Alert.alert("Could not upload that", DOCUMENT_TYPE_ERROR);
+        return;
+      }
+
+      const granted = await api<{ token: string; pathname: string; contentType: string }>(
+        `/api/trips/${tripId}/documents/token`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: picked.name,
+            contentType,
+            size,
+            itemId,
+          }),
+        },
+      );
+      const stored = await putClientBlob(granted.token, granted.pathname, bytes, granted.contentType);
+      await api(`/api/trips/${tripId}/documents`, {
+        method: "POST",
+        body: JSON.stringify({
+          pathname: stored.pathname,
+          name: picked.name,
+          contentType: granted.contentType,
+          itemId,
+        }),
+      });
       onChanged();
     } catch (e) {
-      Alert.alert("Could not upload that", e instanceof Error ? e.message : "Try again");
+      Alert.alert("Could not upload that", uploadFailureMessage(e));
     } finally {
       setBusy(false);
     }
