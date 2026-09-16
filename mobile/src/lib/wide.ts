@@ -31,3 +31,11 @@ export function useWide() {
 /// wrapping; narrow enough that the map — the thing you came to look at —
 /// keeps the larger half of an iPad.
 export const PANEL = 380;
+
+/// Which side of the map the list stands on.
+///
+/// Right keeps the map where a thumb expects it from the phone. Left puts the
+/// list where a reading eye lands first, which is where a desktop mail client
+/// or a file browser would put it. There is no right answer from a chair, only
+/// from a device, so it is one word here rather than an argument.
+export const PANEL_SIDE: "left" | "right" = "left";

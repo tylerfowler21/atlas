@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Glass from "@/components/Glass";
 import { TAB_BAR_HEIGHT, TAB_BAR_MARGIN, TAB_BAR_RIGHT } from "@/lib/layout";
-import { PANEL, useWide } from "@/lib/wide";
+import { PANEL, PANEL_SIDE, useWide } from "@/lib/wide";
 import { type } from "@/lib/type";
 import { usePalette } from "@/lib/use-palette";
 
@@ -31,6 +31,7 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
   /// ends where the map does instead of running on underneath the list.
   const wide = useWide();
   const asideList = mapFocused && wide ? PANEL : 0;
+  const onTheLeft = PANEL_SIDE === "left";
 
   return (
     <View
@@ -39,7 +40,8 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
         styles.bar,
         {
           bottom: insets.bottom + TAB_BAR_MARGIN,
-          right: asideList + (mapFocused ? TAB_BAR_RIGHT : 16),
+          left: (onTheLeft ? asideList : 0) + 16,
+          right: (onTheLeft ? 0 : asideList) + (mapFocused ? TAB_BAR_RIGHT : 16),
         },
       ]}
     >

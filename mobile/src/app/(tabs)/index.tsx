@@ -6,7 +6,7 @@ import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
 import FirstSteps from "@/components/FirstSteps";
 import OttoSays from "@/components/OttoSays";
-import { PANEL, useWide } from "@/lib/wide";
+import { PANEL, PANEL_SIDE, useWide } from "@/lib/wide";
 import { useCategories } from "@/lib/categories";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
@@ -251,11 +251,14 @@ export default function MapScreen() {
   /// gesture to open something that was never closed.
   const showList = wide || listOpen;
 
-  /// How much of the right-hand side belongs to the list rather than the map.
+  /// How much of each side belongs to the list rather than the map.
+  ///
   /// Everything that floats over the map — the search field, the matches, the
-  /// two round buttons — measures from here, so none of them ends up behind
-  /// the panel.
-  const mapRight = wide ? PANEL : 0;
+  /// two round buttons, the tab bar — measures from these, so none of them
+  /// ends up behind the panel whichever side it is on. Only one is ever
+  /// non-zero.
+  const mapRight = wide && PANEL_SIDE === "right" ? PANEL : 0;
+  const mapLeft = wide && PANEL_SIDE === "left" ? PANEL : 0;
   /// Which of the four counts the list is showing. "cities" and "countries"
   /// are not filters but groupings — the question behind them is "where have I
   /// been", and the answer is a list of cities, not of restaurants.
@@ -417,7 +420,7 @@ export default function MapScreen() {
         edgePadding: {
           top: insets.top + 8 + TOP_ROW_HEIGHT + 8 + RESULTS_MAX_HEIGHT + 16,
           bottom: wide ? tabBarSpace(insets.bottom) + 16 : sheetPeekHeight(insets.bottom, true) + 16,
-          left: 40,
+          left: mapLeft + 40,
           right: mapRight + 40,
         },
         animated: true,
@@ -425,7 +428,7 @@ export default function MapScreen() {
     );
     // Keyed on the matches themselves rather than the array, which is a new
     // one on every render of a search that has not changed.
-  }, [resultKey, results, bounds, insets.top, insets.bottom, mapRight, wide]);
+  }, [resultKey, results, bounds, insets.top, insets.bottom, mapLeft, mapRight, wide]);
 
   /// Drilling into a city moves the map to it.
   ///
@@ -771,7 +774,7 @@ export default function MapScreen() {
       {/* The search field and the avatar share the top line, which is why the
           field stops short of the right edge. There is no title bar above
           them: the map runs to the top of the screen and this floats on it. */}
-      <View style={[styles.topRow, { top: insets.top + 8, right: mapRight + 12 }]}>
+      <View style={[styles.topRow, { top: insets.top + 8, left: mapLeft + 12, right: mapRight + 12 }]}>
         <Glass style={styles.searchBar} radius={26}>
           <MagnifyingGlassIcon size={20} color={palette.muted} />
           <TextInput
@@ -926,6 +929,7 @@ export default function MapScreen() {
               backgroundColor: palette.surface,
               borderColor: palette.border,
               top: insets.top + 8 + TOP_ROW_HEIGHT + 8,
+              left: mapLeft + 12,
               right: mapRight + 12,
             },
           ]}
@@ -1535,10 +1539,11 @@ const styles = StyleSheet.create({
   panel: {
     position: "absolute",
     top: 0,
-    right: 0,
     bottom: 0,
     width: PANEL,
-    borderLeftWidth: 1,
+    ...(PANEL_SIDE === "left"
+      ? { left: 0, borderRightWidth: 1 }
+      : { right: 0, borderLeftWidth: 1 }),
   },
   handle: { alignItems: "center", paddingTop: 8, paddingBottom: 8 },
   peekHead: {
