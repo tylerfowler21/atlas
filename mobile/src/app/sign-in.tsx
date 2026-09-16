@@ -130,7 +130,8 @@ const styles = StyleSheet.create({
   error: { ...type.meta, color: SEMANTIC.danger, marginBottom: 10 },
   apple: { height: 56 },
   google: {
-    height: 56,
+    minHeight: 56,
+    paddingVertical: 10,
     marginTop: 10,
     borderWidth: 1,
     borderRadius: 28,

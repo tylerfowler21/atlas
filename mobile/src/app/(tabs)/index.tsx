@@ -687,7 +687,10 @@ export default function MapScreen() {
           >
             <View style={styles.pinBox}>
               <View style={[styles.pin, { backgroundColor: palette.accent }]}>
-                <Text style={[styles.foundNumber, { color: palette.onAccent }]}>
+                <Text
+                  maxFontSizeMultiplier={1.5}
+                  style={[styles.foundNumber, { color: palette.onAccent }]}
+                >
                   {n + 1}
                 </Text>
               </View>
@@ -841,7 +844,10 @@ export default function MapScreen() {
                     something for: how many places are still to go. */}
                 {count > 0 && (
                   <View style={[styles.chipCount, { backgroundColor: palette.accent }]}>
-                    <Text style={[type.meta, styles.chipCountText, { color: palette.onAccent }]}>
+                    <Text
+                      maxFontSizeMultiplier={1.5}
+                      style={[type.meta, styles.chipCountText, { color: palette.onAccent }]}
+                    >
                       {count}
                     </Text>
                   </View>
@@ -919,7 +925,10 @@ export default function MapScreen() {
                   points at the map, and the map carries the mark that points
                   back. Either end saves it. */}
               <View style={[styles.resultNumber, { backgroundColor: palette.accent }]}>
-                <Text style={[styles.foundNumber, { color: palette.onAccent }]}>
+                <Text
+                  maxFontSizeMultiplier={1.5}
+                  style={[styles.foundNumber, { color: palette.onAccent }]}
+                >
                   {n + 1}
                 </Text>
               </View>
