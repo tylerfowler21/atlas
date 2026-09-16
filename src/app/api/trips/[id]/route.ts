@@ -91,7 +91,7 @@ export async function PATCH(
     return NextResponse.json({ error: "The trip ends before it starts" }, { status: 400 });
   }
 
-  const { published, destinationPins, ...fields } = parsed.data;
+  const { published, publishAsked, destinationPins, ...fields } = parsed.data;
   const trip = await prisma.trip.update({
     where: { id },
     data: {
@@ -101,6 +101,10 @@ export async function PATCH(
       ...(published === undefined
         ? {}
         : { publishedAt: published ? (existing.publishedAt ?? new Date()) : null }),
+      // Only ever set. Publishing is the other answer to the same question and
+      // clears nothing — a trip that goes public has stopped being asked about
+      // by having been published.
+      ...(publishAsked ? { publishAskedAt: new Date() } : {}),
     },
   });
 

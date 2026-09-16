@@ -78,7 +78,11 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
               ]}
             >
               {options.tabBarIcon?.({ focused, color, size: 24 })}
-              <Text style={[type.meta, styles.label, { color }]} numberOfLines={1}>
+              <Text
+                maxFontSizeMultiplier={1.3}
+                style={[type.meta, styles.label, { color }]}
+                numberOfLines={1}
+              >
                 {label}
               </Text>
             </View>

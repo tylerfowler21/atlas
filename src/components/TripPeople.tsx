@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { TripRole } from "@/lib/trip-access";
+import AvatarImage from "@/components/AvatarImage";
 
 export type Collaborator = {
   email: string;
@@ -24,26 +25,23 @@ type FollowedPerson = {
 /// rather than a thing you have to go looking for.
 function Avatar({ person, title }: { person: Collaborator; title: string }) {
   const initial = (person.name ?? person.email).charAt(0).toUpperCase();
-  return person.image ? (
-    // Avatars come from the identity provider on arbitrary hosts.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+  return (
+    <AvatarImage
       src={person.image}
-      alt=""
       title={title}
-      width={24}
-      height={24}
+      size={24}
       className="size-6 rounded-full object-cover ring-2 ring-surface"
+      fallback={
+        <span
+          title={title}
+          className={`grid size-6 place-items-center rounded-full text-[10px] font-semibold ring-2 ring-surface ${
+            person.accepted ? "bg-accent/15 text-accent-text" : "bg-foreground/10 text-muted"
+          }`}
+        >
+          {initial}
+        </span>
+      }
     />
-  ) : (
-    <span
-      title={title}
-      className={`grid size-6 place-items-center rounded-full text-[10px] font-semibold ring-2 ring-surface ${
-        person.accepted ? "bg-accent/15 text-accent-text" : "bg-foreground/10 text-muted"
-      }`}
-    >
-      {initial}
-    </span>
   );
 }
 
@@ -326,20 +324,16 @@ export default function TripPeople({
                   const initial = (person.name ?? handle).charAt(0).toUpperCase();
                   return (
                     <li key={person.id} className="flex items-center gap-2 text-sm">
-                      {person.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={person.image}
-                          alt=""
-                          width={24}
-                          height={24}
-                          className="size-6 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="grid size-6 place-items-center rounded-full bg-foreground/10 text-xs font-semibold">
-                          {initial}
-                        </span>
-                      )}
+                      <AvatarImage
+                        src={person.image}
+                        size={24}
+                        className="size-6 rounded-full object-cover"
+                        fallback={
+                          <span className="grid size-6 place-items-center rounded-full bg-foreground/10 text-xs font-semibold">
+                            {initial}
+                          </span>
+                        }
+                      />
                       <span className="min-w-0 flex-1 truncate">
                         {person.name ?? `@${handle}`}
                         {person.name && (

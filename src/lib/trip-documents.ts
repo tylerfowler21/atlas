@@ -4,47 +4,49 @@
 /// Stored privately and read back through an authenticated route, exactly as
 /// photos are. A confirmation carries a name, a reference and usually an
 /// address; a public blob URL would hand all three to anyone who guessed it.
-import { put, del } from "@vercel/blob";
+import { put, del, head } from "@vercel/blob";
+import {
+  ALLOWED_DOCUMENT_TYPES,
+  documentTooLargeError,
+  resolveDocumentType,
+} from "@/lib/document-types";
 
-/// Bigger than a photo, because a hotel's PDF confirmation is often a
-/// scanned page and an airline's is sometimes several.
-export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
+/// The naming-and-sizing half lives next door and is shared with the app,
+/// which has no business putting anything in a blob but every reason to agree
+/// about what a file is. Re-exported so callers here import one module.
+export * from "@/lib/document-types";
 
-/// What a booking confirmation actually arrives as. Images are here because
-/// the commonest confirmation in the world is a screenshot of one.
-export const ALLOWED_DOCUMENT_TYPES = new Map<string, string>([
-  ["application/pdf", "pdf"],
-  ["application/msword", "doc"],
-  ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
-  ["application/vnd.ms-excel", "xls"],
-  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
-  ["text/plain", "txt"],
-  ["text/csv", "csv"],
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/heic", "heic"],
-  ["image/webp", "webp"],
-]);
-
+/// Whether there is anywhere to put a file. Server-only by nature — the token
+/// is never in a client bundle — which is why it stays on this side of the
+/// wall rather than in the shared half.
 export function documentStorageConfigured() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-/// An icon for a file whose contents we never look inside.
-export function documentIcon(contentType: string): string {
-  if (contentType === "application/pdf") return "📕";
-  if (contentType.startsWith("image/")) return "🖼️";
-  if (contentType.includes("word")) return "📘";
-  if (contentType.includes("sheet") || contentType.includes("excel")) return "📗";
-  return "📄";
+export function documentPathname(tripId: string, contentType: string) {
+  const extension = ALLOWED_DOCUMENT_TYPES.get(contentType) ?? "bin";
+  return `trips/${tripId}/document.${extension}`;
 }
 
-/// "1.2 MB". Sizes are shown because the only question anyone asks of a file
-/// list is which one is the big scanned thing.
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+/// The random suffix Blob adds stays in the same folder, so a stored file is
+/// `trips/{tripId}/document-….png` rather than `document.png`. Anything outside
+/// that prefix is somebody pointing at a blob that is not this trip's.
+export function isDocumentPathForTrip(pathname: string, tripId: string) {
+  const prefix = `trips/${tripId}/`;
+  if (!pathname.startsWith(prefix)) return false;
+  const rest = pathname.slice(prefix.length);
+  return rest.startsWith("document") && !rest.includes("/") && !pathname.includes("..");
+}
+
+/// Metadata for a blob that has already been written. Used when the file went
+/// straight to Blob from the phone or the browser, and we are only recording
+/// the row.
+export async function storedDocumentMeta(pathname: string) {
+  try {
+    return await head(pathname);
+  } catch {
+    return null;
+  }
 }
 
 /// Namespaced by trip, with a random suffix so an uploaded filename is never
@@ -53,16 +55,16 @@ export async function storeDocument(input: {
   tripId: string;
   file: File;
 }) {
-  const extension = ALLOWED_DOCUMENT_TYPES.get(input.file.type) ?? "bin";
-  const pathname = `trips/${input.tripId}/document.${extension}`;
+  const contentType = resolveDocumentType({ type: input.file.type, name: input.file.name }) ?? input.file.type;
+  const pathname = documentPathname(input.tripId, contentType);
 
   const blob = await put(pathname, input.file, {
     access: "private",
     addRandomSuffix: true,
-    contentType: input.file.type,
+    contentType,
   });
 
-  return { pathname: blob.pathname, size: input.file.size };
+  return { pathname: blob.pathname, size: input.file.size, contentType };
 }
 
 export async function removeDocument(pathname: string) {
@@ -79,4 +81,17 @@ export async function removeDocument(pathname: string) {
     }
     throw error;
   }
+}
+
+export async function errorFromUploadResponse(res: Response, fallback = "Could not upload that") {
+  try {
+    const json = (await res.json()) as { error?: unknown };
+    if (typeof json?.error === "string") return json.error;
+  } catch {
+    // A 413 from the platform is HTML, not JSON, which is how a large iPhone
+    // screenshot used to surface as a generic failure.
+  }
+  if (res.status === 413) return documentTooLargeError();
+  if (res.status === 401) return "Sign in to do that";
+  return fallback;
 }

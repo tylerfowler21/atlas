@@ -51,6 +51,37 @@ export const feedTripInclude = {
   _count: { select: { items: true } },
 } as const;
 
+/// Real published trips, for somebody whose own feed has nothing in it.
+///
+/// A new account's feed is empty, and an empty feed teaches people that the
+/// social half of this does nothing. The obvious fix is a house account full
+/// of invented trips, and the reason not to build one is the copy button:
+/// anybody can take one of these into their own account and then actually go.
+/// Invented places send somebody to a restaurant that does not exist.
+///
+/// So these are not examples in the sense of being made up. They are real
+/// trips that real people chose to publish, which is what publishing is for,
+/// shown to somebody who has nobody to see them from yet. Nothing here is
+/// visible that was not already public on a profile and at /t/[id]; the only
+/// new thing is the address it is shown at.
+///
+/// Labelled on screen as not-your-feed, always. A stranger's trip quietly
+/// mixed in among the people you chose to follow would be the dishonest
+/// version of this.
+export async function tripsToStartFrom(viewerId: string, hidden: string[], take = 6) {
+  const trips = await prisma.trip.findMany({
+    where: {
+      publishedAt: { not: null },
+      userId: { notIn: [viewerId, ...hidden] },
+      user: { username: { not: null } },
+    },
+    orderBy: { publishedAt: "desc" },
+    take,
+    include: feedTripInclude,
+  });
+  return trips.map(toFeedTrip);
+}
+
 /// A published trip, readable by anyone. Returns null for private ones so
 /// callers answer 404 rather than confirming the trip exists.
 export async function loadPublishedTrip(tripId: string) {

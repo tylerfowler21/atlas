@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/user";
 import { unauthorized } from "@/lib/api";
-import { feedTripInclude, toFeedTrip } from "@/lib/social";
+import { feedTripInclude, toFeedTrip, tripsToStartFrom } from "@/lib/social";
 import { hiddenUserIds } from "@/lib/moderation";
 
 /// Published trips from the people you follow.
@@ -22,14 +22,22 @@ export async function GET() {
   const hidden = new Set(await hiddenUserIds(user.id));
   const ids = following.map((f) => f.followingId).filter((id) => !hidden.has(id));
 
-  if (ids.length === 0) return NextResponse.json({ trips: [] });
+  const hiddenIds = [...hidden];
 
-  const trips = await prisma.trip.findMany({
-    where: { userId: { in: ids }, publishedAt: { not: null } },
-    orderBy: { publishedAt: "desc" },
-    take: 50,
-    include: feedTripInclude,
-  });
+  const trips =
+    ids.length === 0
+      ? []
+      : await prisma.trip.findMany({
+          where: { userId: { in: ids }, publishedAt: { not: null } },
+          orderBy: { publishedAt: "desc" },
+          take: 50,
+          include: feedTripInclude,
+        });
 
-  return NextResponse.json({ trips: trips.map(toFeedTrip) });
+  // Sent alongside rather than instead of, so the client can say which is
+  // which. A stranger's trip returned as though it came from somebody you
+  // follow would be a lie told by the shape of the response.
+  const startFrom = trips.length === 0 ? await tripsToStartFrom(user.id, hiddenIds) : [];
+
+  return NextResponse.json({ trips: trips.map(toFeedTrip), startFrom });
 }

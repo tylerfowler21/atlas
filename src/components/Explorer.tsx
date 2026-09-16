@@ -12,7 +12,7 @@ import { usePlaceSearch } from "@/lib/use-place-search";
 import { useIsPhone } from "@/lib/use-phone";
 import { searchPlaces } from "@/lib/search-places";
 import Link from "next/link";
-import Image from "next/image";
+import AvatarImage from "@/components/AvatarImage";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapCanvas, { type MapPin } from "@/components/MapCanvas";
@@ -679,17 +679,12 @@ export default function Explorer({
                   aria-label="You"
                   className="glass grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full text-sm font-semibold"
                 >
-                  {user?.image ? (
-                    <Image
-                      src={user.image}
-                      alt=""
-                      width={44}
-                      height={44}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    (user?.name ?? "?").trim().charAt(0).toUpperCase()
-                  )}
+                  <AvatarImage
+                    src={user?.image ?? null}
+                    size={44}
+                    className="h-full w-full object-cover"
+                    fallback={(user?.name ?? "?").trim().charAt(0).toUpperCase()}
+                  />
                 </Link>
               </div>
 

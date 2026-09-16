@@ -49,8 +49,17 @@ import type {
   SearchResult,
 } from "@/lib/types";
 import DirectionsIcon from "@/components/DirectionsIcon";
+import PublishPrompt from "@/components/PublishPrompt";
 import type { TripRole } from "@/lib/trip-access";
 import type { Collaborator } from "@/components/TripPeople";
+import {
+  DOCUMENT_TYPE_ERROR,
+  MAX_DOCUMENT_BYTES,
+  documentTooLargeError,
+  errorFromUploadResponse,
+  resolveDocumentType,
+} from "@/lib/trip-documents";
+import { prepareDocumentFile } from "@/lib/prepare-document";
 
 export default function TripPlanner({
   otto = false,
@@ -532,16 +541,69 @@ export default function TripPlanner({
   /// Returns null when it worked, or the reason it did not — the caller names
   /// the file that failed, which it knows and this does not.
   async function uploadDocument(file: File, itemId: string | null): Promise<string | null> {
-    const body = new FormData();
-    body.append("file", file);
-    if (itemId) body.append("itemId", itemId);
     try {
-      const res = await fetch(`/api/trips/${trip.id}/documents`, { method: "POST", body });
-      const json = await res.json();
-      if (!res.ok) return json.error ?? "Could not upload that";
+      const prepared = await prepareDocumentFile(file);
+      const { put } = await import("@vercel/blob/client");
+
+      if (prepared.size === 0) return "That file is empty";
+      if (prepared.size > MAX_DOCUMENT_BYTES) return documentTooLargeError();
+
+      const contentType = resolveDocumentType({
+        type: prepared.type,
+        name: prepared.name || file.name,
+      });
+      if (!contentType) return DOCUMENT_TYPE_ERROR;
+
+      const tokenRes = await fetch(`/api/trips/${trip.id}/documents/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: file.name,
+          contentType,
+          size: prepared.size,
+          itemId,
+        }),
+      });
+      if (!tokenRes.ok) return await errorFromUploadResponse(tokenRes);
+
+      const granted = (await tokenRes.json()) as {
+        token: string;
+        pathname: string;
+        contentType: string;
+      };
+
+      // Straight to Blob, not through this Function. A screenshot that used
+      // to die as a dropped connection on the 4.5 MB body limit now lands.
+      const blob = await put(granted.pathname, prepared, {
+        access: "private",
+        token: granted.token,
+        contentType: granted.contentType,
+      });
+
+      const res = await fetch(`/api/trips/${trip.id}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pathname: blob.pathname,
+          name: file.name,
+          contentType: granted.contentType,
+          itemId,
+        }),
+      });
+      if (!res.ok) return await errorFromUploadResponse(res);
+      const json = (await res.json()) as { document: TripDocumentDTO };
       setFiles((prev) => [json.document, ...prev]);
       return null;
-    } catch {
+    } catch (error) {
+      if (error instanceof Error) {
+        const message = error.message.replace(/^Vercel Blob:\s*/i, "");
+        if (/too large|file is too large/i.test(message)) return documentTooLargeError();
+        if (/content type|not allowed/i.test(message)) return DOCUMENT_TYPE_ERROR;
+        if (/failed to fetch|network|load failed|connection/i.test(message)) {
+          return "The connection dropped while sending that file. Try again.";
+        }
+        if (message && message.length < 180) return message;
+      }
       return "Could not upload that";
     }
   }
@@ -829,6 +891,14 @@ export default function TripPlanner({
               .join(" · ")}
           </p>
         </div>
+
+        <PublishPrompt
+          tripId={trip.id}
+          trip={trip}
+          stops={items.length}
+          owned={role === "owner"}
+          onPublished={() => setTrip((t) => ({ ...t, publishedAt: new Date().toISOString() }))}
+        />
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <TripPeople

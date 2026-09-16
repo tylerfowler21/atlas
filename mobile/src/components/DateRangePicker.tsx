@@ -127,6 +127,7 @@ export default function DateRangePicker({
                 ]}
               >
                 <Text
+                  maxFontSizeMultiplier={1.5}
                   style={{
                     fontSize: 13,
                     color: isStart || isEnd ? "#fff" : palette.ink,

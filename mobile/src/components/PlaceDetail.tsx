@@ -534,7 +534,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     flex: 1,
-    height: 52,
+    minHeight: 52,
+    paddingVertical: 10,
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",

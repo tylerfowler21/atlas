@@ -117,6 +117,9 @@ export const tripUpdateSchema = z.object(tripFields).partial().extend({
   /// Publishing puts the trip on your public profile and in your followers'
   /// feeds. Stored as a timestamp, so it also orders the feed.
   published: z.boolean().optional(),
+  /// "I was asked about publishing this one and said not now." Recorded so
+  /// the offer is made once rather than every time the trip is opened.
+  publishAsked: z.boolean().optional(),
 });
 
 const itemFields = {

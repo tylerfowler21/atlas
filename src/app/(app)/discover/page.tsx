@@ -4,7 +4,7 @@ import { ottoAround } from "@/lib/admin";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/user";
-import { feedTripInclude, toFeedTrip } from "@/lib/social";
+import { feedTripInclude, toFeedTrip, tripsToStartFrom } from "@/lib/social";
 import { hiddenUserIds } from "@/lib/moderation";
 import TripCard from "@/components/TripCard";
 import FindPeople from "@/components/FindPeople";
@@ -53,12 +53,46 @@ export default async function DiscoverPage({
 
   /// Only ever what somebody searched for.
   ///
+  /// Real published trips, for a feed with nothing in it yet.
+  ///
+  /// Shown whenever the feed is empty — whether that is because nobody is
+  /// followed or because nobody followed has published — since both look the
+  /// same from the chair.
+  const startFrom = !people && trips.length === 0
+    ? await tripsToStartFrom(user.id, [...hidden])
+    : [];
+
+  /// Worth following, for somebody following nobody.
+  ///
+  /// Published trips, most first — not a name in the code and not an algorithm
+  /// either. Following somebody who has published nothing leads to an empty
+  /// feed, which is what teaches people that following is pointless, so nobody
+  /// without a published trip is offered.
+  const worthFollowing =
+    feedIds.length === 0
+      ? await prisma.user.findMany({
+          where: {
+            username: { not: null },
+            id: { notIn: [user.id, ...hidden] },
+            trips: { some: { publishedAt: { not: null } } },
+          },
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            bio: true,
+            _count: { select: { trips: { where: { publishedAt: { not: null } } } } },
+          },
+        })
+      : [];
+
   /// This used to answer an empty box with the hundred most recent accounts,
   /// which is a list of strangers rather than a way to find anybody: nobody
   /// arrives wanting to browse the newest people to sign up, and everybody who
   /// picked a username was on it whether they wanted to be found that way or
   /// not. Typing a name is the only thing this page is for.
-  const directory = people && query
+  const directory = people && query.length >= 2
     ? await prisma.user.findMany({
         where: {
           username: { not: null },
@@ -112,7 +146,7 @@ export default async function DiscoverPage({
       {people ? (
         <>
           <p className="mt-4 text-sm text-muted">
-            Everyone who has picked a username. Follow someone and their
+            Search for somebody by name or username. Follow them and their
             published trips show up in your feed.
           </p>
 
@@ -132,9 +166,9 @@ export default async function DiscoverPage({
 
           {directory.length === 0 ? (
             <p className="mt-6 text-sm text-muted">
-              {query
+              {query.length >= 2
                 ? "Nobody by that name."
-                : "Search for somebody by name or username."}
+                : "Type at least two letters of a name or username."}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-line">
@@ -170,6 +204,32 @@ export default async function DiscoverPage({
             <FindPeople />
           </div>
 
+          {feedIds.length === 0 && worthFollowing.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-sm font-semibold">Worth following</h2>
+              <ul className="mt-2 space-y-2">
+                {worthFollowing.map((person) => (
+                  <li key={person.id} className="card flex items-center gap-3 p-3">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/u/${person.username}`}
+                        className="text-sm font-medium hover:underline"
+                      >
+                        {person.name ?? person.username}
+                      </Link>
+                      <p className="text-xs text-muted">
+                        {person._count.trips} published{" "}
+                        {person._count.trips === 1 ? "trip" : "trips"}
+                        {person.bio ? ` · ${person.bio}` : ""}
+                      </p>
+                    </div>
+                    <FollowButton username={person.username!} initiallyFollowing={false} signedIn />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {feedIds.length === 0 ? (
             ottoAround(user) ? (
               <OttoSays topic="noFollowing" pose="pointing" className="mt-6 max-w-xl" />
@@ -194,6 +254,23 @@ export default async function DiscoverPage({
                 </li>
               ))}
             </ul>
+          )}
+
+          {startFrom.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-sm font-semibold">Trips to start from</h2>
+              <p className="mt-1 text-sm text-muted">
+                Published by other people on Roava — not from anyone you follow.
+                Copy any of them into your own account.
+              </p>
+              <ul className="mt-3 space-y-3">
+                {startFrom.map((trip) => (
+                  <li key={trip.id}>
+                    <TripCard trip={trip} />
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </>
       )}

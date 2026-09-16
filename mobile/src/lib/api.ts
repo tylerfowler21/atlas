@@ -120,6 +120,46 @@ export async function upload<T>(path: string, form: FormData): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/// PUT a file straight to Vercel Blob with a client token from our API.
+///
+/// Mirrors `@vercel/blob` 2.8's client `put`: the bytes go to Blob, not through
+/// a Function, which is what used to drop a screenshot as "the network
+/// connection was lost" while a smaller PDF of the same confirmation arrived.
+const BLOB_API_URL = "https://vercel.com/api/blob";
+const BLOB_API_VERSION = "12";
+
+export async function putClientBlob(
+  token: string,
+  pathname: string,
+  body: Uint8Array,
+  contentType: string,
+): Promise<{ pathname: string; contentType: string }> {
+  const storeId = token.split("_")[3] ?? "";
+  const payload = new ArrayBuffer(body.byteLength);
+  new Uint8Array(payload).set(body);
+  const response = await fetch(`${BLOB_API_URL}/?${new URLSearchParams({ pathname })}`, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "x-api-version": BLOB_API_VERSION,
+      "x-vercel-blob-access": "private",
+      "x-content-type": contentType,
+      ...(storeId ? { "x-vercel-blob-store-id": storeId } : {}),
+    },
+    body: payload,
+  });
+  if (!response.ok) {
+    let message = `Upload failed (${response.status})`;
+    try {
+      const json = (await response.json()) as { error?: { message?: string } | string };
+      if (typeof json?.error === "string") message = json.error;
+      else if (typeof json?.error?.message === "string") message = json.error.message;
+    } catch {}
+    throw new ApiError(response.status, message);
+  }
+  return response.json() as Promise<{ pathname: string; contentType: string }>;
+}
+
 export type Place = {
   id: string;
   name: string;
@@ -316,4 +356,7 @@ export type Trip = {
   endDate: string | null;
   color: string;
   publishedAt: string | null;
+  /// When the owner was asked whether to publish it and said no. Only the
+  /// finish-line offer reads this; publishing itself never looks at it.
+  publishAskedAt: string | null;
 };
