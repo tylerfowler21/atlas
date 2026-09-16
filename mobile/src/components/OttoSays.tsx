@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import Otto, { type OttoPose } from "@/components/Otto";
 import { OTTO_SAYS, type OttoTopic } from "@/lib/otto-says";
+import { type } from "@/lib/type";
 import { usePalette } from "@/lib/use-palette";
 
 /// Otto explaining a screen that has nothing on it yet.
@@ -44,8 +45,8 @@ export default function OttoSays({
     <View style={styles.wrap}>
       <Otto pose={pose} />
       <View style={styles.words}>
-        <Text style={[styles.says, { color: palette.ink }]}>{tip.says}</Text>
-        {then && <Text style={[styles.then, { color: palette.muted }]}>{then}</Text>}
+        <Text style={[type.body, { color: palette.ink }]}>{tip.says}</Text>
+        {then && <Text style={[type.meta, { color: palette.muted }]}>{then}</Text>}
       </View>
     </View>
   );
@@ -54,6 +55,4 @@ export default function OttoSays({
 const styles = StyleSheet.create({
   wrap: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingHorizontal: 16, paddingVertical: 20 },
   words: { flex: 1, paddingTop: 4, gap: 6 },
-  says: { fontSize: 14, lineHeight: 20 },
-  then: { fontSize: 13, lineHeight: 19 },
 });
