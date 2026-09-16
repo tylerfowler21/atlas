@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/user";
 import { feedTripInclude, toFeedTrip } from "@/lib/social";
@@ -71,6 +72,29 @@ export default async function ProfilePage({
   ]);
 
   const isSelf = viewer?.id === profile.id;
+
+  /// The names behind your own "following" count.
+  ///
+  /// Only ever your own. Who somebody follows is a disclosure this profile has
+  /// never made, and a number is not the same as a list — the same difference
+  /// between findable and listed that the directory draws.
+  const followingList = isSelf
+    ? await prisma.follow.findMany({
+        where: { followerId: profile.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+          following: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              bio: true,
+              _count: { select: { trips: { where: { publishedAt: { not: null } } } } },
+            },
+          },
+        },
+      })
+    : [];
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -165,6 +189,39 @@ export default async function ProfilePage({
             </li>
           ))}
         </ul>
+      )}
+
+      {isSelf && followingList.length > 0 && (
+        <div className="mt-10">
+          <h2 className="mb-3 text-lg">Following</h2>
+          <ul className="divide-y divide-line">
+            {followingList.map(({ following: person }) => (
+              <li key={person.id} className="flex items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/u/${person.username}`}
+                    className="text-sm font-medium hover:underline"
+                  >
+                    {person.name ?? person.username}
+                  </Link>
+                  <p className="truncate text-xs text-muted">
+                    @{person.username} · {person._count.trips} published
+                    {person.bio ? ` · ${person.bio}` : ""}
+                  </p>
+                </div>
+                <FollowButton
+                  username={person.username!}
+                  initiallyFollowing
+                  signedIn
+                />
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted">
+            Only you can see this list. Your follower and following counts are
+            public; the names are not.
+          </p>
+        </div>
       )}
     </div>
   );

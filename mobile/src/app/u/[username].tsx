@@ -23,6 +23,7 @@ import {
 } from "react-native";
 import { api, type FeedTrip } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import FollowingList from "@/components/FollowingList";
 import { usePalette } from "@/lib/use-palette";
 import { formatDay } from "@/lib/dates";
 import { tripWhere } from "@/lib/trip-where";
@@ -255,6 +256,8 @@ export default function ProfileScreen() {
         <Text style={[type.item, { color: palette.ink, marginTop: 8 }]}>
           {trips.length} published {trips.length === 1 ? "trip" : "trips"}
         </Text>
+
+        {profile.isSelf && <FollowingList />}
 
         {trips.length === 0 ? (
           <Text style={[type.meta, { color: palette.muted }]}>
