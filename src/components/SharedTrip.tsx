@@ -69,7 +69,8 @@ export default function SharedTrip({
 
   const pins = useMemo<MapPin[]>(() => {
     const numberOf = new Map<string, number>();
-    for (const day of byDay) day.forEach((item, i) => numberOf.set(item.id, i + 1));
+    for (const day of byDay)
+      day.filter((i) => i.kind !== "travel").forEach((item, i) => numberOf.set(item.id, i + 1));
     return sorted
       .filter((item) => item.place)
       .map((item) => ({
@@ -151,7 +152,7 @@ export default function SharedTrip({
           <h1 className="mt-3 text-4xl leading-[1.05] lg:text-5xl">{trip.title}</h1>
           {(trip.notes || tripWhere(trip)) && (
             <p className="mt-3 max-w-prose text-base text-muted">
-              {trip.notes ?? tripWhere(trip)}
+              {trip.notes || tripWhere(trip)}
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-1.5">
@@ -283,49 +284,60 @@ export default function SharedTrip({
                                   .join(" · ")}
                               </p>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedId(selected ? null : item.id)}
-                                aria-pressed={selected}
-                                className={`flex w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-foreground/5 ${
-                                  selected ? "bg-brand-surface" : ""
+                              <div
+                                className={`flex items-start gap-1 rounded-2xl transition-colors ${
+                                  selected ? "bg-brand-surface" : "hover:bg-foreground/5"
                                 }`}
                               >
-                                <span
-                                  aria-hidden
-                                  className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
-                                  style={{ background: trip.color }}
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedId(selected ? null : item.id)}
+                                  aria-pressed={selected}
+                                  className="flex min-w-0 flex-1 items-start gap-3 px-2 py-2 text-left"
                                 >
-                                  {n}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block text-[15px] font-semibold">{item.title}</span>
-                                  <span className="block truncate text-xs text-muted">
-                                    {stopIconOf(item)} {meta.label}
-                                    {item.place?.city ? ` · ${item.place.city}` : ""}
-                                    {timingLabel(item) ? ` · ${timingLabel(item)}` : ""}
+                                  <span
+                                    aria-hidden
+                                    className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                                    style={{ background: trip.color }}
+                                  >
+                                    {n}
                                   </span>
-                                  {item.notes && (
-                                    <span className="mt-1 block text-sm text-muted">{item.notes}</span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block text-[15px] font-semibold">{item.title}</span>
+                                    <span className="block truncate text-xs text-muted">
+                                      {stopIconOf(item)} {meta.label}
+                                      {item.place?.city ? ` · ${item.place.city}` : ""}
+                                      {timingLabel(item) ? ` · ${timingLabel(item)}` : ""}
+                                    </span>
+                                    {item.notes && (
+                                      <span className="mt-1 block text-sm text-muted">{item.notes}</span>
+                                    )}
+                                  </span>
+                                  {/* The picture, where there is one and where
+                                      there is room. A shared itinerary is read
+                                      by somebody deciding whether they want the
+                                      trip, and a photograph argues for a place
+                                      better than its name does — but on a phone
+                                      it takes the width the category and the
+                                      duration need, and the boards leave it out
+                                      there for exactly that reason. */}
+                                  {item.place?.photoUrl && (
+                                    <Image
+                                      src={item.place.photoUrl}
+                                      alt=""
+                                      width={64}
+                                      height={48}
+                                      className="hidden h-12 w-16 shrink-0 rounded-[var(--radius-photo)] object-cover sm:block"
+                                    />
                                   )}
-                                </span>
-                                {/* The picture, where there is one and where
-                                    there is room. A shared itinerary is read
-                                    by somebody deciding whether they want the
-                                    trip, and a photograph argues for a place
-                                    better than its name does — but on a phone
-                                    it takes the width the category and the
-                                    duration need, and the boards leave it out
-                                    there for exactly that reason. */}
-                                {item.place?.photoUrl && (
-                                  <Image
-                                    src={item.place.photoUrl}
-                                    alt=""
-                                    width={64}
-                                    height={48}
-                                    className="hidden h-12 w-16 shrink-0 rounded-[var(--radius-photo)] object-cover sm:block"
-                                  />
-                                )}
+                                </button>
+
+                                {/* Beside the row rather than inside it. A
+                                    link nested in a button is invalid, and the
+                                    browsers that tolerate it do not all let a
+                                    keyboard reach the inner one — so directions
+                                    were mouse-only on a page whose whole job is
+                                    to be read by somebody you sent it to. */}
                                 {item.place && (
                                   <a
                                     href={directionsUrl({
@@ -335,15 +347,14 @@ export default function SharedTrip({
                                     })}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
                                     aria-label={`Directions to ${item.place.name}`}
                                     title="Directions"
-                                    className="shrink-0 rounded-full p-1 hover:bg-foreground/5"
+                                    className="mt-2 mr-2 shrink-0 rounded-full p-1 hover:bg-foreground/10"
                                   >
                                     <DirectionsIcon size={20} />
                                   </a>
                                 )}
-                              </button>
+                              </div>
                             )}
                           </li>
                         );
@@ -382,7 +393,12 @@ export default function SharedTrip({
                 legs={legs}
                 routeColor={trip.color}
                 selectedId={selectedId}
-                onSelect={setSelectedId}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  // A pin on a day that is folded away has to be seen.
+                  const hit = id ? items.find((i) => i.id === id) : null;
+                  if (hit && hit.dayIndex >= DAYS_BEFORE_FOLD) setShowAll(true);
+                }}
                 fitToken={`shared-${activeDay ?? "all"}`}
               />
             </div>

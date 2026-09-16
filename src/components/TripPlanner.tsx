@@ -959,7 +959,7 @@ export default function TripPlanner({
               <button
                 key={i}
                 type="button"
-                aria-label={`Day ${i + 1}`}
+                aria-label={date ? `Day ${i + 1}, ${formatDay(date)}` : `Day ${i + 1}`}
                 aria-pressed={on}
                 onClick={() => setActiveDay(i)}
                 className={`flex w-14 shrink-0 flex-col items-center rounded-2xl border py-2 leading-none transition-colors ${
@@ -1141,6 +1141,9 @@ export default function TripPlanner({
                               {item.title}
                               {item.place && item.toPlace
                                 ? ` · ${item.place.name} → ${item.toPlace.name}`
+                                : ""}
+                              {item.startTime && item.endTime
+                                ? ` · ${item.startTime}–${item.endTime}`
                                 : ""}
                               {item.endTime && item.endDayOffset > 0
                                 ? ` · lands +${item.endDayOffset}`
