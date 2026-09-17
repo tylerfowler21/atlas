@@ -252,6 +252,11 @@ export type Me = {
   /// one they were invited at.
   email: string | null;
   onboarded: boolean;
+  /// Whether Otto's paid half is switched on for this account. The website
+  /// decides this per render on the server; the app is told once, on the call
+  /// it already makes at launch, so a button is never shown and then taken
+  /// away when the route answers 404.
+  otto?: boolean;
 };
 
 export type Person = {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api, type TripResource } from "@/lib/api";
+import AskOttoToPack from "@/components/AskOttoToPack";
 import { PACKING_KIND } from "@/lib/resources";
 import { type } from "@/lib/type";
 import { usePalette } from "@/lib/use-palette";
@@ -22,10 +23,14 @@ export default function TripPacking({
   tripId,
   items,
   startDate,
+  otto = false,
   onChanged,
 }: {
   tripId: string;
   items: TripResource[];
+  /// Whether Otto's paid half is switched on for this account. Told once at
+  /// launch on /api/me rather than discovered by asking and being refused.
+  otto?: boolean;
   /// Only so the list can say when it will remind you. The reminder itself is
   /// scheduled by the trip screen, off the same two facts.
   startDate: string | null;
@@ -137,6 +142,8 @@ export default function TripPacking({
           You&apos;ll be reminded the evening before you leave.
         </Text>
       )}
+
+      {otto && <AskOttoToPack tripId={tripId} onAdded={onChanged} />}
 
       <TextInput
         style={[

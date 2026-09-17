@@ -32,6 +32,7 @@ import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
 import { isPacking } from "@/lib/resources";
+import { useAuth } from "@/lib/auth";
 import { dayLabel } from "@/lib/dates";
 import { tripRegions } from "@/lib/trip-where";
 import { useTripWeather } from "@/lib/use-trip-weather";
@@ -129,6 +130,7 @@ export default function TripScreen() {
   const palette = usePalette();
 
   const router = useRouter();
+  const { user } = useAuth();
   const [settings, setSettings] = useState(false);
   const [item, setItem] = useState<ItemDraft | null>(null);
   /// Which day the map is showing. Null is the whole trip, which is the right
@@ -456,6 +458,7 @@ export default function TripScreen() {
                 tripId={id}
                 items={(data.resources ?? []).filter((r) => isPacking(r.kind))}
                 startDate={data.trip.startDate}
+                otto={Boolean(user?.otto)}
                 onChanged={reload}
               />
             </>

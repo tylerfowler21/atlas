@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
+import { ottoOffered } from "@/lib/admin";
 import { firstIssue, profileSchema } from "@/lib/validation";
 import { removePhoto } from "@/lib/photos";
 
@@ -29,7 +30,17 @@ export async function GET() {
   if (!user) return unauthorized();
 
   const { onboardedAt, ...rest } = user;
-  return NextResponse.json({ user: { ...rest, onboarded: Boolean(onboardedAt) } });
+  return NextResponse.json({
+    user: {
+      ...rest,
+      onboarded: Boolean(onboardedAt),
+      /// Whether Otto's paid half is switched on for this account, so the app
+      /// knows whether to offer it at all. The website decides this per render
+      /// on the server; the app has no equivalent, and the alternative is a
+      /// button that appears and then vanishes when the route answers 404.
+      otto: ottoOffered(current),
+    },
+  });
 }
 
 export async function PATCH(request: Request) {
