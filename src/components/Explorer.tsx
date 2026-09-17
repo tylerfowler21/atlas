@@ -23,6 +23,9 @@ import PlaceDetail from "@/components/PlaceDetail";
 import { STATUSES, status as statusOf } from "@/lib/taxonomy";
 import type { PlaceDTO, PlaceDraft, SearchResult, TripDTO } from "@/lib/types";
 import type { SelectedPlace } from "@/components/map-types";
+import type { SharedPlace } from "@/lib/shared-places";
+import SharedPlaceCard from "@/components/SharedPlaceCard";
+import { PAINT } from "@/lib/brand";
 import { enrichSelectedPlace } from "@/lib/enrich-place";
 import { useSearch } from "@/components/SearchProvider";
 import { WORLD_SPAN, inView, viewName, viewSubtitle, type Bounds } from "@/lib/map-view";
@@ -154,6 +157,30 @@ export default function Explorer({
   /// rather than of restaurants — so choosing one shows the groups, and
   /// choosing a group drills into it.
   const [view, setView] = useState<"all" | "been" | "cities" | "countries">("all");
+
+  /// Places the people you follow have chosen to show, and whether they are
+  /// being shown.
+  ///
+  /// Fetched when the layer is first turned on rather than with the page: most
+  /// visits never ask for it, and it is somebody else's data — not loading it
+  /// until it is wanted is both cheaper and the better default.
+  const [sharedOn, setSharedOn] = useState(false);
+  const [shared, setShared] = useState<SharedPlace[] | null>(null);
+  const [sharedFailed, setSharedFailed] = useState(false);
+
+  async function showShared() {
+    setSharedOn(true);
+    if (shared !== null) return;
+    try {
+      const res = await fetch("/api/shared-places");
+      const body = (await res.json()) as { places?: SharedPlace[] };
+      setShared(body.places ?? []);
+      setSharedFailed(false);
+    } catch {
+      setShared([]);
+      setSharedFailed(true);
+    }
+  }
   /// The city or country being looked inside, if any.
   const [drilledInto, setDrilledInto] = useState<string | null>(null);
   /// Whether the share panel for that place is open, and what it currently
@@ -336,6 +363,21 @@ export default function Explorer({
       };
     });
 
+    if (sharedOn) {
+      for (const p of shared ?? []) {
+        list.push({
+          id: `shared:${p.id}`,
+          lat: p.lat,
+          lng: p.lng,
+          // One colour for the whole layer rather than the category's, so a
+          // glance at the map says which pins are yours and which are
+          // somebody's recommendation. The icon still says what it is.
+          color: PAINT.sun,
+          icon: p.emoji ?? "📍",
+        });
+      }
+    }
+
     if (draft) {
       list.push({
         id: DRAFT_PIN_ID,
@@ -346,9 +388,13 @@ export default function Explorer({
       });
     }
     return list;
-  }, [visiblePlaces, draft, categoryOf, placeIconOf]);
+  }, [visiblePlaces, draft, categoryOf, placeIconOf, sharedOn, shared]);
 
   const selected = places.find((p) => p.id === selectedId) ?? null;
+  const selectedShared =
+    selectedId?.startsWith("shared:") && shared
+      ? (shared.find((p) => `shared:${p.id}` === selectedId) ?? null)
+      : null;
 
   /// Pan the map to one place. A monotonic token, rather than a timestamp,
   /// keeps this pure enough for the React compiler to reason about.
@@ -814,6 +860,26 @@ export default function Explorer({
               }`}
             >
               <div className="flex w-max gap-1.5">
+                {/* The other map, beside the filters for this one. It answers a
+                    different question — not "what have I saved" but "has
+                    anybody I follow been near here" — which is a question
+                    people have while standing somewhere, so it is a chip
+                    rather than something in a menu. */}
+                <button
+                  type="button"
+                  className={`chip shrink-0 ${sharedOn ? "is-solid" : ""}`}
+                  onClick={() => {
+                    if (sharedOn) setSharedOn(false);
+                    else void showShared();
+                  }}
+                  title="Places the people you follow have shared"
+                >
+                  <span aria-hidden>👣</span> Followed
+                  {sharedOn && shared !== null && shared.length > 0 && (
+                    <span className="ml-1 text-[10px] opacity-70">{shared.length}</span>
+                  )}
+                </button>
+
                 {[{ id: "all", label: "All", icon: "•" }, ...STATUSES].map((s) => (
                   <button
                     key={s.id}
@@ -1103,6 +1169,20 @@ export default function Explorer({
             Below lg it is a sheet over the map instead, and the list hides
             itself, because a 372px card floating on a phone is just a card
             with no room around it. */}
+        {sharedOn && shared !== null && shared.length === 0 && (
+          <div className="absolute inset-x-4 bottom-24 z-20 rounded-xl border border-line bg-surface p-3 text-xs text-muted shadow-lg lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[372px]">
+            {sharedFailed
+              ? "Could not load what the people you follow have shared."
+              : "Nobody you follow is sharing places yet. It is off until somebody turns it on, in their settings."}
+          </div>
+        )}
+
+        {selectedShared && (
+          <div className="absolute inset-x-0 bottom-0 z-20 max-h-[80%] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 shadow-2xl lg:inset-x-auto lg:top-6 lg:right-6 lg:bottom-auto lg:max-h-[calc(100%-3rem)] lg:w-[372px] lg:rounded-3xl lg:border">
+            <SharedPlaceCard place={selectedShared} onClose={() => setSelectedId(null)} />
+          </div>
+        )}
+
         {selected && (
           <div
             className="absolute inset-x-0 bottom-0 z-20 max-h-[80%] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 shadow-2xl lg:inset-x-auto lg:top-6 lg:right-6 lg:bottom-auto lg:max-h-[calc(100%-3rem)] lg:w-[372px] lg:rounded-3xl lg:border"
