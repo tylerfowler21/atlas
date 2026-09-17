@@ -1642,7 +1642,7 @@ export default function TripPlanner({
         {view === "before" && (
           <div className="space-y-6">
             <TripResources tripId={trip.id} initial={toGet} canEdit />
-            <TripPacking tripId={trip.id} initial={toPack} canEdit />
+            <TripPacking tripId={trip.id} initial={toPack} canEdit otto={otto} />
           </div>
         )}
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import AskOttoToPack from "@/components/AskOttoToPack";
 import { PACKING_KIND } from "@/lib/resources";
 import type { TripResourceDTO } from "@/lib/types";
 
@@ -21,10 +22,14 @@ export default function TripPacking({
   tripId,
   initial,
   canEdit,
+  otto = false,
 }: {
   tripId: string;
   initial: TripResourceDTO[];
   canEdit: boolean;
+  /// Whether Otto is around to be asked. Decided on the server, like
+  /// everywhere else he appears.
+  otto?: boolean;
 }) {
   const [items, setItems] = useState(initial);
   const [label, setLabel] = useState("");
@@ -141,6 +146,13 @@ export default function TripPacking({
             </li>
           ))}
         </ul>
+      )}
+
+      {canEdit && otto && (
+        <AskOttoToPack
+          tripId={tripId}
+          onAdded={(added) => setItems((prev) => [...prev, ...added])}
+        />
       )}
 
       {canEdit && (
