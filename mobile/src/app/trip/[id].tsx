@@ -31,6 +31,7 @@ import { WIDE } from "@/lib/wide";
 import { type } from "@/lib/type";
 import TripMap, { openDirections } from "@/components/TripMap";
 import { travelMode } from "@/lib/taxonomy";
+import { isPacking } from "@/lib/resources";
 import { dayLabel } from "@/lib/dates";
 import { tripRegions } from "@/lib/trip-where";
 import { useTripWeather } from "@/lib/use-trip-weather";
@@ -46,6 +47,7 @@ import {
 } from "@/lib/api";
 import TripBookings from "@/components/TripBookings";
 import TripResources from "@/components/TripResources";
+import TripPacking from "@/components/TripPacking";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
 import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
@@ -426,11 +428,20 @@ export default function TripScreen() {
           )}
 
           {view === "before" && (
-            <TripResources
-              tripId={id}
-              resources={data.resources ?? []}
-              onChanged={reload}
-            />
+            <>
+              {/* One table, two lists — split here so neither component has
+                  to know the other exists. */}
+              <TripResources
+                tripId={id}
+                resources={(data.resources ?? []).filter((r) => !isPacking(r.kind))}
+                onChanged={reload}
+              />
+              <TripPacking
+                tripId={id}
+                items={(data.resources ?? []).filter((r) => isPacking(r.kind))}
+                onChanged={reload}
+              />
+            </>
           )}
 
           {view === "files" && (

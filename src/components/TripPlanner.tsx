@@ -29,6 +29,7 @@ import TripSettings from "@/components/TripSettings";
 import TripBookings from "@/components/TripBookings";
 import PlaceChooser from "@/components/PlaceChooser";
 import TripResources from "@/components/TripResources";
+import TripPacking from "@/components/TripPacking";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
 import AskOtto from "@/components/AskOtto";
@@ -38,6 +39,7 @@ import { condition, weatherSegments } from "@/lib/weather";
 import { BOOKING_BOOKED, BOOKING_NEEDED, nextState, outstanding } from "@/lib/bookings";
 import { deadlineLabel, urgencyOf } from "@/lib/booking-deadline";
 import { TRAVEL_MODES, travelMode, unfiled } from "@/lib/taxonomy";
+import { isPacking } from "@/lib/resources";
 import { dateForDay, dayCount, durationLabel, formatDay, formatRange } from "@/lib/trips";
 import { directionsUrl } from "@/lib/directions";
 import type {
@@ -787,6 +789,10 @@ export default function TripPlanner({
     }
     return counts;
   }, [items, days]);
+  const toPack = useMemo(() => resources.filter((r) => isPacking(r.kind)), [resources]);
+  const toGet = useMemo(() => resources.filter((r) => !isPacking(r.kind)), [resources]);
+  /// The count on the tab is both lists: somebody looking at "Before you go"
+  /// wants to know whether anything is outstanding, and a sock counts.
   const toSort = resources.filter((r) => !r.ready).length;
 
   const stopCount = items.filter((i) => i.kind !== "travel").length;
@@ -1634,7 +1640,10 @@ export default function TripPlanner({
         )}
 
         {view === "before" && (
-          <TripResources tripId={trip.id} initial={resources} canEdit />
+          <div className="space-y-6">
+            <TripResources tripId={trip.id} initial={toGet} canEdit />
+            <TripPacking tripId={trip.id} initial={toPack} canEdit />
+          </div>
         )}
 
         {view === "files" && (
