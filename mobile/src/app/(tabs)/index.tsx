@@ -1,6 +1,6 @@
 import { unfiled } from "@/lib/taxonomy";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SEMANTIC } from "@/lib/brand";
+import { PAINT, SEMANTIC } from "@/lib/brand";
 import ShareArea from "@/components/ShareArea";
 import { nearbyPlaces } from "@/lib/here";
 import { groupPlaces } from "@/lib/place-groups";
@@ -37,8 +37,9 @@ import Stars from "@/components/Stars";
 import StatusIcon from "@/components/StatusIcon";
 import { useMyLocation } from "@/lib/use-my-location";
 import PlaceDetail from "@/components/PlaceDetail";
+import SharedPlaceCard from "@/components/SharedPlaceCard";
 import PlaceEditor, { placeToDraft, type PlaceDraft } from "@/components/PlaceEditor";
-import { type Place, type SearchResult } from "@/lib/api";
+import { api, type Place, type SearchResult, type SharedPlace } from "@/lib/api";
 import {
   ActivityIndicator,
   FlatList,
@@ -239,6 +240,31 @@ export default function MapScreen() {
   /// Tapped open and shut rather than dragged. A drag needs a threshold, and a
   /// threshold is something to get wrong; the bar says what it does.
   const [listOpen, setListOpen] = useState(false);
+
+  /// The other map: places the people you follow have chosen to show.
+  ///
+  /// Fetched when the layer is first turned on rather than with the screen.
+  /// Most openings never ask for it, and it is somebody else's data — not
+  /// loading it until it is wanted is both cheaper and the better default.
+  const [followedOn, setFollowedOn] = useState(false);
+  const [followed, setFollowed] = useState<SharedPlace[] | null>(null);
+  const [followedPick, setFollowedPick] = useState<string | null>(null);
+
+  /// The tapped one, found rather than asserted — the layer can be switched
+  /// off while its card is open.
+  const pickedShared =
+    followedOn && followedPick ? ((followed ?? []).find((p) => p.id === followedPick) ?? null) : null;
+
+  async function showFollowed() {
+    setFollowedOn(true);
+    if (followed !== null) return;
+    try {
+      const body = await api<{ places: SharedPlace[] }>("/api/shared-places");
+      setFollowed(body.places);
+    } catch {
+      setFollowed([]);
+    }
+  }
   /// Room enough for the list to stand beside the map instead of over it.
   ///
   /// On a phone the list is a sheet you pull up, because the map is the whole
@@ -479,6 +505,32 @@ export default function MapScreen() {
         onSaved={reload}
       />
 
+      {/* Somebody else's pin, tapped. Over the map like the other sheets, and
+          dismissed the same way. */}
+      {pickedShared && (
+        <View style={[styles.sharedSheet, { paddingBottom: insets.bottom + 16 }]}>
+          <SharedPlaceCard place={pickedShared} onClose={() => setFollowedPick(null)} />
+        </View>
+      )}
+
+      {/* Said rather than left as a chip that appears to do nothing. Sharing is
+          off until somebody turns it on, so an empty layer is the ordinary
+          case rather than a fault. */}
+      {followedOn && followed !== null && followed.length === 0 && (
+        <View
+          style={[
+            styles.sharedSheet,
+            styles.sharedEmpty,
+            { backgroundColor: palette.surface, borderColor: palette.border, bottom: insets.bottom + 90 },
+          ]}
+        >
+          <Text style={[type.meta, { color: palette.muted }]}>
+            Nobody you follow is sharing places yet. It stays off until somebody
+            turns it on, in their settings.
+          </Text>
+        </View>
+      )}
+
       <PlaceDetail
         // Keyed on the place so opening a different one starts fresh rather
         // than carrying the last one's status and stars for a render.
@@ -637,7 +689,27 @@ export default function MapScreen() {
             // Keeps the chosen pin, and its name, above its neighbours.
             zIndex={selected === place.id ? 2 : 1}
           >
-            {/* The kit's pin, and the website's: the category's colour filling
+            {followedOn &&
+          (followed ?? []).map((place) => (
+            <Marker
+              key={`shared-${place.id}`}
+              coordinate={{ latitude: place.lat, longitude: place.lng }}
+              onPress={() => setFollowedPick(place.id)}
+              zIndex={3}
+            >
+              {/* One colour for the whole layer rather than each place's
+                  category, so a glance says which pins are yours and which
+                  are somebody's recommendation. The glyph still says what
+                  the place is. */}
+              <View style={styles.pinBox}>
+                <View style={[styles.pin, { backgroundColor: PAINT.sun }]}>
+                  <Text style={styles.pinGlyph}>{place.emoji ?? "📍"}</Text>
+                </View>
+              </View>
+            </Marker>
+          ))}
+
+        {/* The kit's pin, and the website's: the category's colour filling
                 the disc with a white ring round it.
 
                 This used to be the other way about — a pale disc with a ring
@@ -844,6 +916,28 @@ export default function MapScreen() {
         style={[styles.chipScroll, { top: insets.top + 8 + TOP_ROW_HEIGHT + 10 }]}
         contentContainerStyle={styles.chipRow}
       >
+        {/* The other map, beside the filters for this one. It answers a
+            different question — not "what have I saved" but "has anybody I
+            follow been near here" — which is a question people have while
+            standing somewhere, so it is a chip rather than something in a
+            menu. */}
+        <Pressable onPress={() => (followedOn ? setFollowedOn(false) : void showFollowed())}>
+          <Glass
+            radius={999}
+            style={[
+              styles.statusChip,
+              followedOn && { backgroundColor: PAINT.sun, borderColor: PAINT.sun },
+            ]}
+          >
+            <Text style={{ fontSize: 15 }}>👣</Text>
+            <Text
+              style={[type.metaStrong, { color: followedOn ? palette.onAccent : palette.ink }]}
+            >
+              Followed
+            </Text>
+          </Glass>
+        </Pressable>
+
         {(
           [
             ["all", "All", 0, null],
@@ -1379,6 +1473,14 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
+  sharedSheet: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 0,
+    zIndex: 30,
+  },
+  sharedEmpty: { borderWidth: 1, borderRadius: 12, padding: 12 },
   /// Above the resting sheet, which owns the foot of the map.
   findMe: { position: "absolute", right: 16 },
   fab: {

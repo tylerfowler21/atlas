@@ -243,6 +243,27 @@ export type Notification = {
   actor: { name: string | null; username: string | null; image: string | null } | null;
 };
 
+/// A place somebody you follow has chosen to show you.
+///
+/// Narrower than a place of your own by design — no status, no trips, no
+/// lived-in dates. What crosses between accounts is what the reading route
+/// selects and nothing else; if a field is not here, it does not leave the
+/// building.
+export type SharedPlace = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  category: string;
+  emoji: string | null;
+  city: string | null;
+  country: string | null;
+  notes: string | null;
+  rating: number | null;
+  photoUrl: string | null;
+  user: { name: string | null; username: string | null; image: string | null };
+};
+
 export type Me = {
   id: string;
   name: string | null;
@@ -252,6 +273,9 @@ export type Me = {
   /// one they were invited at.
   email: string | null;
   onboarded: boolean;
+  /// Whether the places you have been are shown to people who follow you.
+  /// Off until somebody turns it on.
+  sharesVisited?: boolean;
   /// Whether Otto's paid half is switched on for this account. The website
   /// decides this per render on the server; the app is told once, on the call
   /// it already makes at launch, so a button is never shown and then taken

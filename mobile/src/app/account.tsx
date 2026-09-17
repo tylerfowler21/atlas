@@ -11,6 +11,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -44,6 +45,7 @@ export default function AccountScreen() {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [pendingShare, setPendingShare] = useState<boolean | null>(null);
 
   const saveProfile = useCallback(async () => {
     const handle = username.trim().toLowerCase();
@@ -98,6 +100,27 @@ export default function AccountScreen() {
   /// The handle as the server has it, rather than whatever is in the field.
   /// Half a username mid-edit would otherwise link to a profile nobody has.
   const savedUsername = me?.user.username ?? user?.username ?? null;
+
+  /// What the server last said, until this screen changes it. Derived rather
+  /// than copied into state on load: a state that mirrors a prop has to be
+  /// kept in step with it, and this one only ever differs while a request is
+  /// in flight.
+  const sharesVisited = pendingShare ?? me?.user.sharesVisited ?? false;
+
+  /// Applied at once and asked afterwards: a switch that waits for a network
+  /// before it moves reads as broken.
+  async function setSharing(next: boolean) {
+    setPendingShare(next);
+    try {
+      await api("/api/me", {
+        method: "PATCH",
+        body: JSON.stringify({ sharesVisited: next }),
+      });
+      reloadMe();
+    } catch {
+      setPendingShare(null);
+    }
+  }
 
   const unread = notes?.unread ?? 0;
 
@@ -154,6 +177,30 @@ export default function AccountScreen() {
             <Text style={{ color: palette.muted, fontSize: 18 }}>›</Text>
           </Pressable>
         )}
+
+        {/* The only switch here that changes who can see something, so it
+            says what it does and what it will never do. A setting whose scope
+            somebody has to guess at is a setting they turn off again. */}
+        <View style={[styles.share, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <View style={styles.shareWords}>
+            <Text style={{ color: palette.ink, fontSize: 15, fontWeight: "500" }}>
+              Show where I&apos;ve been to followers
+            </Text>
+            <Text style={[styles.hint, { color: palette.muted, marginTop: 4 }]}>
+              Your visited places appear on their map, with your name, your
+              notes and your rating.
+            </Text>
+            <Text style={[styles.hint, { color: palette.muted, marginTop: 4 }]}>
+              Never anywhere you lived, never your want-to-go list, and never
+              journal entries.
+            </Text>
+          </View>
+          <Switch
+            value={sharesVisited}
+            onValueChange={(next) => void setSharing(next)}
+            trackColor={{ true: palette.primary }}
+          />
+        </View>
 
         <View style={styles.between}>
           <Text style={[styles.label, { color: palette.muted }]}>Notifications</Text>
@@ -261,6 +308,16 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
+  share: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 20,
+  },
+  shareWords: { flex: 1 },
   body: { padding: 16 },
   name: { fontSize: 22, fontWeight: "600" },
   label: { fontSize: 12, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 24, marginBottom: 6 },
