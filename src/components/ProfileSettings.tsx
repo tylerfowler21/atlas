@@ -8,18 +8,21 @@ export default function ProfileSettings({
   initialHomeCity,
   initialWantsToGo,
   initialTravelStyle,
+  initialSharesVisited,
 }: {
   initialUsername: string | null;
   initialBio: string | null;
   initialHomeCity: string | null;
   initialWantsToGo: string | null;
   initialTravelStyle: string | null;
+  initialSharesVisited: boolean;
 }) {
   const [username, setUsername] = useState(initialUsername ?? "");
   const [bio, setBio] = useState(initialBio ?? "");
   const [homeCity, setHomeCity] = useState(initialHomeCity ?? "");
   const [wantsToGo, setWantsToGo] = useState(initialWantsToGo ?? "");
   const [travelStyle, setTravelStyle] = useState(initialTravelStyle ?? "");
+  const [sharesVisited, setSharesVisited] = useState(initialSharesVisited);
   const [saved, setSaved] = useState<string | null>(initialUsername);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +40,7 @@ export default function ProfileSettings({
         homeCity: homeCity.trim() || null,
         wantsToGo: wantsToGo.trim() || null,
         travelStyle: travelStyle.trim() || null,
+        sharesVisited,
       }),
     });
     const body = await res.json().catch(() => ({}));
@@ -119,6 +123,35 @@ export default function ProfileSettings({
           onChange={(e) => setTravelStyle(e.target.value)}
         />
       </label>
+
+      {/* The only switch here that changes who can see something, so it says
+          what it does and what it will never do. A setting whose scope somebody
+          has to guess at is a setting they turn off again. */}
+      <div className="rounded-xl border border-line p-3">
+        <label className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={sharesVisited}
+            onChange={(e) => setSharesVisited(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-[color:var(--accent)]"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">
+              Show the places I&apos;ve been to people who follow me
+            </span>
+            <span className="mt-1 block text-xs text-muted">
+              They appear on their map, with your name, your notes and your
+              rating — so somebody standing in a city you know can see what you
+              thought of it.
+            </span>
+            <span className="mt-1 block text-xs text-muted">
+              Only places marked <strong>been there</strong>. Never anywhere you
+              lived, never your want-to-go list, and never journal entries —
+              those stay private whatever this says.
+            </span>
+          </span>
+        </label>
+      </div>
 
       {error && <p className="text-xs text-red-500">{error}</p>}
 

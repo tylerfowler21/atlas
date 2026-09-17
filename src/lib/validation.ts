@@ -303,6 +303,11 @@ export const profileSchema = z.object({
   /// tell a reader more than either would at four times the length.
   wantsToGo: optionalText(200),
   travelStyle: optionalText(200),
+  /// Whether the places you have been are shown to people who follow you.
+  /// What that covers is decided by the reading route rather than here —
+  /// visited only, never lived, never wishlist — so this is one bit and the
+  /// rules it obeys live in one place.
+  sharesVisited: z.boolean().optional(),
 });
 
 export const followSchema = z.object({

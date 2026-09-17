@@ -76,6 +76,18 @@ model User {
   /// you actually want to know about somebody before following them, and the
   /// thing no count of countries tells you.
   travelStyle   String?
+  /// Whether the places you have been are shown to people who follow you.
+  ///
+  /// Off until somebody says otherwise. Saved places are the most private
+  /// thing in this app — a wishlist, a rating, a note about a restaurant, and
+  /// in the "lived" case an address history — so sharing them is a thing you
+  /// do rather than a thing that happens to you.
+  ///
+  /// What this covers is deliberately narrower than "my places": only status
+  /// "visited", never "lived" and never "wishlist". Where somebody has lived
+  /// is not a recommendation and no switch should be able to publish it;
+  /// somewhere they hope to go is not one either.
+  sharesVisited Boolean @default(false)
   /// Set once someone has been through (or skipped) the welcome. Null means
   /// they have never seen it, which is what sends them there.
   onboardedAt   DateTime?

@@ -25,6 +25,7 @@ export async function GET() {
       /// they were invited at, and leaving is removing that row.
       email: true,
       onboardedAt: true,
+      sharesVisited: true,
     },
   });
   if (!user) return unauthorized();
@@ -51,7 +52,8 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
-  const { username, bio, homeCity, wantsToGo, travelStyle, onboarded } = parsed.data;
+  const { username, bio, homeCity, wantsToGo, travelStyle, onboarded, sharesVisited } =
+    parsed.data;
 
   if (username) {
     const taken = await prisma.user.findUnique({
@@ -72,6 +74,7 @@ export async function PATCH(request: Request) {
       ...(wantsToGo !== undefined ? { wantsToGo } : {}),
       ...(travelStyle !== undefined ? { travelStyle } : {}),
       ...(onboarded ? { onboardedAt: new Date() } : {}),
+      ...(sharesVisited !== undefined ? { sharesVisited } : {}),
     },
     select: {
       username: true,
@@ -80,6 +83,7 @@ export async function PATCH(request: Request) {
       wantsToGo: true,
       travelStyle: true,
       onboardedAt: true,
+      sharesVisited: true,
     },
   });
 
