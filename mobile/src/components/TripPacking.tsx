@@ -21,10 +21,14 @@ import { usePalette } from "@/lib/use-palette";
 export default function TripPacking({
   tripId,
   items,
+  startDate,
   onChanged,
 }: {
   tripId: string;
   items: TripResource[];
+  /// Only so the list can say when it will remind you. The reminder itself is
+  /// scheduled by the trip screen, off the same two facts.
+  startDate: string | null;
   onChanged: () => void;
 }) {
   const palette = usePalette();
@@ -35,6 +39,14 @@ export default function TripPacking({
 
   const packed = (item: TripResource) => ticked[item.id] ?? item.ready;
   const left = items.filter((i) => !packed(i)).length;
+  /// Whether there is still an evening before to be reminded on.
+  ///
+  /// The clock is read once when the screen opens rather than on every render:
+  /// a render is meant to give the same answer twice, and "is this date in the
+  /// future" read mid-render does not. Nobody holds a packing list open long
+  /// enough for the difference to matter.
+  const [opened] = useState(() => Date.now());
+  const leavesLater = startDate ? new Date(startDate).getTime() > opened : false;
 
   async function add() {
     const what = label.trim();
@@ -117,6 +129,15 @@ export default function TripPacking({
         </View>
       ))}
 
+      {/* An invisible reminder is a surprise. Said here rather than left to
+          arrive unannounced — and only when there is actually going to be
+          one, so it is never a promise the phone will not keep. */}
+      {left > 0 && leavesLater && (
+        <Text style={[type.meta, styles.promise, { color: palette.muted }]}>
+          You&apos;ll be reminded the evening before you leave.
+        </Text>
+      )}
+
       <TextInput
         style={[
           styles.field,
@@ -150,4 +171,5 @@ const styles = StyleSheet.create({
   label: { flex: 1 },
   struck: { textDecorationLine: "line-through" },
   field: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 10 },
+  promise: { marginTop: 10 },
 });

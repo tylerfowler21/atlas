@@ -51,7 +51,7 @@ import TripPacking from "@/components/TripPacking";
 import TripFiles from "@/components/TripFiles";
 import AddFromLink from "@/components/AddFromLink";
 import { BOOKING_BOOKED, BOOKING_NEEDED, outstanding } from "@/lib/bookings";
-import { syncReminders } from "@/lib/booking-reminders";
+import { syncPackingReminder, syncReminders } from "@/lib/reminders";
 import { useApi } from "@/lib/use-api";
 import { usePalette } from "@/lib/use-palette";
 
@@ -160,6 +160,13 @@ export default function TripScreen() {
     .map((i) => `${i.id}:${i.booking ?? ""}:${i.bookBy ?? ""}`)
     .join("|");
 
+  /// What is still not in the bag, and when the trip leaves — the whole of
+  /// what the packing reminder is made of.
+  const unpacked = (data?.resources ?? []).filter(
+    (r) => isPacking(r.kind) && !r.ready,
+  ).length;
+  const packingKey = `${data?.trip.startDate ?? ""}:${unpacked}`;
+
   useEffect(() => {
     if (!data) return;
     void syncReminders(
@@ -177,6 +184,15 @@ export default function TripScreen() {
     // nothing does not reschedule the lot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reminderKey]);
+
+  useEffect(() => {
+    if (!data) return;
+    void syncPackingReminder(
+      { id: data.trip.id, title: data.trip.title, startDate: data.trip.startDate },
+      unpacked,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packingKey]);
 
   /// Where to ask about, day by day. A trip through three cities is three
   /// questions; one that stays put is still one.
@@ -439,6 +455,7 @@ export default function TripScreen() {
               <TripPacking
                 tripId={id}
                 items={(data.resources ?? []).filter((r) => isPacking(r.kind))}
+                startDate={data.trip.startDate}
                 onChanged={reload}
               />
             </>

@@ -1,4 +1,4 @@
-/// Reminding somebody about a booking before it lapses.
+/// The two things this app reminds anybody about, and both on the phone.
 ///
 /// Scheduled on the phone rather than pushed from a server. A local
 /// notification needs no push token, no per-device registry and no scheduled
@@ -31,6 +31,11 @@ async function load(): Promise<Notifications | null> {
 /// during a day, and a notification at midnight is one you wake up to having
 /// already dismissed.
 const HOUR = 9;
+
+/// Six in the evening, the day before leaving. Packing is a thing people do at
+/// night with a suitcase open, and a reminder at nine in the morning is one
+/// they read at work and have forgotten by the time they are home.
+const PACKING_HOUR = 18;
 
 export type Reminder = {
   /// The itinerary item, which doubles as the notification's identifier so
@@ -98,5 +103,64 @@ export async function syncReminders(reminders: Reminder[], allIds: string[]) {
     } catch {
       // One reminder that cannot be scheduled should not cost the others.
     }
+  }
+}
+
+/// One reminder per trip, the evening before it starts: what is still not in
+/// the bag.
+///
+/// Derived rather than set. Nobody puts a date on a pair of socks, and a list
+/// of twenty items with twenty reminders is a phone worth silencing — so the
+/// only date that matters is the one the trip already has, and the only
+/// question is whether anything is left.
+///
+/// Rescheduled on every read of the trip, like the booking ones, because the
+/// thing that most often changes is somebody else ticking items off. The
+/// identifier is the trip's, so a reschedule replaces rather than stacks, and
+/// an empty list cancels instead of reminding you about nothing.
+export async function syncPackingReminder(
+  trip: { id: string; title: string; startDate: string | null },
+  unpacked: number,
+) {
+  const N = await load();
+  if (!N) return;
+
+  const id = `packing:${trip.id}`;
+  try {
+    await N.cancelScheduledNotificationAsync(id);
+  } catch {
+    // Nothing scheduled under that id, which is the common case.
+  }
+
+  if (unpacked === 0 || !trip.startDate) return;
+
+  const starts = new Date(trip.startDate);
+  const when = new Date(
+    starts.getUTCFullYear(),
+    starts.getUTCMonth(),
+    starts.getUTCDate() - 1,
+    PACKING_HOUR,
+    0,
+    0,
+  );
+  // Checked before asking for permission, so a trip that left last month does
+  // not produce a system prompt for a notification that would never fire.
+  if (when.getTime() <= Date.now()) return;
+  if (!(await permissionGranted())) return;
+
+  try {
+    await N.scheduleNotificationAsync({
+      identifier: id,
+      content: {
+        title: `Packing for ${trip.title}`,
+        body:
+          unpacked === 1
+            ? "One thing still on the list."
+            : `${unpacked} things still on the list.`,
+      },
+      trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: when },
+    });
+  } catch {
+    // A reminder that cannot be scheduled is not worth failing a screen over.
   }
 }
