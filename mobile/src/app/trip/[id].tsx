@@ -25,6 +25,7 @@ import { dayCount } from "@/lib/trip-days";
 import PlaceThumb from "@/components/PlaceThumb";
 import OfflineNote from "@/components/OfflineNote";
 import OttoSays from "@/components/OttoSays";
+import AskOtto from "@/components/AskOtto";
 import PublishPrompt from "@/components/PublishPrompt";
 import Column from "@/components/Column";
 import { WIDE } from "@/lib/wide";
@@ -734,6 +735,14 @@ export default function TripScreen() {
                     </View>
                   );
                 })}
+
+                {/* A gap in a trip is Otto's moment, and only a gap. With
+                    nothing anywhere on the trip he has nothing to read and
+                    says so instead — which is what the empty-trip line above
+                    is for. Once there is something to work from, he offers. */}
+                {stops.length === 0 && data.items.length > 0 && user?.otto && (
+                  <AskOtto tripId={id} dayIndex={day} onApplied={reload} />
+                )}
 
                 <View style={styles.addRow}>
                   <Pressable
