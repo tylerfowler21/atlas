@@ -8,36 +8,45 @@ import { prisma } from "@/lib/prisma";
 /// that spends tokens counts against this, and the paywall — when there is one
 /// — changes a number here rather than every route that calls a model.
 
-/// What one account may spend in a day, free.
+/// What one account may spend in a month.
 ///
-/// Every run is a paid call to somebody else's API, and an endpoint that will
-/// make one on request is an endpoint that will make a thousand. Worth knowing
-/// while choosing this number: a run is not free to us, and five a day for a
-/// year is far more model time than a modest subscription covers. The ceiling
-/// matters more than the average.
-export const RUNS_PER_DAY = 5;
+/// A month rather than a day, for two reasons.
+///
+/// Nobody plans a trip at five runs a day. They plan it on a Sunday evening in
+/// one sitting and then do not open the thing for six weeks, so a daily cap
+/// stops the only session that mattered and then hands back an allowance
+/// nobody wants. A pool fits the shape of the activity: spend it in an evening
+/// if that is when the evening is.
+///
+/// And a day was the wrong unit to price. Five a day is a hundred and fifty a
+/// month; at what a run costs, that is an order of magnitude more model time
+/// than thirty dollars a year can buy. A ceiling nobody was ever meant to
+/// reach is not a limit, it is a liability that happens not to have been
+/// claimed yet.
+///
+/// Thirty is what the arithmetic allows with room to spare, once a run is on
+/// Sonnet with its history cached. Re-run `scripts/ai-costs.ts` against real
+/// usage before moving it.
+export const RUNS_PER_MONTH = 30;
 
-/// Midnight, rather than twenty-four hours ago.
-///
-/// A rolling window makes "they come back tomorrow" a lie: somebody who spends
-/// their allowance across an evening gets it back one at a time through the
-/// following evening, and coming back the next morning finds the door still
-/// shut. Midnight UTC, like every other date this app reasons about — west of
-/// Greenwich that falls in the evening, so the allowance returns earlier than
-/// promised rather than later.
-function startOfDay(now = new Date()) {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+/// The first of the month, UTC — like every other date this app reasons about.
+/// A calendar month rather than thirty rolling days for the same reason the
+/// day was midnight and not a rolling twenty-four hours: "they come back on
+/// the first" is a promise somebody can hold you to, and a rolling window
+/// dribbles them back one at a time in a way nobody can predict.
+function startOfMonth(now = new Date()) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
-export async function runsUsedToday(userId: string) {
+export async function runsUsedThisMonth(userId: string) {
   return prisma.aiDraft.count({
-    where: { userId, createdAt: { gte: startOfDay() } },
+    where: { userId, createdAt: { gte: startOfMonth() } },
   });
 }
 
 /// What to say when there is nothing left. Said here so both features say it
 /// the same way, and so it stays true if the number changes.
-export const noneLeft = `That's ${RUNS_PER_DAY} today, which is the limit for now. They come back tomorrow.`;
+export const noneLeft = `That's ${RUNS_PER_MONTH} this month, which is the limit for now. They come back on the first.`;
 
 /// Recorded after the work is done, never before: a run that failed cost the
 /// model nothing worth charging for, and somebody whose day came back empty
@@ -50,7 +59,7 @@ export async function recordRun(run: {
   days: number;
   /// What came back, kept so a run survives a closed tab.
   text: string;
-  usage: { inputTokens: number; outputTokens: number };
+  usage: { inputTokens: number; outputTokens: number; cachedTokens?: number };
 }) {
   await prisma.aiDraft.create({
     data: {
@@ -60,6 +69,7 @@ export async function recordRun(run: {
       itinerary: run.text,
       inputTokens: run.usage.inputTokens,
       outputTokens: run.usage.outputTokens,
+      cachedTokens: run.usage.cachedTokens ?? 0,
     },
   });
 }

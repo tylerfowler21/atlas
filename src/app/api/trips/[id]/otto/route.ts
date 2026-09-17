@@ -5,7 +5,7 @@ import { unauthorized } from "@/lib/api";
 import { getCurrentUser } from "@/lib/user";
 import { tripAccess } from "@/lib/trip-access";
 import { firstIssue } from "@/lib/validation";
-import { RUNS_PER_DAY, noneLeft, recordRun, runsUsedToday } from "@/lib/ai-allowance";
+import { RUNS_PER_MONTH, noneLeft, recordRun, runsUsedThisMonth } from "@/lib/ai-allowance";
 import { ottoConfigured, runOtto } from "@/lib/otto";
 import { ottoOffered } from "@/lib/admin";
 
@@ -44,8 +44,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   }
 
-  const used = await runsUsedToday(user.id);
-  if (used >= RUNS_PER_DAY) {
+  const used = await runsUsedThisMonth(user.id);
+  if (used >= RUNS_PER_MONTH) {
     return NextResponse.json({ error: noneLeft }, { status: 429 });
   }
 
@@ -75,14 +75,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // did is visible while it is happening rather than at the end of the month.
     console.log(
       `[otto] day ${parsed.data.dayIndex + 1} of ${access.trip.title} — ` +
-        `${result.turns} turns, ${result.usage.inputTokens} in, ${result.usage.outputTokens} out, ` +
+        `${result.turns} turns, ${result.usage.inputTokens} in ` +
+        `(${result.usage.cachedTokens} cached), ${result.usage.outputTokens} out, ` +
         `${result.entries.length} proposed`,
     );
 
     return NextResponse.json({
       say: result.say,
       entries: result.entries,
-      remaining: RUNS_PER_DAY - used - (result.entries.length > 0 ? 1 : 0),
+      remaining: RUNS_PER_MONTH - used - (result.entries.length > 0 ? 1 : 0),
     });
   } catch (error) {
     console.error("[otto] run failed", error);
@@ -103,7 +104,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const access = await tripAccess(id, user);
   if (!access) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const used = await runsUsedToday(user.id);
+  const used = await runsUsedThisMonth(user.id);
   const last = await prisma.aiDraft.findFirst({
     where: { userId: user.id, destination: access.trip.title },
     orderBy: { createdAt: "desc" },
@@ -114,7 +115,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     /// Whether to offer him at all. A plain answer rather than a 404, because
     /// the client asks this in order to decide whether to draw him.
     available: ottoOffered(user),
-    remaining: Math.max(0, RUNS_PER_DAY - used),
+    remaining: Math.max(0, RUNS_PER_MONTH - used),
     lastSaid: last?.itinerary ?? null,
     lastAt: last?.createdAt ?? null,
   });

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/user";
 import { unauthorized } from "@/lib/api";
 import { generateItinerary, itineraryToText, modelConfigured } from "@/lib/generate-trip";
-import { RUNS_PER_DAY, noneLeft, recordRun, runsUsedToday } from "@/lib/ai-allowance";
+import { RUNS_PER_MONTH, noneLeft, recordRun, runsUsedThisMonth } from "@/lib/ai-allowance";
 
 const bodySchema = z.object({
   destination: z.string().trim().min(2).max(120),
@@ -48,8 +48,8 @@ export async function POST(request: Request) {
 
   // The same allowance a day with Otto in it spends. One gate, so a second AI
   // feature does not quietly get its own separate five.
-  const used = await runsUsedToday(user.id);
-  if (used >= RUNS_PER_DAY) {
+  const used = await runsUsedThisMonth(user.id);
+  if (used >= RUNS_PER_MONTH) {
     return NextResponse.json({ error: noneLeft }, { status: 429 });
   }
 
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       stops: itinerary.stops,
       /// Getting between the cities, for the same reason.
       journeys: itinerary.journeys,
-      remaining: RUNS_PER_DAY - used - 1,
+      remaining: RUNS_PER_MONTH - used - 1,
     });
   } catch (error) {
     console.error("[generate] draft failed", error);

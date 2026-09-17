@@ -266,7 +266,7 @@ export default function AskOtto({
                 to spend one. */}
             {remaining !== null && stage === "offering" && (
               <span className="text-xs text-muted">
-                {remaining} left today
+                {remaining} left this month
               </span>
             )}
           </div>

@@ -259,7 +259,18 @@ export async function generateItinerary(input: ItineraryRequest): Promise<Drafte
   const asked = draftPrompt(input);
 
   const response = await client.messages.parse({
-    model: "claude-opus-5",
+    // Sonnet rather than Opus, at two fifths the price.
+    //
+    // Naming real places in a city and arranging them across days is a
+    // knowledge-and-writing job, not a reasoning one, and the schema does the
+    // part that has to be exact. Opus was what this was written against and
+    // never what it needed — five runs a day of it costs an order of magnitude
+    // more than any subscription this app could sell.
+    //
+    // Worth re-reading a Florence draft after any change here: the failure to
+    // watch for is not malformed output, which the parse catches, but duller
+    // choices — the obvious square, the restaurant everybody names.
+    model: "claude-sonnet-5",
     max_tokens: 16000,
     system: SYSTEM,
     thinking: { type: "adaptive" },

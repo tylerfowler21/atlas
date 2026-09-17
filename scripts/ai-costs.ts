@@ -9,17 +9,31 @@
 /// Drafts made before the counting started read as zero and are left out of
 /// the averages rather than dragging them down; the header says how many.
 import { prisma } from "../src/lib/db-script";
+import { RUNS_PER_MONTH } from "../src/lib/ai-allowance";
 
 /// Anthropic's published rates for the model the drafting uses, in dollars per
 /// million tokens. Cached from the pricing page on 14 September 2026 — check
 /// them against https://www.anthropic.com/pricing before trusting a number
 /// this produces to set a price.
-const MODEL = "claude-opus-5";
-const INPUT_PER_MTOK = 5;
-const OUTPUT_PER_MTOK = 25;
+const MODEL = "claude-sonnet-5";
+const INPUT_PER_MTOK = 2;
+const OUTPUT_PER_MTOK = 10;
 
-function dollars(inputTokens: number, outputTokens: number) {
-  return (inputTokens * INPUT_PER_MTOK + outputTokens * OUTPUT_PER_MTOK) / 1_000_000;
+/// A cache read is about a tenth of fresh input. Cache writes cost a quarter
+/// more than fresh, which this does not separate out — so a number here is a
+/// little optimistic on a run's first turn and right on every turn after.
+const CACHE_READ_MULTIPLIER = 0.1;
+
+function dollars(inputTokens: number, outputTokens: number, cachedTokens = 0) {
+  /// Cached tokens are counted inside `inputTokens` by the API, so they are
+  /// taken back out and re-priced rather than added on top.
+  const fresh = Math.max(0, inputTokens - cachedTokens);
+  return (
+    (fresh * INPUT_PER_MTOK +
+      cachedTokens * INPUT_PER_MTOK * CACHE_READ_MULTIPLIER +
+      outputTokens * OUTPUT_PER_MTOK) /
+    1_000_000
+  );
 }
 
 function money(value: number) {
@@ -43,6 +57,7 @@ async function main() {
       destination: true,
       inputTokens: true,
       outputTokens: true,
+      cachedTokens: true,
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },
@@ -60,7 +75,7 @@ async function main() {
     return;
   }
 
-  const costs = counted.map((d) => dollars(d.inputTokens, d.outputTokens));
+  const costs = counted.map((d) => dollars(d.inputTokens, d.outputTokens, d.cachedTokens));
   const total = costs.reduce((sum, c) => sum + c, 0);
 
   console.log(`\nPriced at ${MODEL}: $${INPUT_PER_MTOK}/MTok in, $${OUTPUT_PER_MTOK}/MTok out`);
@@ -75,15 +90,27 @@ async function main() {
       `${Math.round(median(counted.map((d) => d.outputTokens)))} out`,
   );
 
-  /// What it would cost to give somebody the current free allowance every day
-  /// for a year. Nobody drafts like that, but it is the ceiling a price has to
-  /// survive, and it is the number that decides whether a limit is generous or
+  /// What the allowance costs if somebody actually spends it. Nobody uses
+  /// every run every month, but this is the ceiling a price has to survive,
+  /// and it is the number that decides whether a limit is generous or
   /// reckless.
-  const perDraft = median(costs);
+  const perRun = median(costs);
+  const year = perRun * RUNS_PER_MONTH * 12;
   console.log(
-    `\n  5 a day for a year would be ${money(perDraft * 5 * 365)} of model time per account`,
+    `\n  ${RUNS_PER_MONTH} a month spent in full is ${money(year)} of model time a year per account`,
   );
-  console.log(`  one a week for a year is ${money(perDraft * 52)}`);
+  console.log(`  against $30 a year that leaves ${money(30 - year)} before Apple's share`);
+  console.log(`  one a week for a year is ${money(perRun * 52)}`);
+
+  const cached = counted.reduce((sum, d) => sum + d.cachedTokens, 0);
+  const allInput = counted.reduce((sum, d) => sum + d.inputTokens, 0);
+  if (allInput > 0) {
+    const share = Math.round((cached / allInput) * 100);
+    console.log(
+      `\n  ${share}% of input came from cache` +
+        (cached === 0 ? " — which means the caching is not working" : ""),
+    );
+  }
 
   /// Per account, because that is who a subscription is sold to.
   const byUser = new Map<string, number>();

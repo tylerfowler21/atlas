@@ -56,7 +56,7 @@ export type OttoResult = {
   entries: OttoEntry[];
   /// What he says about it, in a sentence or two. Shown above the list.
   say: string;
-  usage: { inputTokens: number; outputTokens: number };
+  usage: { inputTokens: number; outputTokens: number; cachedTokens: number };
   turns: number;
 };
 
@@ -343,9 +343,23 @@ export async function runOtto(input: {
 
   const client = new Anthropic();
   const runner = client.beta.messages.toolRunner({
-    model: "claude-opus-5",
+    // Sonnet rather than Opus, at two fifths the price. Finding places near
+    // other places and writing a line about each is not frontier reasoning,
+    // and the tools do the part that has to be right.
+    model: "claude-sonnet-5",
     max_tokens: 8000,
     system: SYSTEM,
+    // A tool loop pays for its own history. Every turn resends everything
+    // said so far, which is why two thirds of what a day fill costs is input
+    // rather than output — the model is billed to re-read its own working.
+    //
+    // Top-level rather than a marker on a block, because the marker has to
+    // move: it lands on the last cacheable block of whatever this turn's
+    // request happens to be, so each turn reads the last one's prefix instead
+    // of paying for it again. A read is a tenth of the price of fresh input,
+    // a write is a quarter more, so this is ahead by the second turn and this
+    // loop runs up to eight.
+    cache_control: { type: "ephemeral" },
     max_iterations: MAX_TURNS,
     tools: [readTrip, listSaved, searchPlaces, proposeStop, proposeJourney],
     messages: [
@@ -360,6 +374,11 @@ export async function runOtto(input: {
 
   let inputTokens = 0;
   let outputTokens = 0;
+  /// What the cache served instead of charging full price for. Recorded so
+  /// the saving is a measurement rather than a belief — if this stays zero,
+  /// something in the prefix is changing between turns and the caching is
+  /// doing nothing.
+  let cachedTokens = 0;
   let turns = 0;
   let say = "";
 
@@ -367,6 +386,7 @@ export async function runOtto(input: {
     turns += 1;
     inputTokens += message.usage?.input_tokens ?? 0;
     outputTokens += message.usage?.output_tokens ?? 0;
+    cachedTokens += message.usage?.cache_read_input_tokens ?? 0;
     const text = message.content
       .filter((block): block is Anthropic.Beta.BetaTextBlock => block.type === "text")
       .map((block) => block.text)
@@ -375,5 +395,5 @@ export async function runOtto(input: {
     if (text) say = text;
   }
 
-  return { entries: staged, say, usage: { inputTokens, outputTokens }, turns };
+  return { entries: staged, say, usage: { inputTokens, outputTokens, cachedTokens }, turns };
 }
